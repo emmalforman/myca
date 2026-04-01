@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import Image from "next/image";
 import { Member, Filters } from "@/lib/types";
 import { sampleMembers } from "@/data/members";
@@ -28,6 +28,8 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [spotlightIndex, setSpotlightIndex] = useState(0);
   const [showGroupPanel, setShowGroupPanel] = useState(false);
+  const [dataSource, setDataSource] = useState<string>("sample");
+  const groupsLoaded = useRef(false);
 
   // Load members from API on mount
   useEffect(() => {
@@ -35,23 +37,46 @@ export default function Home() {
       .then((r) => r.json())
       .then((data) => {
         if (data.members?.length) setMembers(data.members);
+        if (data.source) setDataSource(data.source);
       })
       .catch(() => {});
   }, []);
 
-  // Load groups from localStorage
+  // Load groups: try Supabase API first, fall back to localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("myca-groups");
-    if (saved) {
-      try {
-        setGroups(JSON.parse(saved));
-      } catch {}
-    }
+    fetch("/api/groups")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.groups?.length) {
+          setGroups(data.groups);
+          groupsLoaded.current = true;
+        } else {
+          // Fall back to localStorage
+          const saved = localStorage.getItem("myca-groups");
+          if (saved) {
+            try {
+              setGroups(JSON.parse(saved));
+            } catch {}
+          }
+          groupsLoaded.current = true;
+        }
+      })
+      .catch(() => {
+        const saved = localStorage.getItem("myca-groups");
+        if (saved) {
+          try {
+            setGroups(JSON.parse(saved));
+          } catch {}
+        }
+        groupsLoaded.current = true;
+      });
   }, []);
 
-  // Save groups to localStorage
+  // Always save to localStorage as a backup
   useEffect(() => {
-    localStorage.setItem("myca-groups", JSON.stringify(groups));
+    if (groupsLoaded.current) {
+      localStorage.setItem("myca-groups", JSON.stringify(groups));
+    }
   }, [groups]);
 
   // Derived data
@@ -105,25 +130,55 @@ export default function Home() {
     if (data.members?.length) setMembers(data.members);
   }, []);
 
-  const createGroup = useCallback((name: string) => {
-    setGroups((prev) => [
-      ...prev,
-      { id: Date.now().toString(), name, members: [], createdAt: new Date().toISOString() },
-    ]);
+  const createGroup = useCallback(async (name: string) => {
+    // Optimistic local update
+    const tempId = Date.now().toString();
+    const newGroup: Group = { id: tempId, name, members: [], createdAt: new Date().toISOString() };
+    setGroups((prev) => [...prev, newGroup]);
+
+    // Persist to Supabase
+    try {
+      const res = await fetch("/api/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (data.group) {
+        setGroups((prev) =>
+          prev.map((g) => (g.id === tempId ? { ...newGroup, id: data.group.id } : g))
+        );
+      }
+    } catch {}
   }, []);
 
   const createGroupWithMembers = useCallback(
-    (name: string, mems: Member[]) => {
-      setGroups((prev) => [
-        ...prev,
-        { id: Date.now().toString(), name, members: mems, createdAt: new Date().toISOString() },
-      ]);
+    async (name: string, mems: Member[]) => {
+      const tempId = Date.now().toString();
+      const newGroup: Group = { id: tempId, name, members: mems, createdAt: new Date().toISOString() };
+      setGroups((prev) => [...prev, newGroup]);
+
+      try {
+        const res = await fetch("/api/groups", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, memberIds: mems.map((m) => m.id) }),
+        });
+        const data = await res.json();
+        if (data.group) {
+          setGroups((prev) =>
+            prev.map((g) =>
+              g.id === tempId ? { ...newGroup, id: data.group.id } : g
+            )
+          );
+        }
+      } catch {}
     },
     []
   );
 
   const addToGroup = useCallback(
-    (memberId: string, groupId: string) => {
+    async (memberId: string, groupId: string) => {
       setGroups((prev) =>
         prev.map((g) => {
           if (g.id !== groupId) return g;
@@ -133,12 +188,20 @@ export default function Home() {
           return { ...g, members: [...g.members, member] };
         })
       );
+
+      try {
+        await fetch("/api/groups/members", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groupId, memberId }),
+        });
+      } catch {}
     },
     [members]
   );
 
   const removeFromGroup = useCallback(
-    (groupId: string, memberId: string) => {
+    async (groupId: string, memberId: string) => {
       setGroups((prev) =>
         prev.map((g) =>
           g.id === groupId
@@ -146,12 +209,23 @@ export default function Home() {
             : g
         )
       );
+
+      try {
+        await fetch(
+          `/api/groups/members?groupId=${groupId}&memberId=${memberId}`,
+          { method: "DELETE" }
+        );
+      } catch {}
     },
     []
   );
 
-  const deleteGroup = useCallback((groupId: string) => {
+  const deleteGroup = useCallback(async (groupId: string) => {
     setGroups((prev) => prev.filter((g) => g.id !== groupId));
+
+    try {
+      await fetch(`/api/groups?id=${groupId}`, { method: "DELETE" });
+    } catch {}
   }, []);
 
   const outreachGroup = useCallback((group: Group) => {
