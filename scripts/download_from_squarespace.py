@@ -13,7 +13,7 @@ import urllib.error
 import time
 import ssl
 
-CSV_PATH = os.path.expanduser("~/Downloads/sqaurespace_export_myca.csv")
+CSV_PATH = os.path.expanduser("~/Downloads/squarespace_export_myca.csv")
 PHOTOS_DIR = os.path.expanduser("~/Desktop/myca-photos")
 SUPABASE_URL = "https://nxeadvobyctultjbkcon.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54ZWFkdm9ieWN0dWx0amJrY29uIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDgyNzY2NiwiZXhwIjoyMDkwNDAzNjY2fQ.nMd37iAJJXnBtiQvf8dusf5R0AbNFsZvsoNrAbXRhY4"
