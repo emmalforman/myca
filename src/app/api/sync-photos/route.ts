@@ -3,7 +3,7 @@ import { Client } from "@notionhq/client";
 import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300; // 5 min timeout for Vercel Pro, 60s for free tier
+export const maxDuration = 300;
 
 function getPlainText(prop: any): string {
   if (!prop) return "";
@@ -29,7 +29,28 @@ function slugify(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export async function POST() {
+async function downloadWithRetry(url: string): Promise<{ data: Uint8Array; contentType: string } | null> {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (res.status === 429) {
+        await new Promise((r) => setTimeout(r, attempt * 3000));
+        continue;
+      }
+      if (!res.ok) return null;
+      const contentType = res.headers.get("content-type") || "image/jpeg";
+      const arrayBuffer = await res.arrayBuffer();
+      return { data: new Uint8Array(arrayBuffer), contentType };
+    } catch {
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
+  return null;
+}
+
+export async function POST(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const limit = parseInt(searchParams.get("limit") || "0");
   const notionKey = process.env.NOTION_API_KEY;
   const dbId = process.env.NOTION_DATABASE_ID;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -39,16 +60,15 @@ export async function POST() {
     return NextResponse.json({ error: "NOTION_API_KEY and NOTION_DATABASE_ID required" }, { status: 400 });
   }
   if (!supabaseUrl || !serviceKey) {
-    return NextResponse.json({ error: "Supabase service role key required" }, { status: 400 });
+    return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY required" }, { status: 400 });
   }
 
   const notion = new Client({ auth: notionKey });
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // Fetch all accepted members from Notion
+  // Fetch all accepted members
   const allResults: any[] = [];
   let cursor: string | undefined = undefined;
-
   do {
     const response: any = await notion.databases.query({
       database_id: dbId,
@@ -65,7 +85,9 @@ export async function POST() {
   let failed = 0;
   const log: string[] = [];
 
-  for (const page of allResults) {
+  const toProcess = limit > 0 ? allResults.slice(0, limit) : allResults;
+
+  for (const page of toProcess) {
     const p = page.properties;
     const name = getPlainText(p["What is your name?"]);
     const email = getPlainText(p["What is your email (so members can connect)"]);
@@ -78,29 +100,36 @@ export async function POST() {
     }
 
     try {
-      // Download photo from Notion signed URL
-      const response = await fetch(photoUrl);
-      if (!response.ok) {
-        log.push(`${name}: download failed (${response.status})`);
+      const image = await downloadWithRetry(photoUrl);
+      if (!image) {
+        log.push(`${name}: download failed`);
         failed++;
         continue;
       }
 
-      const contentType = response.headers.get("content-type") || "image/jpeg";
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      // Verify it's actually an image (check magic bytes)
+      const isJpeg = image.data[0] === 0xFF && image.data[1] === 0xD8;
+      const isPng = image.data[0] === 0x89 && image.data[1] === 0x50;
+      const isWebp = image.data[8] === 0x57 && image.data[9] === 0x45;
+      const isGif = image.data[0] === 0x47 && image.data[1] === 0x49;
 
-      const extMap: Record<string, string> = {
-        "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png",
-        "image/webp": "webp", "image/gif": "gif",
-      };
-      const ext = extMap[contentType] || "jpg";
+      if (!isJpeg && !isPng && !isWebp && !isGif) {
+        log.push(`${name}: not a valid image (${image.contentType}, ${image.data.length} bytes, first bytes: ${image.data[0]},${image.data[1]})`);
+        failed++;
+        continue;
+      }
+
+      const ext = isJpeg ? "jpg" : isPng ? "png" : isWebp ? "webp" : "gif";
+      const contentType = isJpeg ? "image/jpeg" : isPng ? "image/png" : isWebp ? "image/webp" : "image/gif";
       const fileName = `${slugify(name)}-${notionId.slice(0, 8)}.${ext}`;
 
-      // Upload to Supabase Storage
+      // Upload as Uint8Array directly
       const { error: uploadError } = await supabase.storage
         .from("photos")
-        .upload(fileName, buffer, { contentType, upsert: true });
+        .upload(fileName, image.data, {
+          contentType,
+          upsert: true,
+        });
 
       if (uploadError) {
         log.push(`${name}: upload failed - ${uploadError.message}`);
@@ -108,12 +137,11 @@ export async function POST() {
         continue;
       }
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from("photos")
         .getPublicUrl(fileName);
 
-      // Update contacts table by email or notion_id
+      // Update contacts table
       let updated = false;
       if (email) {
         const { error } = await supabase
@@ -129,19 +157,16 @@ export async function POST() {
           .eq("notion_id", notionId);
       }
 
-      log.push(`${name}: OK -> ${fileName}`);
+      log.push(`${name}: OK (${ext}, ${Math.round(image.data.length / 1024)}KB)`);
       uploaded++;
+
+      // Rate limit delay
+      await new Promise((r) => setTimeout(r, 400));
     } catch (err: any) {
       log.push(`${name}: error - ${err.message}`);
       failed++;
     }
   }
 
-  return NextResponse.json({
-    total: allResults.length,
-    uploaded,
-    skipped,
-    failed,
-    log,
-  });
+  return NextResponse.json({ total: allResults.length, uploaded, skipped, failed, log });
 }
