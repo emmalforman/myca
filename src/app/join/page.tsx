@@ -1,19 +1,40 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { LOCATIONS } from "@/lib/types";
+
+const LOCATIONS = [
+  "New York 🗽",
+  "San Francisco 🌉",
+  "Los Angeles 🎬",
+  "London 🇬🇧",
+  "Chicago 🍕",
+  "Other",
+];
+
+const REFERRAL_SOURCES = [
+  "A friend or colleague",
+  "LinkedIn",
+  "Instagram",
+  "Twitter / X",
+  "Event",
+  "Newsletter",
+  "Google Search",
+  "Other",
+];
 
 export default function JoinPage() {
   const [form, setForm] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     company: "",
     title: "",
     occupation: "",
     linkedin: "",
     email: "",
     phone: "",
-    location: [] as string[],
+    location: "",
     comfortFood: "",
+    referralSource: "",
     hopingToGet: "",
     excitedToContribute: "",
   });
@@ -23,15 +44,6 @@ export default function JoinPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleLocationToggle = (loc: string) => {
-    setForm((f) => ({
-      ...f,
-      location: f.location.includes(loc)
-        ? f.location.filter((l) => l !== loc)
-        : [...f.location, loc],
-    }));
-  };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -64,7 +76,12 @@ export default function JoinPage() {
       const res = await fetch("/api/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, photoUrl }),
+        body: JSON.stringify({
+          name: `${form.firstName} ${form.lastName}`.trim(),
+          ...form,
+          location: [form.location],
+          photoUrl,
+        }),
       });
 
       if (!res.ok) {
@@ -81,11 +98,16 @@ export default function JoinPage() {
   };
 
   const inputClass =
-    "w-full px-4 py-3 bg-white border border-ink-200 text-ink-900 text-[14px] placeholder-ink-300 focus:outline-none focus:border-ink-400 transition-colors";
+    "w-full px-4 py-3.5 bg-white border border-ink-200 rounded-full text-ink-900 text-[14px] placeholder-ink-300 focus:outline-none focus:border-ink-400 transition-colors";
+  const textareaClass =
+    "w-full px-4 py-3.5 bg-white border border-ink-200 rounded-2xl text-ink-900 text-[14px] placeholder-ink-300 focus:outline-none focus:border-ink-400 transition-colors resize-none";
+  const labelClass =
+    "block text-[14px] text-ink-800 mb-2";
+  const requiredClass = "text-ink-400 text-[13px] ml-1";
 
   if (submitted) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center px-6">
+      <div className="min-h-[80vh] flex items-center justify-center px-6">
         <div className="max-w-md text-center">
           <p className="text-[11px] uppercase tracking-[0.3em] text-clay-500 font-mono mb-4">
             Application received
@@ -103,213 +125,303 @@ export default function JoinPage() {
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="bg-ink-950">
-        <div className="max-w-6xl mx-auto px-6 lg:px-8 py-16 sm:py-20">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-clay-500 font-mono mb-3">
-            Apply
-          </p>
-          <h1 className="text-3xl sm:text-4xl font-serif text-white mb-2">
-            Request Membership.
-          </h1>
-          <p className="text-ink-400 text-[15px] max-w-lg">
-            Tell us about yourself and what you&apos;d bring to the collective.
-          </p>
-        </div>
-      </div>
-
-      <div className="max-w-xl mx-auto px-6 py-12 sm:py-16">
+    <div className="bg-parchment min-h-screen">
+      <div className="max-w-xl mx-auto px-6 py-16 sm:py-24">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Name */}
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
-              Full Name <span className="text-rust-500">*</span>
-            </label>
+            <p className={labelClass}>Name</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[13px] text-ink-500 mb-1.5">
+                  First Name <span className={requiredClass}>(required)</span>
+                </p>
+                <input
+                  type="text"
+                  required
+                  value={form.firstName}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, firstName: e.target.value }))
+                  }
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <p className="text-[13px] text-ink-500 mb-1.5">
+                  Last Name <span className={requiredClass}>(required)</span>
+                </p>
+                <input
+                  type="text"
+                  required
+                  value={form.lastName}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, lastName: e.target.value }))
+                  }
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Where do you work */}
+          <div>
+            <p className={labelClass}>
+              Where do you work? <span className={requiredClass}>(required)</span>
+            </p>
             <input
               type="text"
               required
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="First and last name"
+              value={form.company}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, company: e.target.value }))
+              }
               className={inputClass}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
-                Company <span className="text-rust-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={form.company}
-                onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
-                Title <span className="text-rust-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                className={inputClass}
-              />
-            </div>
-          </div>
-
+          {/* Title */}
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
-              How would you describe your occupation?
-            </label>
+            <p className={labelClass}>
+              What is your title? <span className={requiredClass}>(required)</span>
+            </p>
             <input
               type="text"
-              value={form.occupation}
-              onChange={(e) => setForm((f) => ({ ...f, occupation: e.target.value }))}
-              placeholder="Founder, investor, operator, creative..."
+              required
+              value={form.title}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, title: e.target.value }))
+              }
               className={inputClass}
             />
           </div>
 
+          {/* Occupation */}
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
-              LinkedIn <span className="text-rust-500">*</span>
-            </label>
+            <p className={labelClass}>
+              How would you describe your occupation (founder, investor,
+              operator, etc)? <span className={requiredClass}>(required)</span>
+            </p>
+            <input
+              type="text"
+              required
+              value={form.occupation}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, occupation: e.target.value }))
+              }
+              className={inputClass}
+            />
+          </div>
+
+          {/* LinkedIn */}
+          <div>
+            <p className={labelClass}>
+              Please add your Linkedin{" "}
+              <span className={requiredClass}>(required)</span>
+            </p>
             <input
               type="url"
               required
               value={form.linkedin}
-              onChange={(e) => setForm((f) => ({ ...f, linkedin: e.target.value }))}
-              placeholder="https://linkedin.com/in/..."
+              onChange={(e) =>
+                setForm((f) => ({ ...f, linkedin: e.target.value }))
+              }
+              placeholder="http://"
               className={inputClass}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
-                Email <span className="text-rust-500">*</span>
-              </label>
-              <input
-                type="email"
-                required
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
-                Phone
-              </label>
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                className={inputClass}
-              />
-            </div>
+          {/* Email */}
+          <div>
+            <p className={labelClass}>
+              What is your email (so members can connect){" "}
+              <span className={requiredClass}>(required)</span>
+            </p>
+            <input
+              type="email"
+              required
+              value={form.email}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, email: e.target.value }))
+              }
+              className={inputClass}
+            />
           </div>
 
+          {/* Phone */}
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
-              Where do you spend time? <span className="text-rust-500">*</span>
-            </label>
-            <div className="flex flex-wrap gap-2">
+            <p className={labelClass}>
+              What is your cell number (so we can add your to our WhatsApp
+              group) <span className={requiredClass}>(required)</span>
+            </p>
+            <input
+              type="tel"
+              required
+              value={form.phone}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, phone: e.target.value }))
+              }
+              className={inputClass}
+            />
+          </div>
+
+          {/* Location - radio buttons */}
+          <div>
+            <p className={labelClass}>
+              Where do you spend most of your time? (we love IRL time!){" "}
+              <span className={requiredClass}>(required)</span>
+            </p>
+            <div className="space-y-3 mt-2">
               {LOCATIONS.map((loc) => (
-                <button
+                <label
                   key={loc}
-                  type="button"
-                  onClick={() => handleLocationToggle(loc)}
-                  className={`px-4 py-2 text-[13px] border transition-colors ${
-                    form.location.includes(loc)
-                      ? "bg-ink-900 text-white border-ink-900"
-                      : "bg-white text-ink-500 border-ink-200 hover:border-ink-400"
-                  }`}
+                  className="flex items-center gap-3 cursor-pointer group"
                 >
-                  {loc}
-                </button>
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      form.location === loc
+                        ? "border-ink-900"
+                        : "border-ink-300 group-hover:border-ink-400"
+                    }`}
+                  >
+                    {form.location === loc && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-ink-900" />
+                    )}
+                  </div>
+                  <span className="text-[14px] text-ink-700">{loc}</span>
+                </label>
               ))}
             </div>
           </div>
 
+          {/* Comfort food */}
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
-              Comfort food <span className="text-rust-500">*</span>
-            </label>
+            <p className={labelClass}>
+              What&apos;s the one food that always makes you feel at home?{" "}
+              <span className={requiredClass}>(required)</span>
+            </p>
             <input
               type="text"
               required
               value={form.comfortFood}
-              onChange={(e) => setForm((f) => ({ ...f, comfortFood: e.target.value }))}
-              placeholder="The dish that always feels like home"
+              onChange={(e) =>
+                setForm((f) => ({ ...f, comfortFood: e.target.value }))
+              }
               className={inputClass}
             />
           </div>
 
+          {/* How did you hear about us */}
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
-              What are you hoping to get out of Myca? <span className="text-rust-500">*</span>
-            </label>
+            <p className={labelClass}>
+              How did you hear about us?{" "}
+              <span className={requiredClass}>(required)</span>
+            </p>
+            <div className="relative">
+              <select
+                required
+                value={form.referralSource}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, referralSource: e.target.value }))
+                }
+                className={`${inputClass} appearance-none cursor-pointer pr-10`}
+              >
+                <option value="">Select an option</option>
+                {REFERRAL_SOURCES.map((src) => (
+                  <option key={src} value={src}>
+                    {src}
+                  </option>
+                ))}
+              </select>
+              <svg
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Hoping to get */}
+          <div>
+            <p className={labelClass}>
+              What are you hoping to get out of Myca? *{" "}
+              <span className={requiredClass}>(required)</span>
+            </p>
             <textarea
               required
               value={form.hopingToGet}
-              onChange={(e) => setForm((f) => ({ ...f, hopingToGet: e.target.value }))}
-              rows={3}
-              className={inputClass + " resize-none"}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, hopingToGet: e.target.value }))
+              }
+              rows={4}
+              className={textareaClass}
             />
           </div>
 
+          {/* Excited to contribute */}
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
-              What are you excited to contribute? <span className="text-rust-500">*</span>
-            </label>
+            <p className={labelClass}>
+              What are you most excited to contribute to the Myca community?{" "}
+              <span className={requiredClass}>(required)</span>
+            </p>
             <textarea
               required
               value={form.excitedToContribute}
-              onChange={(e) => setForm((f) => ({ ...f, excitedToContribute: e.target.value }))}
-              rows={3}
-              className={inputClass + " resize-none"}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  excitedToContribute: e.target.value,
+                }))
+              }
+              rows={4}
+              className={textareaClass}
             />
           </div>
 
+          {/* Photo upload */}
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
-              Headshot <span className="text-rust-500">*</span>
-            </label>
+            <p className={labelClass}>
+              Please upload a photo of yourself!{" "}
+              <span className={requiredClass}>(required)</span>
+            </p>
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="cursor-pointer border border-dashed border-ink-200 p-8 text-center hover:border-ink-400 transition-colors bg-white"
+              className="cursor-pointer border-2 border-dashed border-ink-300 rounded-2xl p-10 text-center hover:border-ink-400 transition-colors bg-white"
             >
               {photoPreview ? (
                 <div className="flex flex-col items-center">
                   <img
                     src={photoPreview}
                     alt="Preview"
-                    className="w-20 h-20 object-cover mb-3"
+                    className="w-20 h-20 object-cover rounded-full mb-3"
                   />
                   <p className="text-[13px] text-ink-400">Click to change</p>
                 </div>
               ) : (
                 <>
-                  <svg
-                    className="w-8 h-8 text-ink-200 mx-auto mb-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1}
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <p className="text-[13px] text-ink-400">Upload a photo</p>
+                  <div className="w-10 h-10 bg-ink-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg
+                      className="w-5 h-5 text-ink-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-[14px] text-ink-500">Add a File</p>
                 </>
               )}
               <input
@@ -323,17 +435,17 @@ export default function JoinPage() {
           </div>
 
           {error && (
-            <div className="p-4 border border-rust-200 bg-rust-50 text-[13px] text-rust-700">
+            <div className="p-4 border border-rust-200 bg-rust-50 text-[13px] text-rust-700 rounded-xl">
               {error}
             </div>
           )}
 
           <button
             type="submit"
-            disabled={submitting || form.location.length === 0}
-            className="w-full py-4 text-[13px] uppercase tracking-wider font-medium text-white bg-ink-900 hover:bg-ink-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={submitting || !form.location}
+            className="px-8 py-3.5 text-[14px] font-medium text-white bg-ink-900 rounded-full hover:bg-ink-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {submitting ? "Submitting..." : "Submit Application"}
+            {submitting ? "Submitting..." : "Submit"}
           </button>
         </form>
       </div>
