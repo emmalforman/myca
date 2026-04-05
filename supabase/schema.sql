@@ -1,27 +1,48 @@
--- Myca Member Directory Schema
--- Run this in your Supabase SQL editor to set up the database
+-- Myca Collective - Database Schema
+-- Run this in your Supabase SQL editor
 
--- Members table
+-- Members table (matches Notion fields)
 create table if not exists public.members (
   id uuid default gen_random_uuid() primary key,
-  first_name text not null,
-  last_name text not null,
+  full_name text not null,
+  first_name text,
+  last_name text,
   email text not null unique,
   phone text,
   photo_url text,
   title text,
   company text,
-  location text,
-  industry text,
-  bio text,
-  tags text[] default '{}',
+  occupation text,
+  location text[] default '{}',
   linkedin text,
-  twitter text,
-  website text,
-  joined_date date,
+  comfort_food text,
+  hoping_to_get text,
+  excited_to_contribute text,
+  asks_and_offers text,
+  attended_events text[] default '{}',
   notion_id text unique,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
+);
+
+-- Applications table (pending review)
+create table if not exists public.applications (
+  id uuid default gen_random_uuid() primary key,
+  full_name text not null,
+  company text not null,
+  title text not null,
+  occupation text,
+  linkedin text not null,
+  email text not null,
+  phone text,
+  location text[] default '{}',
+  comfort_food text not null,
+  hoping_to_get text not null,
+  excited_to_contribute text not null,
+  photo_url text,
+  status text default 'pending' check (status in ('pending', 'accepted', 'rejected')),
+  notion_id text unique,
+  created_at timestamptz default now()
 );
 
 -- Groups table
@@ -39,30 +60,27 @@ create table if not exists public.group_members (
   primary key (group_id, member_id)
 );
 
--- Indexes for fast queries
-create index if not exists idx_members_industry on public.members(industry);
-create index if not exists idx_members_location on public.members(location);
-create index if not exists idx_members_tags on public.members using gin(tags);
-create index if not exists idx_members_notion_id on public.members(notion_id);
+-- Indexes
+create index if not exists idx_members_location on public.members using gin(location);
 create index if not exists idx_members_email on public.members(email);
+create index if not exists idx_members_notion_id on public.members(notion_id);
+create index if not exists idx_applications_status on public.applications(status);
 
--- Full-text search index
+-- Full-text search
 alter table public.members add column if not exists fts tsvector
   generated always as (
     to_tsvector('english',
-      coalesce(first_name, '') || ' ' ||
-      coalesce(last_name, '') || ' ' ||
+      coalesce(full_name, '') || ' ' ||
       coalesce(title, '') || ' ' ||
       coalesce(company, '') || ' ' ||
-      coalesce(bio, '') || ' ' ||
-      coalesce(industry, '') || ' ' ||
-      coalesce(location, '')
+      coalesce(occupation, '') || ' ' ||
+      coalesce(comfort_food, '')
     )
   ) stored;
 
 create index if not exists idx_members_fts on public.members using gin(fts);
 
--- Auto-update updated_at timestamp
+-- Auto-update updated_at
 create or replace function public.update_updated_at()
 returns trigger as $$
 begin
@@ -76,35 +94,34 @@ create trigger members_updated_at
   before update on public.members
   for each row execute function public.update_updated_at();
 
--- Enable Row Level Security (public read, authenticated write)
+-- Row Level Security
 alter table public.members enable row level security;
+alter table public.applications enable row level security;
 alter table public.groups enable row level security;
 alter table public.group_members enable row level security;
 
--- Public read access for the directory
+-- Public read for directory
 create policy "Members are viewable by everyone"
   on public.members for select using (true);
 
+-- Applications: anyone can insert, only admin can read
+create policy "Anyone can submit an application"
+  on public.applications for insert with check (true);
+
+-- Groups: public read, anyone can manage
 create policy "Groups are viewable by everyone"
   on public.groups for select using (true);
+create policy "Anyone can create groups"
+  on public.groups for insert with check (true);
+create policy "Anyone can delete groups"
+  on public.groups for delete using (true);
 
 create policy "Group members are viewable by everyone"
   on public.group_members for select using (true);
-
--- Authenticated users can manage groups
-create policy "Authenticated users can create groups"
-  on public.groups for insert with check (true);
-
-create policy "Authenticated users can delete groups"
-  on public.groups for delete using (true);
-
-create policy "Authenticated users can manage group members"
+create policy "Anyone can manage group members"
   on public.group_members for insert with check (true);
-
-create policy "Authenticated users can remove group members"
+create policy "Anyone can remove group members"
   on public.group_members for delete using (true);
 
 -- Enable realtime
 alter publication supabase_realtime add table public.members;
-alter publication supabase_realtime add table public.groups;
-alter publication supabase_realtime add table public.group_members;

@@ -2,24 +2,51 @@ export interface Member {
   id: string;
   firstName: string;
   lastName: string;
+  fullName: string;
   email: string;
   phone?: string;
   photoUrl?: string;
   title?: string;
   company?: string;
-  location?: string;
-  industry?: string;
-  bio?: string;
-  tags: string[];
+  occupation?: string;
+  location: string[];
   linkedin?: string;
-  twitter?: string;
-  website?: string;
+  comfortFood?: string;
+  hopingToGet?: string;
+  excitedToContribute?: string;
+  asksAndOffers?: string;
+  attendedEvents?: string[];
   joinedDate?: string;
+}
+
+export interface ApplicationData {
+  name: string;
+  firstName: string;
+  lastName: string;
+  company: string;
+  title: string;
+  occupation: string;
+  linkedin: string;
+  email: string;
+  phone: string;
+  location: string[];
+  comfortFood: string;
+  hopingToGet: string;
+  excitedToContribute: string;
+  photo: File | null;
 }
 
 export interface Filters {
   search: string;
-  industry: string;
   location: string;
-  tags: string[];
+  occupation: string;
 }
+
+export const LOCATIONS = [
+  "New York 🗽",
+  "San Francisco 🌉",
+  "London 🇬🇧",
+  "Los Angeles 🎬",
+  "Chicago 🍕",
+  "Other",
+] as const;

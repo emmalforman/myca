@@ -11,12 +11,11 @@ function hasSupabase() {
 
 export async function GET() {
   if (hasSupabase()) {
-    // Dynamic import to avoid errors when env vars aren't set
     const { supabase } = await import("@/lib/supabase");
     const { data, error } = await supabase
       .from("members")
       .select("*")
-      .order("first_name");
+      .order("full_name");
 
     if (error) {
       console.error("Supabase fetch failed:", error.message);
@@ -26,23 +25,25 @@ export async function GET() {
       );
     }
 
-    const members: Member[] = (data || []).map((row) => ({
+    const members: Member[] = (data || []).map((row: any) => ({
       id: row.id,
-      firstName: row.first_name,
-      lastName: row.last_name,
+      fullName: row.full_name,
+      firstName: row.first_name ?? "",
+      lastName: row.last_name ?? "",
       email: row.email,
       phone: row.phone ?? undefined,
       photoUrl: row.photo_url ?? undefined,
       title: row.title ?? undefined,
       company: row.company ?? undefined,
-      location: row.location ?? undefined,
-      industry: row.industry ?? undefined,
-      bio: row.bio ?? undefined,
-      tags: row.tags ?? [],
+      occupation: row.occupation ?? undefined,
+      location: row.location ?? [],
       linkedin: row.linkedin ?? undefined,
-      twitter: row.twitter ?? undefined,
-      website: row.website ?? undefined,
-      joinedDate: row.joined_date ?? undefined,
+      comfortFood: row.comfort_food ?? undefined,
+      hopingToGet: row.hoping_to_get ?? undefined,
+      excitedToContribute: row.excited_to_contribute ?? undefined,
+      asksAndOffers: row.asks_and_offers ?? undefined,
+      attendedEvents: row.attended_events ?? [],
+      joinedDate: row.created_at ?? undefined,
     }));
 
     return NextResponse.json({

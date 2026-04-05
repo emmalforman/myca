@@ -4,10 +4,7 @@ import { fetchMembersFromNotion } from "@/lib/notion";
 export async function POST() {
   if (!process.env.NOTION_API_KEY || !process.env.NOTION_DATABASE_ID) {
     return NextResponse.json(
-      {
-        error:
-          "Notion is not configured. Set NOTION_API_KEY and NOTION_DATABASE_ID environment variables.",
-      },
+      { error: "Notion is not configured. Set NOTION_API_KEY and NOTION_DATABASE_ID." },
       { status: 400 }
     );
   }
@@ -15,7 +12,7 @@ export async function POST() {
   try {
     const notionMembers = await fetchMembersFromNotion();
 
-    // If Supabase is configured, upsert members into the database
+    // Upsert into Supabase if configured
     if (
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
       process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -23,21 +20,22 @@ export async function POST() {
       const { supabaseAdmin } = await import("@/lib/supabase-admin");
 
       const rows = notionMembers.map((m) => ({
-        first_name: m.firstName,
-        last_name: m.lastName,
+        full_name: m.fullName,
+        first_name: m.firstName || null,
+        last_name: m.lastName || null,
         email: m.email,
         phone: m.phone || null,
         photo_url: m.photoUrl || null,
         title: m.title || null,
         company: m.company || null,
-        location: m.location || null,
-        industry: m.industry || null,
-        bio: m.bio || null,
-        tags: m.tags,
+        occupation: m.occupation || null,
+        location: m.location,
         linkedin: m.linkedin || null,
-        twitter: m.twitter || null,
-        website: m.website || null,
-        joined_date: m.joinedDate || null,
+        comfort_food: m.comfortFood || null,
+        hoping_to_get: m.hopingToGet || null,
+        excited_to_contribute: m.excitedToContribute || null,
+        asks_and_offers: m.asksAndOffers || null,
+        attended_events: m.attendedEvents || [],
         notion_id: m.id,
       }));
 
@@ -47,29 +45,16 @@ export async function POST() {
 
       if (error) {
         console.error("Supabase upsert failed:", error.message);
-        return NextResponse.json(
-          {
-            members: notionMembers,
-            source: "notion",
-            persisted: false,
-            error: error.message,
-            syncedAt: new Date().toISOString(),
-            count: notionMembers.length,
-          },
-          { status: 200 }
-        );
       }
 
       return NextResponse.json({
         members: notionMembers,
-        source: "notion+supabase",
-        persisted: true,
+        source: error ? "notion" : "notion+supabase",
         syncedAt: new Date().toISOString(),
         count: notionMembers.length,
       });
     }
 
-    // No Supabase — just return Notion data
     return NextResponse.json({
       members: notionMembers,
       source: "notion",

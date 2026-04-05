@@ -5,7 +5,10 @@ const notion = new Client({
   auth: process.env.NOTION_API_KEY,
 });
 
-const databaseId = process.env.NOTION_DATABASE_ID!;
+// The Form database (applications + CRM)
+const formDatabaseId = process.env.NOTION_DATABASE_ID!;
+// The Directory database (accepted members)
+const directoryDatabaseId = process.env.NOTION_DIRECTORY_DATABASE_ID;
 
 function getPlainText(prop: any): string {
   if (!prop) return "";
@@ -21,6 +24,11 @@ function getPlainText(prop: any): string {
   return "";
 }
 
+function getMultiSelect(prop: any): string[] {
+  if (!prop || prop.type !== "multi_select") return [];
+  return prop.multi_select?.map((s: any) => s.name) ?? [];
+}
+
 function getFileUrl(prop: any): string {
   if (!prop || prop.type !== "files") return "";
   const file = prop.files?.[0];
@@ -30,44 +38,134 @@ function getFileUrl(prop: any): string {
   return "";
 }
 
+// Fetch accepted members from the Form database
 export async function fetchMembersFromNotion(): Promise<Member[]> {
+  const dbId = directoryDatabaseId || formDatabaseId;
+
   const response = await notion.databases.query({
-    database_id: databaseId,
+    database_id: dbId,
+    ...(directoryDatabaseId
+      ? {}
+      : {
+          filter: {
+            property: "Accepted",
+            select: { equals: "Yes" },
+          },
+        }),
     page_size: 100,
   });
 
   return response.results.map((page: any) => {
-    const props = page.properties;
+    const p = page.properties;
+
+    // Handle both Form DB and Directory DB field names
+    const locationRaw =
+      getMultiSelect(
+        p["Where do you spend most of your time? (we love IRL time!)"] ||
+          p["📍 Where do you spend most of your time? (we love IRL time!)"]
+      );
+
     return {
       id: page.id,
-      firstName: getPlainText(props["First Name"] || props["first_name"]),
-      lastName: getPlainText(props["Last Name"] || props["last_name"]),
-      email: getPlainText(props["Email"] || props["email"]),
-      phone: getPlainText(props["Phone"] || props["phone"]),
-      photoUrl:
-        getFileUrl(props["Photo"] || props["photo"]) ||
-        getPlainText(props["Photo URL"] || props["photo_url"]),
-      title: getPlainText(props["Title"] || props["title"] || props["Role"]),
-      company: getPlainText(
-        props["Company"] || props["company"] || props["Organization"]
+      fullName: getPlainText(p["What is your name?"]),
+      firstName: getPlainText(p["First Name"]),
+      lastName: getPlainText(p["Last Name"]),
+      email: getPlainText(p["What is your email (so members can connect)"]),
+      phone: getPlainText(
+        p["What is your cell number (so we can add your to our WhatsApp group) *"] ||
+          p["📞 What is your cell number (so we can add your to our WhatsApp group) *"]
       ),
-      location: getPlainText(
-        props["Location"] || props["location"] || props["City"]
+      photoUrl: getFileUrl(p["Please upload a photo of yourself!"]),
+      title: getPlainText(p["What is your title?"]),
+      company: getPlainText(p["Where do you work?"] || p["💼 Where do you work?"]),
+      occupation: getPlainText(
+        p["How would you describe your occupation (founder, investor, operator, etc)? *"] ||
+          p["How would you describe your role?"]
       ),
-      industry: getPlainText(props["Industry"] || props["industry"]),
-      bio: getPlainText(props["Bio"] || props["bio"] || props["About"]),
-      tags: (() => {
-        const val = getPlainText(
-          props["Tags"] || props["tags"] || props["Skills"]
-        );
-        return Array.isArray(val) ? val : val ? [val] : [];
-      })(),
-      linkedin: getPlainText(props["LinkedIn"] || props["linkedin"]),
-      twitter: getPlainText(props["Twitter"] || props["twitter"]),
-      website: getPlainText(props["Website"] || props["website"]),
-      joinedDate: getPlainText(
-        props["Joined Date"] || props["joined_date"] || props["Created"]
+      location: locationRaw,
+      linkedin: getPlainText(p["Please add your Linkedin"]),
+      comfortFood: getPlainText(
+        p["What's the one food that always makes you feel at home?"]
       ),
+      hopingToGet: getPlainText(
+        p["What are you hoping to get out of Myca? *"]
+      ),
+      excitedToContribute: getPlainText(
+        p["What are you most excited to contribute to the Myca community? "]
+      ),
+      asksAndOffers: getPlainText(p["Asks & Offers"]),
+      attendedEvents: getMultiSelect(p["Attended Events"]),
+      joinedDate: getPlainText(p["Submission time"]),
     };
+  });
+}
+
+// Submit a new application to the Form database
+export async function submitApplication(data: {
+  name: string;
+  company: string;
+  title: string;
+  occupation: string;
+  linkedin: string;
+  email: string;
+  phone: string;
+  location: string[];
+  comfortFood: string;
+  hopingToGet: string;
+  excitedToContribute: string;
+  photoUrl?: string;
+}) {
+  return notion.pages.create({
+    parent: { database_id: formDatabaseId },
+    properties: {
+      "What is your name?": {
+        title: [{ text: { content: data.name } }],
+      },
+      "Where do you work?": {
+        rich_text: [{ text: { content: data.company } }],
+      },
+      "What is your title?": {
+        rich_text: [{ text: { content: data.title } }],
+      },
+      "How would you describe your occupation (founder, investor, operator, etc)? *":
+        {
+          rich_text: [{ text: { content: data.occupation } }],
+        },
+      "Please add your Linkedin": {
+        url: data.linkedin || null,
+      },
+      "What is your email (so members can connect)": {
+        email: data.email,
+      },
+      "What is your cell number (so we can add your to our WhatsApp group) *":
+        {
+          rich_text: [{ text: { content: data.phone } }],
+        },
+      "Where do you spend most of your time? (we love IRL time!)": {
+        multi_select: data.location.map((name) => ({ name })),
+      },
+      "What's the one food that always makes you feel at home?": {
+        rich_text: [{ text: { content: data.comfortFood } }],
+      },
+      "What are you hoping to get out of Myca? *": {
+        rich_text: [{ text: { content: data.hopingToGet } }],
+      },
+      "What are you most excited to contribute to the Myca community? ": {
+        rich_text: [{ text: { content: data.excitedToContribute } }],
+      },
+      ...(data.photoUrl
+        ? {
+            "Please upload a photo of yourself!": {
+              files: [
+                {
+                  type: "external" as const,
+                  name: "photo",
+                  external: { url: data.photoUrl },
+                },
+              ],
+            },
+          }
+        : {}),
+    },
   });
 }
