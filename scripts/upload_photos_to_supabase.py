@@ -23,7 +23,7 @@ BUCKET = "photos"
 
 def get_all_contacts():
     """Fetch all contacts from Supabase."""
-    url = f"{SUPABASE_URL}/rest/v1/contacts?select=contact_id,name,email&is_myca_member=eq.true&limit=500"
+    url = f"{SUPABASE_URL}/rest/v1/contacts?select=contact_id,name,email,photo_url&is_myca_member=eq.true&limit=500"
     req = urllib.request.Request(url)
     req.add_header("Authorization", f"Bearer {SUPABASE_KEY}")
     req.add_header("apikey", SUPABASE_KEY)
@@ -114,6 +114,7 @@ def main():
     uploaded = 0
     matched = 0
     unmatched = 0
+    skipped = 0
     failed = 0
 
     for filename in sorted(files):
@@ -137,6 +138,12 @@ def main():
                 unmatched += 1
                 continue
 
+        # Skip if contact already has a photo
+        if contact.get("photo_url"):
+            print(f"  {filename} -> {contact['name']} (already has photo, skipping)")
+            skipped += 1
+            continue
+
         print(f"  {filename} -> {contact['name']}...")
 
         # Upload to Supabase Storage
@@ -158,6 +165,7 @@ def main():
 
     print(f"\n=== Done ===")
     print(f"  Uploaded & matched: {uploaded}")
+    print(f"  Already had photo:  {skipped}")
     print(f"  No match found:     {unmatched}")
     print(f"  Failed:             {failed}")
     print(f"  Total files:        {len(files)}")
