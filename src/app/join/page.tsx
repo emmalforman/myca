@@ -47,7 +47,6 @@ export default function JoinPage() {
     setError(null);
 
     try {
-      // Upload photo to Supabase storage if available, otherwise skip
       let photoUrl: string | undefined;
       if (photo) {
         const formData = new FormData();
@@ -70,7 +69,7 @@ export default function JoinPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to submit application");
+        throw new Error(data.error || "Failed to submit");
       }
 
       setSubmitted(true);
@@ -81,22 +80,22 @@ export default function JoinPage() {
     }
   };
 
+  const inputClass =
+    "w-full px-4 py-3 bg-white border border-ink-200 text-ink-900 text-[14px] placeholder-ink-300 focus:outline-none focus:border-ink-400 transition-colors";
+
   if (submitted) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center px-4">
-        <div className="max-w-lg text-center">
-          <div className="w-20 h-20 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-sage-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-serif font-bold text-stone-900 mb-3">
-            Application received!
+      <div className="min-h-[70vh] flex items-center justify-center px-6">
+        <div className="max-w-md text-center">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-clay-500 font-mono mb-4">
+            Application received
+          </p>
+          <h1 className="text-3xl font-serif text-ink-900 mb-4">
+            We&apos;ll be in touch.
           </h1>
-          <p className="text-lg text-stone-500 leading-relaxed">
-            Thanks for applying to Myca Collective. We review applications on a
-            rolling basis and will be in touch soon. In the meantime, keep doing
-            amazing things in the food world.
+          <p className="text-[15px] text-ink-400 leading-relaxed">
+            Applications are reviewed weekly. If your profile is a fit, expect
+            to hear from us soon. In the meantime, keep building.
           </p>
         </div>
       </div>
@@ -104,24 +103,27 @@ export default function JoinPage() {
   }
 
   return (
-    <div className="py-12 sm:py-20">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 mb-3">
-            Join Myca Collective
+    <div>
+      {/* Header */}
+      <div className="bg-ink-950">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8 py-16 sm:py-20">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-clay-500 font-mono mb-3">
+            Apply
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-serif text-white mb-2">
+            Request Membership.
           </h1>
-          <p className="text-lg text-stone-500 max-w-lg mx-auto">
-            We&apos;re building a community of the most passionate people in
-            food and CPG. Tell us about yourself.
+          <p className="text-ink-400 text-[15px] max-w-lg">
+            Tell us about yourself and what you&apos;d bring to the collective.
           </p>
         </div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Name */}
+      <div className="max-w-xl mx-auto px-6 py-12 sm:py-16">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-2">
-              What is your name? <span className="text-terracotta-500">*</span>
+            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
+              Full Name <span className="text-rust-500">*</span>
             </label>
             <input
               type="text"
@@ -129,120 +131,93 @@ export default function JoinPage() {
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="First and last name"
-              className="w-full px-4 py-3 bg-white border border-warm-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent transition-shadow"
+              className={inputClass}
             />
           </div>
 
-          {/* Company */}
-          <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-2">
-              Where do you work? <span className="text-terracotta-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={form.company}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, company: e.target.value }))
-              }
-              placeholder="Company or brand name"
-              className="w-full px-4 py-3 bg-white border border-warm-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent transition-shadow"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
+                Company <span className="text-rust-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={form.company}
+                onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
+                Title <span className="text-rust-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className={inputClass}
+              />
+            </div>
           </div>
 
-          {/* Title */}
           <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-2">
-              What is your title?{" "}
-              <span className="text-terracotta-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={form.title}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, title: e.target.value }))
-              }
-              placeholder="e.g. CEO, Head of Sales, Brand Manager"
-              className="w-full px-4 py-3 bg-white border border-warm-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent transition-shadow"
-            />
-          </div>
-
-          {/* Occupation */}
-          <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-2">
-              How would you describe your occupation (founder, investor,
-              operator, etc)?
+            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
+              How would you describe your occupation?
             </label>
             <input
               type="text"
               value={form.occupation}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, occupation: e.target.value }))
-              }
-              placeholder="e.g. Founder, Investor, Operator, Creative"
-              className="w-full px-4 py-3 bg-white border border-warm-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent transition-shadow"
+              onChange={(e) => setForm((f) => ({ ...f, occupation: e.target.value }))}
+              placeholder="Founder, investor, operator, creative..."
+              className={inputClass}
             />
           </div>
 
-          {/* LinkedIn */}
           <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-2">
-              Please add your LinkedIn{" "}
-              <span className="text-terracotta-500">*</span>
+            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
+              LinkedIn <span className="text-rust-500">*</span>
             </label>
             <input
               type="url"
               required
               value={form.linkedin}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, linkedin: e.target.value }))
-              }
-              placeholder="https://linkedin.com/in/yourprofile"
-              className="w-full px-4 py-3 bg-white border border-warm-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent transition-shadow"
+              onChange={(e) => setForm((f) => ({ ...f, linkedin: e.target.value }))}
+              placeholder="https://linkedin.com/in/..."
+              className={inputClass}
             />
           </div>
 
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-2">
-              What is your email (so members can connect)?{" "}
-              <span className="text-terracotta-500">*</span>
-            </label>
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, email: e.target.value }))
-              }
-              placeholder="you@example.com"
-              className="w-full px-4 py-3 bg-white border border-warm-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent transition-shadow"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
+                Email <span className="text-rust-500">*</span>
+              </label>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
+                Phone
+              </label>
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                className={inputClass}
+              />
+            </div>
           </div>
 
-          {/* Phone */}
           <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-2">
-              What is your cell number (so we can add you to our WhatsApp
-              group)?
-            </label>
-            <input
-              type="tel"
-              value={form.phone}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, phone: e.target.value }))
-              }
-              placeholder="(555) 123-4567"
-              className="w-full px-4 py-3 bg-white border border-warm-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent transition-shadow"
-            />
-          </div>
-
-          {/* Location */}
-          <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-2">
-              Where do you spend most of your time? (We love IRL time!){" "}
-              <span className="text-terracotta-500">*</span>
+            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
+              Where do you spend time? <span className="text-rust-500">*</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {LOCATIONS.map((loc) => (
@@ -250,10 +225,10 @@ export default function JoinPage() {
                   key={loc}
                   type="button"
                   onClick={() => handleLocationToggle(loc)}
-                  className={`px-4 py-2.5 text-sm font-medium rounded-full border transition-colors ${
+                  className={`px-4 py-2 text-[13px] border transition-colors ${
                     form.location.includes(loc)
-                      ? "bg-sage-600 text-white border-sage-600"
-                      : "bg-white text-stone-600 border-warm-200 hover:border-sage-300 hover:text-sage-700"
+                      ? "bg-ink-900 text-white border-ink-900"
+                      : "bg-white text-ink-500 border-ink-200 hover:border-ink-400"
                   }`}
                 >
                   {loc}
@@ -262,88 +237,67 @@ export default function JoinPage() {
             </div>
           </div>
 
-          {/* Comfort food */}
           <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-2">
-              What&apos;s the one food that always makes you feel at home?{" "}
-              <span className="text-terracotta-500">*</span>
+            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
+              Comfort food <span className="text-rust-500">*</span>
             </label>
             <input
               type="text"
               required
               value={form.comfortFood}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, comfortFood: e.target.value }))
-              }
-              placeholder="The dish that feels like a warm hug"
-              className="w-full px-4 py-3 bg-white border border-warm-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent transition-shadow"
+              onChange={(e) => setForm((f) => ({ ...f, comfortFood: e.target.value }))}
+              placeholder="The dish that always feels like home"
+              className={inputClass}
             />
           </div>
 
-          {/* Hoping to get */}
           <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-2">
-              What are you hoping to get out of Myca?{" "}
-              <span className="text-terracotta-500">*</span>
+            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
+              What are you hoping to get out of Myca? <span className="text-rust-500">*</span>
             </label>
             <textarea
               required
               value={form.hopingToGet}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, hopingToGet: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, hopingToGet: e.target.value }))}
               rows={3}
-              placeholder="What would make this community valuable to you?"
-              className="w-full px-4 py-3 bg-white border border-warm-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent resize-none transition-shadow"
+              className={inputClass + " resize-none"}
             />
           </div>
 
-          {/* Excited to contribute */}
           <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-2">
-              What are you most excited to contribute to the Myca community?{" "}
-              <span className="text-terracotta-500">*</span>
+            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
+              What are you excited to contribute? <span className="text-rust-500">*</span>
             </label>
             <textarea
               required
               value={form.excitedToContribute}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  excitedToContribute: e.target.value,
-                }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, excitedToContribute: e.target.value }))}
               rows={3}
-              placeholder="Everyone brings something to the table..."
-              className="w-full px-4 py-3 bg-white border border-warm-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent resize-none transition-shadow"
+              className={inputClass + " resize-none"}
             />
           </div>
 
-          {/* Photo upload */}
           <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-2">
-              Please upload a photo of yourself!{" "}
-              <span className="text-terracotta-500">*</span>
+            <label className="block text-[11px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-2">
+              Headshot <span className="text-rust-500">*</span>
             </label>
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="cursor-pointer border-2 border-dashed border-warm-200 rounded-2xl p-8 text-center hover:border-sage-400 transition-colors bg-white"
+              className="cursor-pointer border border-dashed border-ink-200 p-8 text-center hover:border-ink-400 transition-colors bg-white"
             >
               {photoPreview ? (
                 <div className="flex flex-col items-center">
                   <img
                     src={photoPreview}
                     alt="Preview"
-                    className="w-24 h-24 rounded-full object-cover mb-3"
+                    className="w-20 h-20 object-cover mb-3"
                   />
-                  <p className="text-sm text-sage-600 font-medium">
-                    Click to change photo
-                  </p>
+                  <p className="text-[13px] text-ink-400">Click to change</p>
                 </div>
               ) : (
                 <>
                   <svg
-                    className="w-10 h-10 text-stone-300 mx-auto mb-3"
+                    className="w-8 h-8 text-ink-200 mx-auto mb-3"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -351,16 +305,11 @@ export default function JoinPage() {
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={1.5}
+                      strokeWidth={1}
                       d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  <p className="text-sm text-stone-500">
-                    Click to upload a headshot
-                  </p>
-                  <p className="text-xs text-stone-400 mt-1">
-                    JPG, PNG, or WebP
-                  </p>
+                  <p className="text-[13px] text-ink-400">Upload a photo</p>
                 </>
               )}
               <input
@@ -374,7 +323,7 @@ export default function JoinPage() {
           </div>
 
           {error && (
-            <div className="p-4 bg-terracotta-50 border border-terracotta-200 rounded-xl text-sm text-terracotta-700">
+            <div className="p-4 border border-rust-200 bg-rust-50 text-[13px] text-rust-700">
               {error}
             </div>
           )}
@@ -382,7 +331,7 @@ export default function JoinPage() {
           <button
             type="submit"
             disabled={submitting || form.location.length === 0}
-            className="w-full py-4 text-base font-semibold text-white bg-sage-600 rounded-full hover:bg-sage-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="w-full py-4 text-[13px] uppercase tracking-wider font-medium text-white bg-ink-900 hover:bg-ink-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? "Submitting..." : "Submit Application"}
           </button>

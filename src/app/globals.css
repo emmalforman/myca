@@ -9,7 +9,11 @@
   }
 
   body {
-    @apply bg-cream text-stone-900;
+    @apply bg-ivory text-ink-800;
+  }
+
+  ::selection {
+    @apply bg-ink-900 text-ivory;
   }
 }
 
@@ -20,25 +24,15 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-
-  .line-clamp-3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: #d6d3d1;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #a8a29e;
+  border-radius: 2px;
 }
