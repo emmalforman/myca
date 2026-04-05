@@ -79,7 +79,7 @@ export async function fetchMembersFromNotion(): Promise<Member[]> {
 
     return {
       id: page.id,
-      fullName: getPlainText(p["What is your name?"]),
+      name: getPlainText(p["What is your name?"]),
       firstName: getPlainText(p["First Name"]),
       lastName: getPlainText(p["Last Name"]),
       email: getPlainText(p["What is your email (so members can connect)"]),
@@ -88,26 +88,14 @@ export async function fetchMembersFromNotion(): Promise<Member[]> {
           p["📞 What is your cell number (so we can add your to our WhatsApp group) *"]
       ),
       photoUrl: getFileUrl(p["Please upload a photo of yourself!"]),
-      title: getPlainText(p["What is your title?"]),
+      role: getPlainText(p["What is your title?"]),
       company: getPlainText(p["Where do you work?"] || p["💼 Where do you work?"]),
-      occupation: getPlainText(
+      occupationType: getPlainText(
         p["How would you describe your occupation (founder, investor, operator, etc)? *"] ||
           p["How would you describe your role?"]
       ),
-      location: locationRaw,
+      location: locationRaw.join(", "),
       linkedin: getPlainText(p["Please add your Linkedin"]),
-      comfortFood: getPlainText(
-        p["What's the one food that always makes you feel at home?"]
-      ),
-      hopingToGet: getPlainText(
-        p["What are you hoping to get out of Myca? *"]
-      ),
-      excitedToContribute: getPlainText(
-        p["What are you most excited to contribute to the Myca community? "]
-      ),
-      asksAndOffers: getPlainText(p["Asks & Offers"]),
-      attendedEvents: getMultiSelect(p["Attended Events"]),
-      joinedDate: getPlainText(p["Submission time"]),
     };
   });
 }

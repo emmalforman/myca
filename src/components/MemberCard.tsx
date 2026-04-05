@@ -9,16 +9,14 @@ export default function MemberCard({
   member: Member;
   onOutreach: (member: Member) => void;
 }) {
-  const displayName =
-    member.fullName ||
-    [member.firstName, member.lastName].filter(Boolean).join(" ");
+  const displayName = member.name || `${member.firstName ?? ""} ${member.lastName ?? ""}`.trim();
   const initials =
-    (member.firstName?.[0] ?? member.fullName?.[0] ?? "") +
-    (member.lastName?.[0] ?? member.fullName?.split(" ")[1]?.[0] ?? "");
+    (member.firstName?.[0] ?? displayName?.[0] ?? "") +
+    (member.lastName?.[0] ?? displayName?.split(" ")[1]?.[0] ?? "");
 
   return (
     <div className="group bg-white rounded-2xl border border-warm-100 hover:shadow-lg hover:border-sage-200 transition-all duration-200 overflow-hidden">
-      {/* Photo */}
+      {/* Photo or Initials */}
       <div className="aspect-[4/3] relative bg-warm-100">
         {member.photoUrl ? (
           <img
@@ -27,21 +25,22 @@ export default function MemberCard({
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-warm-400 font-serif font-bold text-4xl">
-            {initials}
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-sage-100 to-warm-100">
+            <span className="text-sage-500 font-serif font-bold text-5xl">
+              {initials}
+            </span>
           </div>
         )}
-        {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
 
       <div className="p-4">
-        {/* Name & Title */}
+        {/* Name & Role */}
         <h3 className="text-base font-serif font-semibold text-stone-900 truncate">
           {displayName}
         </h3>
-        {member.title && (
-          <p className="text-sm text-stone-500 truncate">{member.title}</p>
+        {member.role && (
+          <p className="text-sm text-stone-500 truncate">{member.role}</p>
         )}
         {member.company && (
           <p className="text-sm text-sage-600 font-medium truncate">
@@ -49,25 +48,36 @@ export default function MemberCard({
           </p>
         )}
 
-        {/* Location pills */}
-        {member.location.length > 0 && (
+        {/* Location */}
+        {member.location && (
+          <p className="text-xs text-stone-400 mt-1.5 truncate flex items-center gap-1">
+            <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {member.location}
+          </p>
+        )}
+
+        {/* Superpower */}
+        {member.superpower && (
+          <p className="text-xs text-warm-600 mt-2 line-clamp-2 italic">
+            &ldquo;{member.superpower}&rdquo;
+          </p>
+        )}
+
+        {/* Tags */}
+        {member.industryTags && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {member.location.map((loc) => (
+            {member.industryTags.split(",").slice(0, 3).map((tag) => (
               <span
-                key={loc}
-                className="px-2 py-0.5 text-xs bg-warm-50 text-stone-500 rounded-full border border-warm-100"
+                key={tag.trim()}
+                className="px-2 py-0.5 text-xs bg-sage-50 text-sage-700 rounded-full border border-sage-100"
               >
-                {loc}
+                {tag.trim()}
               </span>
             ))}
           </div>
-        )}
-
-        {/* Comfort food */}
-        {member.comfortFood && (
-          <p className="text-xs text-stone-400 mt-2 truncate italic">
-            Comfort food: {member.comfortFood}
-          </p>
         )}
 
         {/* Actions */}

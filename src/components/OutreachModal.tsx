@@ -10,18 +10,17 @@ export default function OutreachModal({
   member: Member;
   onClose: () => void;
 }) {
-  const displayName =
-    member.fullName ||
-    [member.firstName, member.lastName].filter(Boolean).join(" ");
+  const displayName = member.name || `${member.firstName ?? ""} ${member.lastName ?? ""}`.trim();
+  const firstName = member.firstName || displayName.split(" ")[0];
   const initials =
-    (member.firstName?.[0] ?? member.fullName?.[0] ?? "") +
-    (member.lastName?.[0] ?? member.fullName?.split(" ")[1]?.[0] ?? "");
+    (member.firstName?.[0] ?? displayName?.[0] ?? "") +
+    (member.lastName?.[0] ?? displayName?.split(" ")[1]?.[0] ?? "");
 
   const [subject, setSubject] = useState(
-    `Hey ${member.firstName || displayName.split(" ")[0]} - connecting via Myca!`
+    `Hey ${firstName} - connecting via Myca!`
   );
   const [message, setMessage] = useState(
-    `Hi ${member.firstName || displayName.split(" ")[0]},\n\nI found your profile in the Myca Collective directory and would love to connect. `
+    `Hi ${firstName},\n\nI found your profile in the Myca Collective directory and would love to connect. `
   );
   const [sent, setSent] = useState(false);
 
@@ -45,7 +44,7 @@ export default function OutreachModal({
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-warm-100">
           <h2 className="text-lg font-serif font-semibold text-stone-900">
-            Connect with {member.firstName || displayName.split(" ")[0]}
+            Connect with {firstName}
           </h2>
           <button
             onClick={onClose}
@@ -60,7 +59,7 @@ export default function OutreachModal({
         <div className="p-5">
           {/* Member preview */}
           <div className="flex items-center gap-4 p-4 bg-warm-50 rounded-xl mb-5">
-            <div className="relative w-14 h-14 rounded-full overflow-hidden bg-warm-100 flex-shrink-0">
+            <div className="relative w-14 h-14 rounded-full overflow-hidden bg-sage-100 flex-shrink-0">
               {member.photoUrl ? (
                 <img
                   src={member.photoUrl}
@@ -68,7 +67,7 @@ export default function OutreachModal({
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-warm-500 font-serif font-bold text-lg">
+                <div className="w-full h-full flex items-center justify-center text-sage-600 font-serif font-bold text-lg">
                   {initials}
                 </div>
               )}
@@ -78,16 +77,32 @@ export default function OutreachModal({
                 {displayName}
               </p>
               <p className="text-sm text-stone-500 truncate">
-                {member.title}
+                {member.role}
                 {member.company ? ` at ${member.company}` : ""}
               </p>
-              {member.location.length > 0 && (
-                <p className="text-xs text-stone-400">
-                  {member.location.join(" / ")}
-                </p>
+              {member.location && (
+                <p className="text-xs text-stone-400">{member.location}</p>
               )}
             </div>
           </div>
+
+          {/* Asks & Offers */}
+          {(member.offers || member.asks) && (
+            <div className="mb-5 p-3 bg-sage-50 rounded-xl border border-sage-100 space-y-2">
+              {member.offers && (
+                <div>
+                  <p className="text-xs font-semibold text-sage-700 uppercase tracking-wider">Offers</p>
+                  <p className="text-sm text-stone-600">{member.offers}</p>
+                </div>
+              )}
+              {member.asks && (
+                <div>
+                  <p className="text-xs font-semibold text-terracotta-600 uppercase tracking-wider">Asks</p>
+                  <p className="text-sm text-stone-600">{member.asks}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <button
             onClick={handleCopyEmail}

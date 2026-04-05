@@ -16,34 +16,39 @@ function hasNotion() {
 }
 
 export async function GET() {
-  // Try Supabase first
+  // Try Supabase contacts table first
   if (hasSupabase()) {
     const { supabase } = await import("@/lib/supabase");
     const { data, error } = await supabase
-      .from("members")
+      .from("contacts")
       .select("*")
-      .order("full_name");
+      .eq("is_myca_member", true)
+      .order("name");
 
     if (!error && data && data.length > 0) {
       const members: Member[] = data.map((row: any) => ({
-        id: row.id,
-        fullName: row.full_name,
-        firstName: row.first_name ?? "",
-        lastName: row.last_name ?? "",
-        email: row.email,
+        id: row.contact_id,
+        notionId: row.notion_id ?? undefined,
+        name: row.name ?? "",
+        firstName: row.first_name ?? undefined,
+        lastName: row.last_name ?? undefined,
+        email: row.email ?? "",
         phone: row.phone ?? undefined,
-        photoUrl: row.photo_url ?? undefined,
-        title: row.title ?? undefined,
-        company: row.company ?? undefined,
-        occupation: row.occupation ?? undefined,
-        location: row.location ?? [],
         linkedin: row.linkedin ?? undefined,
-        comfortFood: row.comfort_food ?? undefined,
-        hopingToGet: row.hoping_to_get ?? undefined,
-        excitedToContribute: row.excited_to_contribute ?? undefined,
-        asksAndOffers: row.asks_and_offers ?? undefined,
-        attendedEvents: row.attended_events ?? [],
-        joinedDate: row.created_at ?? undefined,
+        company: row.company ?? undefined,
+        role: row.role ?? undefined,
+        occupationType: row.occupation_type ?? undefined,
+        location: row.location ?? undefined,
+        industryTags: row.industry_tags ?? undefined,
+        focusAreas: row.focus_areas ?? undefined,
+        superpower: row.superpower ?? undefined,
+        asks: row.asks ?? undefined,
+        offers: row.offers ?? undefined,
+        notes: row.notes ?? undefined,
+        communities: row.communities ?? undefined,
+        cohortTags: row.cohort_tags ?? undefined,
+        warmth: row.warmth ?? undefined,
+        photoUrl: undefined, // TODO: add photo_url to contacts table
       }));
 
       return NextResponse.json({ members, source: "supabase" });
@@ -58,8 +63,23 @@ export async function GET() {
   if (hasNotion()) {
     try {
       const { fetchMembersFromNotion } = await import("@/lib/notion");
-      const members = await fetchMembersFromNotion();
-      if (members.length > 0) {
+      const notionMembers = await fetchMembersFromNotion();
+      if (notionMembers.length > 0) {
+        // Map Notion members to the Member interface
+        const members: Member[] = notionMembers.map((m: any) => ({
+          id: m.id,
+          name: m.fullName || `${m.firstName} ${m.lastName}`.trim(),
+          firstName: m.firstName,
+          lastName: m.lastName,
+          email: m.email,
+          phone: m.phone,
+          linkedin: m.linkedin,
+          company: m.company,
+          role: m.title,
+          occupationType: m.occupation,
+          location: Array.isArray(m.location) ? m.location.join(", ") : m.location,
+          photoUrl: m.photoUrl,
+        }));
         return NextResponse.json({ members, source: "notion" });
       }
     } catch (error: any) {
@@ -67,6 +87,5 @@ export async function GET() {
     }
   }
 
-  // Last resort: sample data
   return NextResponse.json({ members: sampleMembers, source: "sample" });
 }

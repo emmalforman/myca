@@ -12,34 +12,29 @@ export async function POST() {
   try {
     const notionMembers = await fetchMembersFromNotion();
 
-    // Upsert into Supabase if configured
+    // Upsert into Supabase contacts table if configured
     if (
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
       process.env.SUPABASE_SERVICE_ROLE_KEY
     ) {
       const { supabaseAdmin } = await import("@/lib/supabase-admin");
 
-      const rows = notionMembers.map((m) => ({
-        full_name: m.fullName,
+      const rows = notionMembers.map((m: any) => ({
+        name: m.fullName || m.name || `${m.firstName} ${m.lastName}`.trim(),
         first_name: m.firstName || null,
         last_name: m.lastName || null,
         email: m.email,
         phone: m.phone || null,
-        photo_url: m.photoUrl || null,
-        title: m.title || null,
         company: m.company || null,
-        occupation: m.occupation || null,
-        location: m.location,
+        role: m.title || m.role || null,
+        occupation_type: m.occupation || m.occupationType || null,
+        location: Array.isArray(m.location) ? m.location.join(", ") : m.location || null,
         linkedin: m.linkedin || null,
-        comfort_food: m.comfortFood || null,
-        hoping_to_get: m.hopingToGet || null,
-        excited_to_contribute: m.excitedToContribute || null,
-        asks_and_offers: m.asksAndOffers || null,
-        attended_events: m.attendedEvents || [],
         notion_id: m.id,
+        is_myca_member: true,
       }));
 
-      const { error } = await supabaseAdmin.from("members").upsert(rows, {
+      const { error } = await supabaseAdmin.from("contacts").upsert(rows, {
         onConflict: "notion_id",
       });
 

@@ -26,77 +26,54 @@ export default function DirectoryPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Unique values for filters
   const occupations = useMemo(
     () =>
       [
-        ...new Set(members.map((m) => m.occupation).filter(Boolean)),
+        ...new Set(members.map((m) => m.occupationType).filter(Boolean)),
       ] as string[],
     [members]
   );
 
-  // Filtered members
   const filtered = useMemo(() => {
     return members.filter((m) => {
       const searchLower = filters.search.toLowerCase();
       if (searchLower) {
         const haystack = [
-          m.fullName,
+          m.name,
           m.firstName,
           m.lastName,
-          m.title,
+          m.role,
           m.company,
-          m.occupation,
-          m.comfortFood,
-          m.hopingToGet,
-          ...m.location,
+          m.occupationType,
+          m.location,
+          m.superpower,
+          m.industryTags,
+          m.offers,
         ]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
         if (!haystack.includes(searchLower)) return false;
       }
-      if (
-        filters.location &&
-        !m.location.some((l) => l.includes(filters.location))
-      )
+      if (filters.location && !(m.location ?? "").includes(filters.location))
         return false;
-      if (filters.occupation && m.occupation !== filters.occupation)
+      if (filters.occupation && m.occupationType !== filters.occupation)
         return false;
       return true;
     });
   }, [members, filters]);
 
-  const handleSync = async () => {
-    const res = await fetch("/api/sync", { method: "POST" });
-    const data = await res.json();
-    if (data.members?.length) setMembers(data.members);
-  };
-
   return (
     <div className="py-8 sm:py-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 mb-2">
-              Member Directory
-            </h1>
-            <p className="text-stone-500">
-              {members.length} members across{" "}
-              {[...new Set(members.flatMap((m) => m.location))].length}{" "}
-              cities. Find your next collaborator.
-            </p>
-          </div>
-          <button
-            onClick={handleSync}
-            className="self-start inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-sage-700 bg-sage-50 border border-sage-200 rounded-full hover:bg-sage-100 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Sync from Notion
-          </button>
+        <div className="mb-8">
+          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 mb-2">
+            Member Directory
+          </h1>
+          <p className="text-stone-500">
+            {members.length} members. Find your next collaborator, investor, or co-founder.
+          </p>
         </div>
 
         {/* Search & Filters */}
@@ -116,7 +93,7 @@ export default function DirectoryPage() {
               onChange={(e) =>
                 setFilters((f) => ({ ...f, search: e.target.value }))
               }
-              placeholder="Search by name, company, title, or comfort food..."
+              placeholder="Search by name, company, superpower, or what they offer..."
               className="w-full pl-11 pr-4 py-3.5 bg-white border border-warm-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent transition-shadow"
             />
             {filters.search && (
@@ -132,7 +109,6 @@ export default function DirectoryPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {/* Location filter */}
             <select
               value={filters.location}
               onChange={(e) =>
@@ -148,7 +124,6 @@ export default function DirectoryPage() {
               ))}
             </select>
 
-            {/* Occupation filter */}
             {occupations.length > 0 && (
               <select
                 value={filters.occupation}
@@ -210,7 +185,6 @@ export default function DirectoryPage() {
           Showing {filtered.length} of {members.length} members
         </p>
 
-        {/* Loading */}
         {loading && (
           <div className="text-center py-20">
             <div className="w-10 h-10 border-2 border-sage-200 border-t-sage-600 rounded-full animate-spin mx-auto mb-4" />
@@ -235,18 +209,16 @@ export default function DirectoryPage() {
         {!loading && viewMode === "list" && (
           <div className="space-y-3">
             {filtered.map((m) => {
-              const displayName =
-                m.fullName ||
-                [m.firstName, m.lastName].filter(Boolean).join(" ");
+              const displayName = m.name || `${m.firstName ?? ""} ${m.lastName ?? ""}`.trim();
               const initials =
-                (m.firstName?.[0] ?? m.fullName?.[0] ?? "") +
-                (m.lastName?.[0] ?? m.fullName?.split(" ")[1]?.[0] ?? "");
+                (m.firstName?.[0] ?? displayName?.[0] ?? "") +
+                (m.lastName?.[0] ?? displayName?.split(" ")[1]?.[0] ?? "");
               return (
                 <div
                   key={m.id}
                   className="bg-white rounded-xl border border-warm-100 p-4 flex items-center gap-4 hover:shadow-md transition-shadow"
                 >
-                  <div className="relative w-14 h-14 rounded-full overflow-hidden bg-warm-100 flex-shrink-0">
+                  <div className="relative w-14 h-14 rounded-full overflow-hidden bg-sage-100 flex-shrink-0">
                     {m.photoUrl ? (
                       <img
                         src={m.photoUrl}
@@ -254,7 +226,7 @@ export default function DirectoryPage() {
                         className="absolute inset-0 w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-warm-400 font-serif font-bold text-lg">
+                      <div className="w-full h-full flex items-center justify-center text-sage-600 font-serif font-bold text-lg">
                         {initials}
                       </div>
                     )}
@@ -264,20 +236,20 @@ export default function DirectoryPage() {
                       {displayName}
                     </p>
                     <p className="text-sm text-stone-500 truncate">
-                      {m.title}
+                      {m.role}
                       {m.company ? ` at ${m.company}` : ""}
                     </p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {m.location.map((loc) => (
-                        <span
-                          key={loc}
-                          className="text-xs text-stone-400"
-                        >
-                          {loc}
-                        </span>
-                      ))}
-                    </div>
+                    {m.location && (
+                      <p className="text-xs text-stone-400 truncate">
+                        {m.location}
+                      </p>
+                    )}
                   </div>
+                  {m.superpower && (
+                    <p className="hidden md:block text-xs text-warm-600 italic max-w-48 truncate">
+                      {m.superpower}
+                    </p>
+                  )}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {m.linkedin && (
                       <a
@@ -304,7 +276,6 @@ export default function DirectoryPage() {
           </div>
         )}
 
-        {/* Empty state */}
         {!loading && filtered.length === 0 && (
           <div className="text-center py-20">
             <div className="w-20 h-20 bg-warm-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -322,7 +293,6 @@ export default function DirectoryPage() {
         )}
       </div>
 
-      {/* Outreach Modal */}
       {outreachTarget && (
         <OutreachModal
           member={outreachTarget}
