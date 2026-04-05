@@ -64,7 +64,7 @@ export default function DirectoryPage() {
             The Collective.
           </h1>
           <p className="text-ink-400 text-[15px]">
-            {members.length} members building the future of food & CPG.
+            Founders, operators, and investors building the future of food & CPG.
           </p>
         </div>
       </div>
@@ -145,7 +145,7 @@ export default function DirectoryPage() {
             )}
 
             <span className="ml-auto text-[11px] text-ink-300 font-mono uppercase tracking-wider">
-              {filtered.length} / {members.length}
+              {filtered.length} results
             </span>
           </div>
         </div>
