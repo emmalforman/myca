@@ -99,7 +99,7 @@ export async function POST() {
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from("photo")
+        .from("photos")
         .upload(fileName, buffer, { contentType, upsert: true });
 
       if (uploadError) {
@@ -110,7 +110,7 @@ export async function POST() {
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from("photo")
+        .from("photos")
         .getPublicUrl(fileName);
 
       // Update contacts table by email or notion_id

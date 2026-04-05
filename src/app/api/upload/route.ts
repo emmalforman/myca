@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
 
     const { data, error } = await supabaseAdmin.storage
-      .from("photo")
+      .from("photos")
       .upload(fileName, buffer, {
         contentType: file.type,
         cacheControl: "3600",
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     const {
       data: { publicUrl },
-    } = supabaseAdmin.storage.from("photo").getPublicUrl(data.path);
+    } = supabaseAdmin.storage.from("photos").getPublicUrl(data.path);
 
     return NextResponse.json({ url: publicUrl });
   }

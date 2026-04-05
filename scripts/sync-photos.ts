@@ -2,10 +2,6 @@
  * Bulk download photos from Notion and upload to Supabase Storage.
  * Updates the contacts table with permanent public URLs.
  *
- * Prerequisites:
- * - contacts table has a `photo_url` column (text)
- * - Supabase has a `photos` bucket (public)
- *
  * Usage:
  *   NOTION_API_KEY=xxx \
  *   NOTION_DATABASE_ID=1cbf6a28bb29803c9815c333d33ad2e9 \
@@ -25,6 +21,7 @@ const supabase = createClient(
 
 const DATABASE_ID =
   process.env.NOTION_DATABASE_ID || "1cbf6a28bb29803c9815c333d33ad2e9";
+const BUCKET_NAME = "photos";
 
 function getPlainText(prop: any): string {
   if (!prop) return "";
@@ -43,20 +40,31 @@ function getFileUrl(prop: any): string {
   return "";
 }
 
-async function downloadImage(url: string): Promise<{ buffer: Buffer; contentType: string } | null> {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.error(`  Download failed (${response.status}): ${url.slice(0, 80)}...`);
-      return null;
+async function downloadWithRetry(url: string, retries = 3): Promise<{ buffer: Buffer; contentType: string } | null> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url);
+      if (response.status === 429) {
+        const wait = Math.pow(2, attempt) * 2000; // 4s, 8s, 16s
+        console.log(`    Rate limited, waiting ${wait / 1000}s (attempt ${attempt}/${retries})...`);
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+      if (!response.ok) {
+        console.error(`    Download failed (${response.status})`);
+        return null;
+      }
+      const contentType = response.headers.get("content-type") || "image/jpeg";
+      const arrayBuffer = await response.arrayBuffer();
+      return { buffer: Buffer.from(arrayBuffer), contentType };
+    } catch (err: any) {
+      console.error(`    Download error: ${err.message}`);
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
     }
-    const contentType = response.headers.get("content-type") || "image/jpeg";
-    const arrayBuffer = await response.arrayBuffer();
-    return { buffer: Buffer.from(arrayBuffer), contentType };
-  } catch (err: any) {
-    console.error(`  Download error: ${err.message}`);
-    return null;
   }
+  return null;
 }
 
 function slugify(name: string): string {
@@ -70,7 +78,6 @@ async function main() {
   console.log("=== Myca Photo Sync ===\n");
   console.log("Fetching accepted members from Notion...");
 
-  // Paginate through all accepted members
   const allResults: any[] = [];
   let cursor: string | undefined = undefined;
 
@@ -90,6 +97,17 @@ async function main() {
 
   console.log(`Found ${allResults.length} accepted members\n`);
 
+  // Check which contacts already have photos
+  const { data: existingPhotos } = await supabase
+    .from("contacts")
+    .select("email, photo_url")
+    .not("photo_url", "is", null);
+
+  const alreadyHasPhoto = new Set(
+    (existingPhotos || []).filter((c: any) => c.photo_url).map((c: any) => c.email)
+  );
+  console.log(`${alreadyHasPhoto.size} contacts already have photos, skipping those\n`);
+
   let uploaded = 0;
   let skipped = 0;
   let failed = 0;
@@ -107,81 +125,71 @@ async function main() {
     }
 
     if (!photoUrl) {
-      console.log(`  ${name} — no photo in Notion, skipping`);
+      skipped++;
+      continue;
+    }
+
+    // Skip if already has a photo
+    if (email && alreadyHasPhoto.has(email)) {
+      console.log(`  ${name} — already has photo, skipping`);
       skipped++;
       continue;
     }
 
     console.log(`Processing: ${name}...`);
 
-    // Download from Notion's signed URL
-    const image = await downloadImage(photoUrl);
+    // Download with retry for rate limits
+    const image = await downloadWithRetry(photoUrl);
     if (!image) {
-      console.log(`  FAILED to download photo for ${name}`);
+      console.log(`  FAILED: ${name}`);
       failed++;
       continue;
     }
 
-    // Determine file extension from content type
     const extMap: Record<string, string> = {
-      "image/jpeg": "jpg",
-      "image/jpg": "jpg",
-      "image/png": "png",
-      "image/webp": "webp",
-      "image/gif": "gif",
+      "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png",
+      "image/webp": "webp", "image/gif": "gif",
     };
     const ext = extMap[image.contentType] || "jpg";
     const fileName = `${slugify(name)}-${notionId.slice(0, 8)}.${ext}`;
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("photo")
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET_NAME)
       .upload(fileName, image.buffer, {
         contentType: image.contentType,
         upsert: true,
       });
 
     if (uploadError) {
-      console.log(`  FAILED to upload: ${uploadError.message}`);
+      console.log(`  Upload failed: ${uploadError.message}`);
       failed++;
       continue;
     }
 
-    // Get public URL
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("photo").getPublicUrl(fileName);
+    const { data: { publicUrl } } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(fileName);
 
     console.log(`  Uploaded -> ${publicUrl}`);
 
     // Update contacts table
     if (email) {
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from("contacts")
         .update({ photo_url: publicUrl })
         .eq("email", email);
-
-      if (updateError) {
-        // Try by notion_id
-        const { error: updateError2 } = await supabase
-          .from("contacts")
-          .update({ photo_url: publicUrl })
-          .eq("notion_id", notionId);
-
-        if (updateError2) {
-          console.log(`  WARNING: Photo uploaded but couldn't update contact (${updateError2.message})`);
-        } else {
-          console.log(`  Updated contact by notion_id`);
-        }
+      if (error) {
+        console.log(`  WARNING: couldn't update contact (${error.message})`);
       } else {
-        console.log(`  Updated contact by email`);
+        console.log(`  Updated contact`);
       }
     }
 
     uploaded++;
 
-    // Small delay to be nice to Notion's API
-    await new Promise((r) => setTimeout(r, 200));
+    // Delay between requests to avoid rate limits
+    await new Promise((r) => setTimeout(r, 500));
   }
 
   console.log(`\n=== Done ===`);
@@ -189,6 +197,9 @@ async function main() {
   console.log(`  Skipped:  ${skipped}`);
   console.log(`  Failed:   ${failed}`);
   console.log(`  Total:    ${allResults.length}`);
+  if (failed > 0) {
+    console.log(`\n  Run the script again to retry failed downloads.`);
+  }
 }
 
 main().catch((err) => {
