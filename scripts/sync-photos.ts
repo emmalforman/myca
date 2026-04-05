@@ -135,7 +135,7 @@ async function main() {
 
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("photos")
+      .from("photo")
       .upload(fileName, image.buffer, {
         contentType: image.contentType,
         upsert: true,
@@ -150,7 +150,7 @@ async function main() {
     // Get public URL
     const {
       data: { publicUrl },
-    } = supabase.storage.from("photos").getPublicUrl(fileName);
+    } = supabase.storage.from("photo").getPublicUrl(fileName);
 
     console.log(`  Uploaded -> ${publicUrl}`);
 
