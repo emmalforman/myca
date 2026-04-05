@@ -2,18 +2,54 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+  );
+}
 
 export default function Navigation() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
 
-  const links = [
+  useEffect(() => {
+    const supabase = getSupabase();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSignedIn(!!session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const publicLinks = [
     { href: "/", label: "Home" },
-    { href: "/directory", label: "Directory" },
-    { href: "/chat", label: "Chat" },
     { href: "/join", label: "Apply" },
   ];
+
+  const memberLinks = [
+    { href: "/directory", label: "Directory" },
+    { href: "/chat", label: "Chat" },
+  ];
+
+  const links = signedIn
+    ? [
+        { href: "/", label: "Home" },
+        { href: "/directory", label: "Directory" },
+        { href: "/chat", label: "Chat" },
+        { href: "/join", label: "Apply" },
+      ]
+    : publicLinks;
 
   return (
     <nav className="bg-ivory/90 backdrop-blur-lg border-b border-ink-100 sticky top-0 z-50">
