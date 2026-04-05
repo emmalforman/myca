@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Member, Filters, LOCATIONS } from "@/lib/types";
 import MemberCard from "@/components/MemberCard";
 import OutreachModal from "@/components/OutreachModal";
-import PasswordGate from "@/components/PasswordGate";
+import MemberLogin from "@/components/MemberLogin";
 
 export default function DirectoryPage() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -54,7 +54,7 @@ export default function DirectoryPage() {
   }, [members, filters]);
 
   return (
-    <PasswordGate>
+    <MemberLogin>
     <div className="min-h-screen bg-ivory">
       {/* Header */}
       <div className="bg-ink-950">
@@ -195,6 +195,6 @@ export default function DirectoryPage() {
         />
       )}
     </div>
-    </PasswordGate>
+    </MemberLogin>
   );
 }
