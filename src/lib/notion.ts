@@ -30,32 +30,44 @@ function getMultiSelect(prop: any): string[] {
 }
 
 function getFileUrl(prop: any): string {
-  if (!prop || prop.type !== "files") return "";
-  const file = prop.files?.[0];
-  if (!file) return "";
-  if (file.type === "file") return file.file.url;
-  if (file.type === "external") return file.external.url;
+  if (!prop) return "";
+
+  // Standard Notion API file format
+  if (prop.type === "files") {
+    const file = prop.files?.[0];
+    if (!file) return "";
+    if (file.type === "file") return file.file.url;
+    if (file.type === "external") return file.external.url;
+    // Notion form submissions store files with a name and url
+    if (file.name && file.file?.url) return file.file.url;
+    if (file.name && file.external?.url) return file.external.url;
+  }
+
   return "";
 }
 
-// Fetch accepted members from the Form database
+// Fetch accepted members from the Form database (has photos)
 export async function fetchMembersFromNotion(): Promise<Member[]> {
-  const dbId = directoryDatabaseId || formDatabaseId;
+  // Always use the Form DB — it has photos and Accepted status
+  const allResults: any[] = [];
+  let cursor: string | undefined = undefined;
 
-  const response = await notion.databases.query({
-    database_id: dbId,
-    ...(directoryDatabaseId
-      ? {}
-      : {
-          filter: {
-            property: "Accepted",
-            select: { equals: "Yes" },
-          },
-        }),
-    page_size: 100,
-  });
+  do {
+    const response: any = await notion.databases.query({
+      database_id: formDatabaseId,
+      filter: {
+        property: "Accepted",
+        select: { equals: "Yes" },
+      },
+      page_size: 100,
+      ...(cursor ? { start_cursor: cursor } : {}),
+    });
 
-  return response.results.map((page: any) => {
+    allResults.push(...response.results);
+    cursor = response.has_more ? response.next_cursor : undefined;
+  } while (cursor);
+
+  return allResults.map((page: any) => {
     const p = page.properties;
 
     // Handle both Form DB and Directory DB field names

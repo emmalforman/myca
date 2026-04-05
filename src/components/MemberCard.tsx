@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { Member } from "@/lib/types";
 
 export default function MemberCard({
@@ -22,12 +21,10 @@ export default function MemberCard({
       {/* Photo */}
       <div className="aspect-[4/3] relative bg-warm-100">
         {member.photoUrl ? (
-          <Image
+          <img
             src={member.photoUrl}
             alt={displayName}
-            fill
-            className="object-cover group-hover:scale-[1.03] transition-transform duration-300"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-warm-400 font-serif font-bold text-4xl">

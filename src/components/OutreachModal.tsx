@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { Member } from "@/lib/types";
 
 export default function OutreachModal({
@@ -63,12 +62,10 @@ export default function OutreachModal({
           <div className="flex items-center gap-4 p-4 bg-warm-50 rounded-xl mb-5">
             <div className="relative w-14 h-14 rounded-full overflow-hidden bg-warm-100 flex-shrink-0">
               {member.photoUrl ? (
-                <Image
+                <img
                   src={member.photoUrl}
                   alt={displayName}
-                  fill
-                  className="object-cover"
-                  sizes="56px"
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-warm-500 font-serif font-bold text-lg">

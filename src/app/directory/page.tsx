@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Image from "next/image";
 import { Member, Filters, LOCATIONS } from "@/lib/types";
 import MemberCard from "@/components/MemberCard";
 import OutreachModal from "@/components/OutreachModal";
@@ -249,12 +248,10 @@ export default function DirectoryPage() {
                 >
                   <div className="relative w-14 h-14 rounded-full overflow-hidden bg-warm-100 flex-shrink-0">
                     {m.photoUrl ? (
-                      <Image
+                      <img
                         src={m.photoUrl}
                         alt={displayName}
-                        fill
-                        className="object-cover"
-                        sizes="56px"
+                        className="absolute inset-0 w-full h-full object-cover"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-warm-400 font-serif font-bold text-lg">
