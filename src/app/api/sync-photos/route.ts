@@ -118,14 +118,14 @@ export async function POST() {
       if (email) {
         const { error } = await supabase
           .from("contacts")
-          .update({ photo: publicUrl })
+          .update({ photo_url: publicUrl })
           .eq("email", email);
         if (!error) updated = true;
       }
       if (!updated) {
         await supabase
           .from("contacts")
-          .update({ photo: publicUrl })
+          .update({ photo_url: publicUrl })
           .eq("notion_id", notionId);
       }
 
