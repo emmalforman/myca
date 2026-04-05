@@ -20,7 +20,7 @@ export async function GET() {
       // First try with is_myca_member filter
       let { data, error } = await supabase
         .from("contacts")
-        .select("*")
+        .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,company,role,occupation_type,location,industry_tags,focus_areas,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url")
         .eq("is_myca_member", true)
         .order("name");
 
@@ -29,7 +29,7 @@ export async function GET() {
         console.log("No members with is_myca_member=true, trying all contacts...");
         const result = await supabase
           .from("contacts")
-          .select("*")
+          .select("contact_id,name,photo_url")
           .order("name")
           .limit(5);
 
@@ -46,7 +46,7 @@ export async function GET() {
         if (result.data && result.data.length > 0) {
           const allResult = await supabase
             .from("contacts")
-            .select("*")
+            .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,company,role,occupation_type,location,industry_tags,focus_areas,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url")
             .order("name");
           data = allResult.data;
           error = allResult.error;
