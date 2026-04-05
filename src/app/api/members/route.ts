@@ -85,7 +85,7 @@ export async function GET() {
           communities: row.communities ?? undefined,
           cohortTags: row.cohort_tags ?? undefined,
           warmth: row.warmth ?? undefined,
-          photoUrl: row.photo_url ?? undefined,
+          photoUrl: row.photo ?? undefined,
         }));
 
         return NextResponse.json({

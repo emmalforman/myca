@@ -100,11 +100,11 @@ async function main() {
   // Check which contacts already have photos
   const { data: existingPhotos } = await supabase
     .from("contacts")
-    .select("email, photo_url")
-    .not("photo_url", "is", null);
+    .select("email, photo")
+    .not("photo", "is", null);
 
   const alreadyHasPhoto = new Set(
-    (existingPhotos || []).filter((c: any) => c.photo_url).map((c: any) => c.email)
+    (existingPhotos || []).filter((c: any) => c.photo).map((c: any) => c.email)
   );
   console.log(`${alreadyHasPhoto.size} contacts already have photos, skipping those\n`);
 
@@ -177,7 +177,7 @@ async function main() {
     if (email) {
       const { error } = await supabase
         .from("contacts")
-        .update({ photo_url: publicUrl })
+        .update({ photo: publicUrl })
         .eq("email", email);
       if (error) {
         console.log(`  WARNING: couldn't update contact (${error.message})`);
