@@ -4,26 +4,27 @@
 1. **Stripe Membership Payments** — $50/mo x 800 members = $480K ARR, paywalled access
 2. **Sponsorship & Partnership Page** — Brands pay $5–10K per partnership
 3. **Job Board** — Members + companies pay to list
+4. **Brand & Skill Marketplace** — Members and brands list their products, services, and skills for the community to browse and shop. Brands pay for featured/premium listings. Members can offer consulting, catering, recipe dev, etc.
 
 ## Engagement Drivers
-4. **Weekly Digest Email** — Auto-generated: new members, popular messages, upcoming events
-5. **Member Spotlight** — Featured member weekly on homepage (`spotlight_submissions` table exists)
-6. **Intro Requests** — Curated introductions, premium value
-7. **Company Logo Wall** — Social proof on homepage
-8. **Unread Message Badges** — Notification dots on Chat nav
+5. **Weekly Digest Email** — Auto-generated: new members, popular messages, upcoming events
+6. **Member Spotlight** — Featured member weekly on homepage (`spotlight_submissions` table exists)
+7. **Intro Requests** — Curated introductions, premium value
+8. **Company Logo Wall** — Social proof on homepage
+9. **Unread Message Badges** — Notification dots on Chat nav
 
 ## Events
-9. **Member Event Posting & RSVP** — Members host, post, and RSVP to events
-10. **Email/Outbound Integration** — Automated comms tied to events
-11. **AI Learning Sessions** — With calendar access
+10. **Member Event Posting & RSVP** — Members host, post, and RSVP to events
+11. **Email/Outbound Integration** — Automated comms tied to events
+12. **AI Learning Sessions** — With calendar access
 
 ## Growth
-12. **Public-Facing Member Directory** — Preview for non-members to drive conversions
-13. **Brand Directory** — Curated brands/products members can shop; brands pay to be featured
-14. **Member Outreach Pipeline** — Track and manage outreach to prospective members, sponsors, and collaborators
+13. **Public-Facing Member Directory** — Preview for non-members to drive conversions
+14. **Brand Directory** — Curated brands/products members can shop; brands pay to be featured
+15. **Member Outreach Pipeline** — Track and manage outreach to prospective members, sponsors, and collaborators
 
 ## Infrastructure
-15. **Payment & Processing** — Stripe for memberships and job board
+16. **Payment & Processing** — Stripe for memberships and job board
 
 ---
 
@@ -32,6 +33,7 @@
 ### Phase 1 — Unblocks Revenue
 - Stripe membership payments (the $500K engine)
 - Job board (immediate monetization)
+- Brand & skill marketplace (revenue from featured listings + massive engagement)
 
 ### Phase 2 — Drives Growth + Retention
 - Public directory (top of funnel)
