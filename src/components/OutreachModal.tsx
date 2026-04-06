@@ -1,7 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 import { Member } from "@/lib/types";
+
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+  );
+}
 
 export default function OutreachModal({
   member,
@@ -23,11 +31,40 @@ export default function OutreachModal({
     `Hi ${firstName},\n\nI came across your profile in the Myca Collective and would love to connect.\n\n`
   );
   const [sent, setSent] = useState(false);
+  const [senderEmail, setSenderEmail] = useState("");
 
-  const handleSend = () => {
+  useEffect(() => {
+    getSupabase().auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) setSenderEmail(session.user.email);
+    });
+  }, []);
+
+  const handleSend = async () => {
     const mailtoUrl = `mailto:${member.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     window.open(mailtoUrl, "_blank");
     setSent(true);
+
+    // Log outreach to introductions table
+    if (senderEmail && member.id) {
+      try {
+        const supabase = getSupabase();
+        // Get sender's contact_id
+        const { data: sender } = await supabase
+          .from("contacts")
+          .select("contact_id")
+          .eq("email", senderEmail)
+          .single();
+
+        if (sender) {
+          await supabase.from("introductions").insert({
+            person_a_id: sender.contact_id,
+            person_b_id: member.id,
+            status: "outreach_sent",
+            context: `Via Myca directory: "${subject}"`,
+          });
+        }
+      } catch {}
+    }
   };
 
   const handleCopyEmail = () => {
