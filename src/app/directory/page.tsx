@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Member, LOCATIONS } from "@/lib/types";
 import MemberCard from "@/components/MemberCard";
+import MemberDrawer from "@/components/MemberDrawer";
 import OutreachModal from "@/components/OutreachModal";
 import MemberLogin from "@/components/MemberLogin";
 
@@ -11,6 +12,7 @@ export default function DirectoryPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [previewMember, setPreviewMember] = useState<Member | null>(null);
   const [outreachTarget, setOutreachTarget] = useState<Member | null>(null);
 
   useEffect(() => {
@@ -206,6 +208,7 @@ export default function DirectoryPage() {
                 <MemberCard
                   key={m.id}
                   member={m}
+                  onPreview={setPreviewMember}
                   onOutreach={setOutreachTarget}
                 />
               ))}
@@ -233,6 +236,17 @@ export default function DirectoryPage() {
             </div>
           )}
         </div>
+
+        {previewMember && (
+          <MemberDrawer
+            member={previewMember}
+            onClose={() => setPreviewMember(null)}
+            onConnect={(m) => {
+              setPreviewMember(null);
+              setOutreachTarget(m);
+            }}
+          />
+        )}
 
         {outreachTarget && (
           <OutreachModal

@@ -5,9 +5,11 @@ import { Member } from "@/lib/types";
 export default function MemberCard({
   member,
   onOutreach,
+  onPreview,
 }: {
   member: Member;
   onOutreach: (member: Member) => void;
+  onPreview?: (member: Member) => void;
 }) {
   const displayName = member.name || `${member.firstName ?? ""} ${member.lastName ?? ""}`.trim();
   const initials =
@@ -15,7 +17,10 @@ export default function MemberCard({
     (member.lastName?.[0] ?? displayName?.split(" ")[1]?.[0] ?? "");
 
   return (
-    <div className="group bg-white border border-ink-100 hover:border-ink-300 transition-all duration-300 overflow-hidden">
+    <div
+      className="group bg-white border border-ink-100 hover:border-ink-300 transition-all duration-300 overflow-hidden cursor-pointer"
+      onClick={() => onPreview ? onPreview(member) : onOutreach(member)}
+    >
       {/* Photo */}
       <div className="aspect-square relative bg-parchment overflow-hidden">
         {member.photoUrl ? (

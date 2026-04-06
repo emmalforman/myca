@@ -8,16 +8,24 @@ import OutreachModal from "@/components/OutreachModal";
 import { Member } from "@/lib/types";
 
 const CHANNELS = [
-  { id: "general", label: "General", emoji: "💬" },
-  { id: "nyc", label: "New York", emoji: "🗽" },
-  { id: "sf", label: "San Francisco", emoji: "🌉" },
-  { id: "la", label: "Los Angeles", emoji: "🎬" },
+  { id: "general", label: "Myca Main Chat", emoji: "💬" },
+  { id: "jobs-asks", label: "Jobs & Asks", emoji: "💼" },
+  { id: "ai-chat", label: "AI Chat", emoji: "🤖" },
+  { id: "nyc", label: "Myca in NYC", emoji: "🗽" },
+  { id: "sf", label: "Myca in SF", emoji: "🌉" },
+  { id: "la", label: "Myca in LA", emoji: "🎬" },
   { id: "london", label: "London", emoji: "🇬🇧" },
   { id: "chicago", label: "Chicago", emoji: "🍕" },
+  { id: "europe", label: "Myca in Europe", emoji: "🌍" },
   { id: "founders", label: "Founders", emoji: "🚀" },
   { id: "investors", label: "Investors", emoji: "💰" },
   { id: "operators", label: "Operators", emoji: "⚙️" },
-  { id: "asks-offers", label: "Asks & Offers", emoji: "🤝" },
+  { id: "cpg", label: "CPG", emoji: "🛒" },
+  { id: "food-tech", label: "Food Tech", emoji: "🔬" },
+  { id: "hospitality", label: "Hospitality / Restaurants", emoji: "🍽️" },
+  { id: "book-club", label: "Book Club", emoji: "📚" },
+  { id: "traveling", label: "Traveling", emoji: "✈️" },
+  { id: "expo-west-2026", label: "Expo West 2026", emoji: "🎪" },
 ];
 
 interface Message {
