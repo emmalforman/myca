@@ -29,6 +29,7 @@ export default function DirectoryPage() {
   const quickFilters = useMemo(() => {
     const occ = new Map<string, number>();
     const loc = new Map<string, number>();
+    const ind = new Map<string, number>();
     members.forEach((m) => {
       if (m.occupationType) occ.set(m.occupationType, (occ.get(m.occupationType) || 0) + 1);
       if (m.location) {
@@ -37,10 +38,17 @@ export default function DirectoryPage() {
           if (t) loc.set(t, (loc.get(t) || 0) + 1);
         });
       }
+      if (m.industryTags) {
+        m.industryTags.split(",").forEach((tag) => {
+          const t = tag.trim();
+          if (t) ind.set(t, (ind.get(t) || 0) + 1);
+        });
+      }
     });
     return {
       occupations: [...occ.entries()].sort((a, b) => b[1] - a[1]),
       locations: [...loc.entries()].sort((a, b) => b[1] - a[1]),
+      industries: [...ind.entries()].sort((a, b) => b[1] - a[1]),
     };
   }, [members]);
 
@@ -53,7 +61,12 @@ export default function DirectoryPage() {
       results = results.filter((m) => {
         const occ = m.occupationType || "";
         const loc = (m.location || "").toLowerCase();
-        return occ === activeFilter || loc.includes(activeFilter.toLowerCase());
+        const tags = (m.industryTags || "").toLowerCase();
+        return (
+          occ === activeFilter ||
+          loc.includes(activeFilter.toLowerCase()) ||
+          tags.includes(activeFilter.toLowerCase())
+        );
       });
     }
 
@@ -111,7 +124,7 @@ export default function DirectoryPage() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, company, role, or what they offer..."
+                placeholder="Search by name, company, industry, or what they offer..."
                 className="w-full pl-11 pr-10 py-3 bg-forest-800 border border-forest-700 text-cream text-[14px] placeholder-forest-500 focus:outline-none focus:border-forest-400 transition-colors"
               />
               {search && (
@@ -171,6 +184,27 @@ export default function DirectoryPage() {
                   <span className="ml-1 opacity-50">{count}</span>
                 </button>
               ))}
+              {quickFilters.industries.length > 0 && (
+                <>
+                  <span className="text-forest-700 mx-1">|</span>
+                  {quickFilters.industries.slice(0, 6).map(([name, count]) => (
+                    <button
+                      key={`ind-${name}`}
+                      onClick={() =>
+                        setActiveFilter(activeFilter === name ? null : name)
+                      }
+                      className={`px-3 py-1 text-[11px] uppercase tracking-wider transition-colors ${
+                        activeFilter === name
+                          ? "bg-cream text-forest-900"
+                          : "text-forest-400 hover:text-cream border border-forest-700"
+                      }`}
+                    >
+                      {name}
+                      <span className="ml-1 opacity-50">{count}</span>
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         </div>
