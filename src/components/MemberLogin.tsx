@@ -15,6 +15,7 @@ export default function MemberLogin({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
@@ -55,65 +56,109 @@ export default function MemberLogin({
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSubmitting(true);
 
-    const { error: authError } = await getSupabaseBrowser().auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error: authError } = await getSupabaseBrowser().auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (authError) {
-      if (authError.message.includes("Invalid login")) {
-        setError("Invalid email or password.");
-      } else {
-        setError(authError.message);
+      if (authError) {
+        if (authError.message.includes("Invalid login") || authError.message.includes("invalid")) {
+          setError("Invalid email or password. If you haven't created an account yet, click 'Create an account' below.");
+        } else if (authError.message.includes("Email not confirmed")) {
+          setError("Please check your email and click the confirmation link first.");
+        } else {
+          setError(authError.message);
+        }
       }
+    } catch (err: any) {
+      setError(err.message || "Something went wrong.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSubmitting(true);
 
     if (password.length < 6) {
       setError("Password must be at least 6 characters.");
+      setSubmitting(false);
       return;
     }
 
-    const { error: authError } = await getSupabaseBrowser().auth.signUp({
-      email,
-      password,
-    });
+    try {
+      const supabase = getSupabaseBrowser();
 
-    if (authError) {
-      setError(authError.message);
-    } else {
-      // Auto sign in after signup
-      const { error: signInError } = await getSupabaseBrowser().auth.signInWithPassword({
+      const { data: signUpData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/directory` : undefined,
+        },
+      });
+
+      if (authError) {
+        if (authError.message.includes("already registered")) {
+          setError("This email already has an account. Try signing in instead.");
+          setState("login");
+        } else {
+          setError(authError.message);
+        }
+        return;
+      }
+
+      // Check if email confirmation is required
+      if (signUpData?.user?.identities?.length === 0) {
+        setError("This email already has an account. Try signing in instead.");
+        setState("login");
+        return;
+      }
+
+      // Try auto sign-in (works when email confirmation is disabled)
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
       if (signInError) {
-        setError("Account created. Please check your email to confirm, then log in.");
+        // Email confirmation is probably required
+        setError("Account created! Check your email to confirm, then come back and sign in.");
+        setState("login");
       }
+      // If sign-in succeeded, onAuthStateChange will handle the rest
+    } catch (err: any) {
+      setError(err.message || "Something went wrong.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSubmitting(true);
 
-    const redirectUrl = typeof window !== "undefined"
-      ? `${window.location.origin}/directory`
-      : undefined;
+    try {
+      const redirectUrl = typeof window !== "undefined"
+        ? `${window.location.origin}/directory`
+        : undefined;
 
-    const { error: resetError } = await getSupabaseBrowser().auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    });
+      const { error: resetError } = await getSupabaseBrowser().auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
 
-    if (resetError) {
-      setError(resetError.message);
-    } else {
-      setState("reset-sent");
+      if (resetError) {
+        setError(resetError.message);
+      } else {
+        setState("reset-sent");
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -232,9 +277,16 @@ export default function MemberLogin({
 
           <button
             type="submit"
-            className="w-full mt-4 py-3 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 transition-colors"
+            disabled={submitting}
+            className="w-full mt-4 py-3 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 disabled:opacity-50 transition-colors"
           >
-            {state === "signup" ? "Create Account" : state === "forgot" ? "Send Reset Link" : "Sign In"}
+            {submitting
+              ? "..."
+              : state === "signup"
+              ? "Create Account"
+              : state === "forgot"
+              ? "Send Reset Link"
+              : "Sign In"}
           </button>
         </form>
 
