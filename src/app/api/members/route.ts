@@ -63,61 +63,30 @@ export async function GET() {
       }
 
       if (data && data.length > 0) {
-        // Fetch company metadata for all companies
-        const companyNames = [...new Set(data.map((r: any) => r.company).filter(Boolean))];
-        let companyMap = new Map<string, any>();
-
-        if (companyNames.length > 0) {
-          const { data: metaRows } = await supabase
-            .from("company_metadata")
-            .select("*")
-            .in("company_name", companyNames);
-
-          if (metaRows) {
-            for (const row of metaRows) {
-              companyMap.set(row.company_name.toLowerCase(), row);
-            }
-          }
-        }
-
-        const members: Member[] = data.map((row: any) => {
-          const meta = row.company ? companyMap.get(row.company.toLowerCase()) : undefined;
-          return {
-            id: row.contact_id || row.id,
-            notionId: row.notion_id ?? undefined,
-            name: row.name ?? "",
-            firstName: row.first_name ?? undefined,
-            lastName: row.last_name ?? undefined,
-            email: row.email ?? "",
-            phone: row.phone ?? undefined,
-            linkedin: row.linkedin ?? undefined,
-            company: row.company ?? undefined,
-            role: row.role ?? undefined,
-            occupationType: row.occupation_type ?? undefined,
-            location: row.location ?? undefined,
-            industryTags: row.industry_tags ?? undefined,
-            focusAreas: row.focus_areas ?? undefined,
-            superpower: row.superpower ?? undefined,
-            asks: row.asks ?? undefined,
-            offers: row.offers ?? undefined,
-            notes: row.notes ?? undefined,
-            communities: row.communities ?? undefined,
-            cohortTags: row.cohort_tags ?? undefined,
-            warmth: row.warmth ?? undefined,
-            photoUrl: row.photo_url ?? undefined,
-            companyMetadata: meta ? {
-              industry: meta.industry ?? undefined,
-              subCategory: meta.sub_category ?? undefined,
-              businessModel: meta.business_model ?? undefined,
-              companyStage: meta.company_stage ?? undefined,
-              companySize: meta.company_size ?? undefined,
-              foundedYear: meta.founded_year ?? undefined,
-              headquarters: meta.headquarters ?? undefined,
-              description: meta.description ?? undefined,
-              keywords: meta.keywords ?? undefined,
-            } : undefined,
-          };
-        });
+        const members: Member[] = data.map((row: any) => ({
+          id: row.contact_id || row.id,
+          notionId: row.notion_id ?? undefined,
+          name: row.name ?? "",
+          firstName: row.first_name ?? undefined,
+          lastName: row.last_name ?? undefined,
+          email: row.email ?? "",
+          phone: row.phone ?? undefined,
+          linkedin: row.linkedin ?? undefined,
+          company: row.company ?? undefined,
+          role: row.role ?? undefined,
+          occupationType: row.occupation_type ?? undefined,
+          location: row.location ?? undefined,
+          industryTags: row.industry_tags ?? undefined,
+          focusAreas: row.focus_areas ?? undefined,
+          superpower: row.superpower ?? undefined,
+          asks: row.asks ?? undefined,
+          offers: row.offers ?? undefined,
+          notes: row.notes ?? undefined,
+          communities: row.communities ?? undefined,
+          cohortTags: row.cohort_tags ?? undefined,
+          warmth: row.warmth ?? undefined,
+          photoUrl: row.photo_url ?? undefined,
+        }));
 
         return NextResponse.json({
           members,
