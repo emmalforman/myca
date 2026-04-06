@@ -62,12 +62,24 @@ export default function OutreachModal({
     // Create a DM channel ID (sorted emails for consistency)
     const channelId = `dm:${[senderEmail, member.email].sort().join(":")}`;
 
+    // Send the message
     await supabase.from("messages").insert({
       channel: channelId,
       sender_email: senderEmail,
       sender_name: senderName || senderEmail.split("@")[0],
       content: dmMessage.trim(),
     });
+
+    // Register both users in the DM channel so it shows in their chat sidebar
+    await supabase
+      .from("channel_members")
+      .upsert(
+        [
+          { channel: channelId, email: senderEmail },
+          { channel: channelId, email: member.email },
+        ],
+        { onConflict: "channel,email" }
+      );
 
     setSent(true);
     setSending(false);
