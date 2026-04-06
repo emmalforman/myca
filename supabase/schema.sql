@@ -60,6 +60,17 @@ create table if not exists public.group_members (
   primary key (group_id, member_id)
 );
 
+-- Channel join requests (for restricted channels requiring validation)
+create table if not exists public.channel_requests (
+  id uuid default gen_random_uuid() primary key,
+  channel text not null,
+  email text not null,
+  status text default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  created_at timestamptz default now(),
+  reviewed_at timestamptz,
+  unique(channel, email)
+);
+
 -- Indexes
 create index if not exists idx_members_location on public.members using gin(location);
 create index if not exists idx_members_email on public.members(email);
@@ -122,6 +133,13 @@ create policy "Anyone can manage group members"
   on public.group_members for insert with check (true);
 create policy "Anyone can remove group members"
   on public.group_members for delete using (true);
+
+-- Channel requests: anyone can submit, admin reads
+alter table public.channel_requests enable row level security;
+create policy "Anyone can request to join a channel"
+  on public.channel_requests for insert with check (true);
+create policy "Members can view their own requests"
+  on public.channel_requests for select using (true);
 
 -- Enable realtime
 alter publication supabase_realtime add table public.members;

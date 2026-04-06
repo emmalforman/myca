@@ -5,16 +5,24 @@ import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { Member } from "@/lib/types";
 
 const CHANNEL_LABELS: Record<string, string> = {
-  general: "General",
-  nyc: "New York",
-  sf: "San Francisco",
-  la: "Los Angeles",
+  general: "Myca Main Chat",
+  "jobs-asks": "Jobs & Asks",
+  "ai-chat": "AI Chat",
+  nyc: "Myca in NYC",
+  sf: "Myca in SF",
+  la: "Myca in LA",
   london: "London",
   chicago: "Chicago",
+  europe: "Myca in Europe",
   founders: "Founders",
   investors: "Investors",
   operators: "Operators",
-  "asks-offers": "Asks & Offers",
+  cpg: "CPG",
+  "food-tech": "Food Tech",
+  hospitality: "Hospitality / Restaurants",
+  "book-club": "Book Club",
+  traveling: "Traveling",
+  "expo-west-2026": "Expo West 2026",
 };
 
 export default function MemberDrawer({
@@ -56,9 +64,9 @@ export default function MemberDrawer({
       setMyChannels(mine);
       setTheirChannels(theirs);
 
-      // Find shared channels (exclude general and asks-offers since everyone's in those)
+      // Find shared channels (exclude general and jobs-asks since everyone's in those)
       const shared = mine.filter(
-        (ch: string) => theirs.includes(ch) && ch !== "general" && ch !== "asks-offers"
+        (ch: string) => theirs.includes(ch) && ch !== "general" && ch !== "jobs-asks"
       );
       setSharedChannels(shared);
     };
@@ -135,7 +143,7 @@ export default function MemberDrawer({
             </p>
             <div className="flex flex-wrap gap-1.5">
               {theirChannels
-                .filter((ch) => ch !== "general" && ch !== "asks-offers")
+                .filter((ch) => ch !== "general" && ch !== "jobs-asks")
                 .map((ch) => (
                   <span
                     key={ch}

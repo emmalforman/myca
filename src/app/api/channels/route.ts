@@ -39,15 +39,18 @@ export async function POST(request: Request) {
   if (location.includes("los angeles")) channels.push("la");
   if (location.includes("london")) channels.push("london");
   if (location.includes("chicago")) channels.push("chicago");
+  if (location.includes("europe") || location.includes("london") || location.includes("paris") || location.includes("berlin")) {
+    if (!channels.includes("europe")) channels.push("europe");
+  }
 
-  // Auto-join role channels
+  // Auto-join role channels (these are validated by profile match)
   const role = (contact.occupation_type || "").toLowerCase();
   if (role.includes("founder")) channels.push("founders");
   if (role.includes("investor")) channels.push("investors");
   if (role.includes("operator")) channels.push("operators");
 
-  // Always join asks-offers
-  channels.push("asks-offers");
+  // Always join jobs-asks
+  channels.push("jobs-asks");
 
   // Upsert channel memberships
   const rows = channels.map((ch) => ({ channel: ch, email }));
