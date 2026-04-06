@@ -167,9 +167,16 @@ export default function OnboardingFlow({
               Say hello to someone?
             </h1>
             <p className="text-[14px] text-ink-400">
-              Optionally introduce yourself to a member. You can skip this.
+              Optionally introduce yourself to a member, or skip this step.
             </p>
           </div>
+
+          <button
+            onClick={finishOnboarding}
+            className="w-full mb-6 py-3 text-[12px] uppercase tracking-wider font-medium text-forest-900 border border-forest-300 hover:bg-forest-50 transition-colors"
+          >
+            Skip &mdash; enter Myca
+          </button>
 
           {!selectedMember ? (
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
@@ -266,12 +273,6 @@ export default function OnboardingFlow({
             </div>
           )}
 
-          <button
-            onClick={finishOnboarding}
-            className="w-full mt-4 py-3 text-[12px] uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors border border-ink-200"
-          >
-            Skip &mdash; enter Myca without messaging
-          </button>
         </div>
       </div>
     );
