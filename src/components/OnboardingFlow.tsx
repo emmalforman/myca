@@ -52,7 +52,7 @@ export default function OnboardingFlow({
       // Get current user's profile for smart matching
       const { data: myProfile } = await supabase
         .from("contacts")
-        .select("name, location, occupation_type")
+        .select("name, location, occupation_type, company, industry_tags")
         .eq("email", email)
         .single();
 
@@ -66,13 +66,26 @@ export default function OnboardingFlow({
       const myLocation = (myProfile?.location || "").toLowerCase();
       const myRole = (myProfile?.occupation_type || "").toLowerCase();
 
-      // Score members: same city = 3, same role = 2, random tiebreaker
+      // Get my company metadata for deeper matching
+      let myCompanyMeta: any = null;
+      if (myProfile?.company) {
+        const metaRes = await fetch(`/api/enrich?company=${encodeURIComponent(myProfile.company)}`);
+        const metaData = await metaRes.json();
+        myCompanyMeta = metaData.metadata;
+      }
+      const myIndustry = (myCompanyMeta?.industry || myProfile?.industry_tags || "").toLowerCase();
+      const myKeywords = (myCompanyMeta?.keywords || "").toLowerCase().split(",").map((k: string) => k.trim()).filter(Boolean);
+      const myStage = (myCompanyMeta?.company_stage || "").toLowerCase();
+      const myModel = (myCompanyMeta?.business_model || "").toLowerCase();
+
+      // Score members with enriched matching
       const scored = others.map((m: Member) => {
         let score = 0;
         const loc = (m.location || "").toLowerCase();
         const role = (m.occupationType || "").toLowerCase();
+        const cm = m.companyMetadata;
 
-        // City match
+        // City match (+3)
         if (myLocation && loc) {
           const cities = ["new york", "nyc", "san francisco", "sf", "los angeles", "la", "london", "chicago", "europe"];
           for (const city of cities) {
@@ -83,7 +96,7 @@ export default function OnboardingFlow({
           }
         }
 
-        // Role match
+        // Role match (+2)
         if (myRole && role && (
           (myRole.includes("founder") && role.includes("founder")) ||
           (myRole.includes("investor") && role.includes("investor")) ||
@@ -92,8 +105,44 @@ export default function OnboardingFlow({
           score += 2;
         }
 
-        // Recently active members get a slight boost
-        // (proxy: members with photos tend to be more engaged)
+        // Company metadata matching
+        if (cm) {
+          // Same industry (+3)
+          const theirIndustry = (cm.industry || "").toLowerCase();
+          if (myIndustry && theirIndustry && myIndustry.includes(theirIndustry)) {
+            score += 3;
+          }
+
+          // Same sub-category (+2)
+          const theirSub = (cm.subCategory || "").toLowerCase();
+          if (theirSub && myIndustry.includes(theirSub)) {
+            score += 2;
+          }
+
+          // Same business model (+1)
+          if (myModel && cm.businessModel && myModel === cm.businessModel.toLowerCase()) {
+            score += 1;
+          }
+
+          // Similar company stage (+1)
+          if (myStage && cm.companyStage) {
+            const stages = ["pre-seed", "seed", "series-a", "series-b", "growth", "public"];
+            const myIdx = stages.indexOf(myStage);
+            const theirIdx = stages.indexOf(cm.companyStage);
+            if (myIdx >= 0 && theirIdx >= 0 && Math.abs(myIdx - theirIdx) <= 1) {
+              score += 1;
+            }
+          }
+
+          // Keyword overlap (+1 per shared keyword, max 3)
+          if (myKeywords.length > 0 && cm.keywords) {
+            const theirKeywords = cm.keywords.toLowerCase().split(",").map((k: string) => k.trim());
+            const overlap = myKeywords.filter((k: string) => theirKeywords.includes(k)).length;
+            score += Math.min(overlap, 3);
+          }
+        }
+
+        // Has photo = more engaged (+1)
         if (m.photoUrl) score += 1;
 
         return { member: m, score, rand: Math.random() };

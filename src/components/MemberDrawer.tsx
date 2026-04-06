@@ -160,6 +160,42 @@ export default function MemberDrawer({
           </div>
         )}
 
+        {/* Company info */}
+        {member.companyMetadata && (
+          <div className="mx-6 mb-4 p-3 bg-white border border-ink-100">
+            <p className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-mono mb-2">
+              Company
+            </p>
+            {member.companyMetadata.description && (
+              <p className="text-[13px] text-ink-600 mb-2">
+                {member.companyMetadata.description}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-1.5">
+              {member.companyMetadata.industry && (
+                <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider text-forest-700 bg-forest-50 border border-forest-100 font-mono">
+                  {member.companyMetadata.industry}
+                </span>
+              )}
+              {member.companyMetadata.subCategory && (
+                <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink-500 border border-ink-200 font-mono">
+                  {member.companyMetadata.subCategory}
+                </span>
+              )}
+              {member.companyMetadata.businessModel && (
+                <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink-500 border border-ink-200 font-mono">
+                  {member.companyMetadata.businessModel}
+                </span>
+              )}
+              {member.companyMetadata.companyStage && (
+                <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider text-clay-600 border border-clay-200 font-mono">
+                  {member.companyMetadata.companyStage}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Details */}
         <div className="px-6 space-y-5 pb-8">
           {member.location && (

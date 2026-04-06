@@ -1,3 +1,15 @@
+export interface CompanyMetadata {
+  industry?: string;
+  subCategory?: string;
+  businessModel?: string;
+  companyStage?: string;
+  companySize?: string;
+  foundedYear?: number;
+  headquarters?: string;
+  description?: string;
+  keywords?: string;
+}
+
 export interface Member {
   id: string;
   notionId?: string;
@@ -21,6 +33,7 @@ export interface Member {
   cohortTags?: string;
   warmth?: string;
   photoUrl?: string;
+  companyMetadata?: CompanyMetadata;
 }
 
 export interface ApplicationData {
