@@ -41,6 +41,7 @@ function ChatApp() {
   const [memberProfiles, setMemberProfiles] = useState<Map<string, Member>>(new Map());
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [outreachTarget, setOutreachTarget] = useState<Member | null>(null);
+  const [dmChannels, setDmChannels] = useState<{ id: string; name: string; email: string }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -75,9 +76,39 @@ function ChatApp() {
           email: session.user.email,
           name: data?.[0]?.name || session.user.email.split("@")[0],
         });
+
+        // Load DM channels for this user
+        const { data: dmMessages } = await supabase
+          .from("messages")
+          .select("channel")
+          .like("channel", `dm:%${session.user.email}%`)
+          .limit(50);
+
+        if (dmMessages) {
+          const uniqueChannels = [...new Set(dmMessages.map((m: any) => m.channel))];
+          const dms = uniqueChannels.map((ch: string) => {
+            // Extract the other person's email from "dm:email1:email2"
+            const parts = ch.replace("dm:", "").split(":");
+            const otherEmail = parts.find((e: string) => e !== session.user.email) || "";
+            return { id: ch, email: otherEmail, name: "" };
+          });
+          setDmChannels(dms);
+        }
       }
     });
   }, []);
+
+  // Resolve DM channel names from member profiles
+  useEffect(() => {
+    if (dmChannels.length > 0 && memberProfiles.size > 0) {
+      setDmChannels((prev) =>
+        prev.map((dm) => {
+          const profile = memberProfiles.get(dm.email);
+          return { ...dm, name: profile?.name || dm.email.split("@")[0] };
+        })
+      );
+    }
+  }, [memberProfiles]);
 
   // Load messages for current channel
   useEffect(() => {
@@ -160,6 +191,13 @@ function ChatApp() {
   };
 
   const currentChannel = CHANNELS.find((c) => c.id === channel);
+  const isDM = channel.startsWith("dm:");
+  const dmRecipient = isDM ? dmChannels.find((d) => d.id === channel) : null;
+  const dmProfile = dmRecipient ? memberProfiles.get(dmRecipient.email) : null;
+  const channelDisplayName = isDM
+    ? dmRecipient?.name || "Direct Message"
+    : currentChannel?.label;
+  const channelDisplayEmoji = isDM ? "✉️" : currentChannel?.emoji;
 
   return (
     <div className="h-[calc(100vh-57px)] flex bg-ivory">
@@ -178,13 +216,49 @@ function ChatApp() {
               className={`w-full text-left px-4 py-2.5 text-[13px] flex items-center gap-2.5 transition-colors ${
                 channel === ch.id
                   ? "bg-forest-800 text-white"
-                  : "text-ink-400 hover:text-ink-200 hover:bg-ink-900"
+                  : "text-ink-400 hover:text-ink-200 hover:bg-forest-900"
               }`}
             >
               <span className="text-base">{ch.emoji}</span>
               {ch.label}
             </button>
           ))}
+
+          {/* DM channels */}
+          {dmChannels.length > 0 && (
+            <>
+              <div className="px-4 pt-4 pb-2">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-forest-600 font-mono">
+                  Direct Messages
+                </p>
+              </div>
+              {dmChannels.map((dm) => {
+                const profile = memberProfiles.get(dm.email);
+                return (
+                  <button
+                    key={dm.id}
+                    onClick={() => setChannel(dm.id)}
+                    className={`w-full text-left px-4 py-2 text-[13px] flex items-center gap-2.5 transition-colors ${
+                      channel === dm.id
+                        ? "bg-forest-800 text-white"
+                        : "text-ink-400 hover:text-ink-200 hover:bg-forest-900"
+                    }`}
+                  >
+                    <div className="w-6 h-6 bg-forest-800 overflow-hidden flex-shrink-0">
+                      {profile?.photoUrl ? (
+                        <img src={profile.photoUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[10px] font-serif text-forest-300">
+                          {dm.name?.[0] || "?"}
+                        </div>
+                      )}
+                    </div>
+                    <span className="truncate">{dm.name}</span>
+                  </button>
+                );
+              })}
+            </>
+          )}
         </div>
         {user && (
           <div className="p-4 border-t border-ink-800">
@@ -272,10 +346,15 @@ function ChatApp() {
               />
             </svg>
           </button>
-          <span className="text-lg">{currentChannel?.emoji}</span>
+          <span className="text-lg">{channelDisplayEmoji}</span>
           <span className="text-[14px] font-serif text-ink-900">
-            {currentChannel?.label}
+            {channelDisplayName}
           </span>
+          {isDM && dmProfile && (
+            <span className="text-[11px] text-ink-400 hidden sm:inline">
+              {dmProfile.role}{dmProfile.company ? `, ${dmProfile.company}` : ""}
+            </span>
+          )}
         </div>
 
         {/* Messages */}
@@ -289,13 +368,13 @@ function ChatApp() {
           {!loading && messages.length === 0 && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <p className="text-3xl mb-3">{currentChannel?.emoji}</p>
+                <p className="text-3xl mb-3">{channelDisplayEmoji}</p>
                 <p className="text-[14px] text-ink-400">
-                  No messages in{" "}
-                  <span className="font-serif text-ink-600">
-                    {currentChannel?.label}
-                  </span>{" "}
-                  yet.
+                  {isDM ? (
+                    <>Start your conversation with <span className="font-serif text-ink-600">{channelDisplayName}</span>.</>
+                  ) : (
+                    <>No messages in <span className="font-serif text-ink-600">{channelDisplayName}</span> yet.</>
+                  )}
                 </p>
                 <p className="text-[13px] text-ink-300 mt-1">
                   Be the first to say something.
