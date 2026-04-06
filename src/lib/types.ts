@@ -42,8 +42,9 @@ export interface ApplicationData {
 
 export interface Filters {
   search: string;
-  location: string;
-  occupation: string;
+  locations: string[];
+  occupations: string[];
+  companies: string[];
 }
 
 export const LOCATIONS = [

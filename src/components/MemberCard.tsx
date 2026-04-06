@@ -47,11 +47,18 @@ export default function MemberCard({
           </p>
         )}
 
-        {member.location && (
-          <p className="text-[11px] uppercase tracking-[0.15em] text-ink-300 font-mono mt-2">
-            {member.location}
-          </p>
-        )}
+        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+          {member.occupationType && (
+            <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink-500 border border-ink-200 font-mono">
+              {member.occupationType}
+            </span>
+          )}
+          {member.location && (
+            <span className="text-[10px] uppercase tracking-[0.1em] text-ink-300 font-mono">
+              {member.location}
+            </span>
+          )}
+        </div>
 
         {member.superpower && (
           <p className="text-[13px] text-clay-600 mt-3 line-clamp-2 italic leading-relaxed">
