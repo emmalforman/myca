@@ -85,17 +85,27 @@ function ChatApp() {
           name: data?.[0]?.name || session.user.email.split("@")[0],
         });
 
-        // Load DM channels for this user
-        const { data: dmMessages } = await supabase
-          .from("messages")
-          .select("channel")
-          .like("channel", `dm:%${session.user.email}%`)
-          .limit(50);
+        // Load DM channels from both channel_members and messages
+        const [{ data: dmMemberships }, { data: dmMessages }] = await Promise.all([
+          supabase
+            .from("channel_members")
+            .select("channel")
+            .eq("email", session.user.email)
+            .like("channel", "dm:%"),
+          supabase
+            .from("messages")
+            .select("channel")
+            .like("channel", `dm:%${session.user.email}%`)
+            .limit(50),
+        ]);
 
-        if (dmMessages) {
-          const uniqueChannels = [...new Set(dmMessages.map((m: any) => m.channel))];
-          const dms = uniqueChannels.map((ch: string) => {
-            // Extract the other person's email from "dm:email1:email2"
+        // Merge both sources for complete DM list
+        const allDmChannels = new Set<string>();
+        (dmMemberships || []).forEach((r: any) => allDmChannels.add(r.channel));
+        (dmMessages || []).forEach((r: any) => allDmChannels.add(r.channel));
+
+        if (allDmChannels.size > 0) {
+          const dms = [...allDmChannels].map((ch: string) => {
             const parts = ch.replace("dm:", "").split(":");
             const otherEmail = parts.find((e: string) => e !== session.user.email) || "";
             return { id: ch, email: otherEmail, name: "" };
