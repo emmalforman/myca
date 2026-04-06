@@ -172,7 +172,7 @@ export default function OnboardingFlow({
           </div>
 
           {!selectedMember ? (
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            <div className="space-y-3 max-h-[400px] overflow-y-auto">
               {members.slice(0, 12).map((m) => {
                 const initials = (m.firstName?.[0] ?? m.name?.[0] ?? "") +
                   (m.lastName?.[0] ?? m.name?.split(" ")[1]?.[0] ?? "");
@@ -180,28 +180,40 @@ export default function OnboardingFlow({
                   <button
                     key={m.id}
                     onClick={() => setSelectedMember(m)}
-                    className="w-full flex items-center gap-3 p-3 bg-white border border-ink-100 hover:border-forest-400 transition-colors text-left"
+                    className="w-full flex items-start gap-4 p-4 bg-white border border-ink-100 hover:border-forest-400 transition-colors text-left"
                   >
-                    <div className="w-11 h-11 bg-cream flex-shrink-0 overflow-hidden">
+                    <div className="w-14 h-14 bg-cream flex-shrink-0 overflow-hidden">
                       {m.photoUrl ? (
                         <img src={m.photoUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-forest-400 font-serif text-sm">
+                        <div className="w-full h-full flex items-center justify-center text-forest-400 font-serif text-lg">
                           {initials}
                         </div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[14px] font-serif text-ink-900 truncate">{m.name}</p>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-[14px] font-serif text-ink-900 truncate">{m.name}</p>
+                        {m.location && (
+                          <span className="text-[10px] text-ink-300 font-mono uppercase tracking-wider flex-shrink-0">
+                            {m.location}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[12px] text-ink-400 truncate">
                         {m.role}{m.company ? `, ${m.company}` : ""}
                       </p>
+                      {m.occupationType && (
+                        <span className="inline-block mt-1 px-2 py-0.5 text-[9px] uppercase tracking-wider text-ink-500 border border-ink-200 font-mono">
+                          {m.occupationType}
+                        </span>
+                      )}
+                      {m.superpower && (
+                        <p className="text-[12px] text-clay-600 mt-1.5 italic line-clamp-1">
+                          {m.superpower}
+                        </p>
+                      )}
                     </div>
-                    {m.location && (
-                      <span className="text-[10px] text-ink-300 font-mono uppercase tracking-wider flex-shrink-0 hidden sm:inline">
-                        {m.location}
-                      </span>
-                    )}
                   </button>
                 );
               })}
