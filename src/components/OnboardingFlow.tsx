@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import { Member } from "@/lib/types";
 
 const CHANNELS = [
   // Cities - open
@@ -35,8 +36,36 @@ export default function OnboardingFlow({
   email: string;
   onComplete: () => void;
 }) {
+  const [step, setStep] = useState<"channels" | "connect">("channels");
   const [selectedChannels, setSelectedChannels] = useState<string[]>(["general"]);
   const [joining, setJoining] = useState(false);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [senderName, setSenderName] = useState("");
+
+  useEffect(() => {
+    fetch("/api/members")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.members) {
+          const others = data.members
+            .filter((m: Member) => m.email !== email)
+            .sort(() => Math.random() - 0.5);
+          setMembers(others);
+        }
+      });
+
+    getSupabaseBrowser()
+      .from("contacts")
+      .select("name")
+      .eq("email", email)
+      .single()
+      .then(({ data }) => {
+        if (data) setSenderName(data.name);
+      });
+  }, [email]);
 
   const toggleChannel = (id: string) => {
     setSelectedChannels((prev) =>
@@ -85,12 +114,34 @@ export default function OnboardingFlow({
         .upsert(rows, { onConflict: "channel,email" });
     }
 
-    // Mark onboarding complete
+    setJoining(false);
+    setStep("connect");
+  };
+
+  const finishOnboarding = async () => {
+    const supabase = getSupabaseBrowser();
     await supabase
       .from("channel_members")
       .upsert([{ channel: "_onboarded", email }], { onConflict: "channel,email" });
-
     onComplete();
+  };
+
+  const handleSendIntro = async () => {
+    if (!selectedMember || !message.trim()) return;
+    setSending(true);
+
+    const supabase = getSupabaseBrowser();
+    const channelId = `dm:${[email, selectedMember.email].sort().join(":")}`;
+
+    await supabase.from("messages").insert({
+      channel: channelId,
+      sender_email: email,
+      sender_name: senderName || email.split("@")[0],
+      content: message.trim(),
+    });
+
+    setSending(false);
+    await finishOnboarding();
   };
 
   const cityChannels = CHANNELS.filter((c) => c.type === "city");
@@ -103,6 +154,113 @@ export default function OnboardingFlow({
     const ch = CHANNELS.find((c) => c.id === id);
     return ch?.restricted;
   });
+
+  if (step === "connect") {
+    return (
+      <div className="min-h-screen bg-ivory flex items-center justify-center px-6">
+        <div className="w-full max-w-lg">
+          <div className="text-center mb-8">
+            <p className="text-[11px] uppercase tracking-[0.3em] text-forest-500 font-mono mb-3">
+              Almost there
+            </p>
+            <h1 className="text-3xl font-serif text-ink-900 mb-3">
+              Say hello to someone?
+            </h1>
+            <p className="text-[14px] text-ink-400">
+              Optionally introduce yourself to a member. You can skip this.
+            </p>
+          </div>
+
+          {!selectedMember ? (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {members.slice(0, 12).map((m) => {
+                const initials = (m.firstName?.[0] ?? m.name?.[0] ?? "") +
+                  (m.lastName?.[0] ?? m.name?.split(" ")[1]?.[0] ?? "");
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setSelectedMember(m)}
+                    className="w-full flex items-center gap-3 p-3 bg-white border border-ink-100 hover:border-forest-400 transition-colors text-left"
+                  >
+                    <div className="w-11 h-11 bg-cream flex-shrink-0 overflow-hidden">
+                      {m.photoUrl ? (
+                        <img src={m.photoUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-forest-400 font-serif text-sm">
+                          {initials}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[14px] font-serif text-ink-900 truncate">{m.name}</p>
+                      <p className="text-[12px] text-ink-400 truncate">
+                        {m.role}{m.company ? `, ${m.company}` : ""}
+                      </p>
+                    </div>
+                    {m.location && (
+                      <span className="text-[10px] text-ink-300 font-mono uppercase tracking-wider flex-shrink-0 hidden sm:inline">
+                        {m.location}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center gap-3 p-4 bg-forest-50 border border-forest-100 mb-4">
+                <div className="w-12 h-12 bg-cream flex-shrink-0 overflow-hidden">
+                  {selectedMember.photoUrl ? (
+                    <img src={selectedMember.photoUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-forest-400 font-serif">
+                      {selectedMember.name?.[0]}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-serif text-ink-900">{selectedMember.name}</p>
+                  <p className="text-[12px] text-ink-400">
+                    {selectedMember.role}{selectedMember.company ? `, ${selectedMember.company}` : ""}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedMember(null)}
+                  className="text-[11px] uppercase tracking-wider text-ink-400 hover:text-ink-700"
+                >
+                  Change
+                </button>
+              </div>
+
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={4}
+                autoFocus
+                placeholder={`Hey ${selectedMember.firstName || selectedMember.name?.split(" ")[0]}, I just joined Myca and wanted to introduce myself...`}
+                className="w-full px-4 py-3 text-[14px] border border-ink-200 focus:outline-none focus:border-forest-400 resize-none text-ink-900 placeholder-ink-300 mb-4"
+              />
+
+              <button
+                onClick={handleSendIntro}
+                disabled={!message.trim() || sending}
+                className="w-full py-3.5 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                {sending ? "Sending..." : "Send & Enter Myca"}
+              </button>
+            </div>
+          )}
+
+          <button
+            onClick={finishOnboarding}
+            className="w-full mt-3 py-3 text-[12px] uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
+          >
+            Skip for now
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-ivory flex items-center justify-center px-6">
