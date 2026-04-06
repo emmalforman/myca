@@ -19,9 +19,11 @@
 
 ## Growth
 12. **Public-Facing Member Directory** — Preview for non-members to drive conversions
+13. **Brand Directory** — Curated brands/products members can shop; brands pay to be featured
+14. **Member Outreach Pipeline** — Track and manage outreach to prospective members, sponsors, and collaborators
 
 ## Infrastructure
-13. **Payment & Processing** — Stripe for memberships and job board
+15. **Payment & Processing** — Stripe for memberships and job board
 
 ---
 
