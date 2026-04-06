@@ -22,25 +22,19 @@ export default function Navigation() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSignedIn(!!session);
     });
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSignedIn(!!session);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
-  const publicLinks = [
-    { href: "/", label: "Home" },
-    { href: "/join", label: "Apply" },
-  ];
-
-  const memberLinks = [
-    { href: "/directory", label: "Directory" },
-    { href: "/chat", label: "Chat" },
-  ];
+  const handleSignOut = async () => {
+    await getSupabase().auth.signOut();
+    setSignedIn(false);
+    window.location.href = "/";
+  };
 
   const links = signedIn
     ? [
@@ -49,24 +43,18 @@ export default function Navigation() {
         { href: "/chat", label: "Chat" },
         { href: "/join", label: "Apply" },
       ]
-    : publicLinks;
-
-  const handleSignOut = async () => {
-    await getSupabase().auth.signOut();
-    setSignedIn(false);
-    window.location.href = "/";
-  };
+    : [
+        { href: "/", label: "Home" },
+        { href: "/join", label: "Apply" },
+      ];
 
   return (
-    <nav className="bg-ivory/90 backdrop-blur-lg border-b border-ink-100 sticky top-0 z-50">
+    <nav className="bg-forest-900 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-lg font-serif tracking-tight text-ink-900">
-              myca
-            </span>
-            <span className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-mono hidden sm:inline">
-              collective
+          <Link href="/" className="flex items-center">
+            <span className="text-xl font-serif text-cream tracking-tight">
+              Myca
             </span>
           </Link>
 
@@ -77,8 +65,8 @@ export default function Navigation() {
                 href={link.href}
                 className={`px-4 py-1.5 text-[13px] tracking-wide uppercase transition-colors ${
                   pathname === link.href
-                    ? "text-ink-900 font-medium"
-                    : "text-ink-400 hover:text-ink-700"
+                    ? "text-cream font-medium"
+                    : "text-forest-300 hover:text-cream"
                 }`}
               >
                 {link.label}
@@ -87,14 +75,14 @@ export default function Navigation() {
             {signedIn ? (
               <button
                 onClick={handleSignOut}
-                className="ml-2 px-4 py-1.5 text-[13px] tracking-wide uppercase text-ink-400 hover:text-ink-700 transition-colors"
+                className="ml-2 px-4 py-1.5 text-[13px] tracking-wide uppercase text-forest-400 hover:text-cream transition-colors"
               >
                 Sign Out
               </button>
             ) : (
               <Link
                 href="/directory"
-                className="ml-2 px-5 py-1.5 text-[12px] tracking-wide uppercase font-medium text-white bg-ink-900 hover:bg-ink-700 transition-colors"
+                className="ml-2 px-5 py-1.5 text-[12px] tracking-wide uppercase font-medium text-forest-900 bg-cream hover:bg-white transition-colors"
               >
                 Log In
               </Link>
@@ -103,7 +91,7 @@ export default function Navigation() {
 
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="sm:hidden p-2 text-ink-600"
+            className="sm:hidden p-2 text-cream"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               {mobileOpen ? (
@@ -116,7 +104,7 @@ export default function Navigation() {
         </div>
 
         {mobileOpen && (
-          <div className="sm:hidden pb-4 space-y-1 border-t border-ink-100 pt-3">
+          <div className="sm:hidden pb-4 space-y-1 border-t border-forest-800 pt-3">
             {links.map((link) => (
               <Link
                 key={link.href}
@@ -124,8 +112,8 @@ export default function Navigation() {
                 onClick={() => setMobileOpen(false)}
                 className={`block px-3 py-2 text-sm tracking-wide uppercase ${
                   pathname === link.href
-                    ? "text-ink-900 font-medium"
-                    : "text-ink-400"
+                    ? "text-cream font-medium"
+                    : "text-forest-400"
                 }`}
               >
                 {link.label}
@@ -134,7 +122,7 @@ export default function Navigation() {
             {signedIn ? (
               <button
                 onClick={() => { handleSignOut(); setMobileOpen(false); }}
-                className="block w-full text-left px-3 py-2 text-sm tracking-wide uppercase text-ink-400"
+                className="block w-full text-left px-3 py-2 text-sm tracking-wide uppercase text-forest-400"
               >
                 Sign Out
               </button>
@@ -142,7 +130,7 @@ export default function Navigation() {
               <Link
                 href="/directory"
                 onClick={() => setMobileOpen(false)}
-                className="block px-3 py-2 text-sm tracking-wide uppercase text-ink-900 font-medium"
+                className="block px-3 py-2 text-sm tracking-wide uppercase text-cream font-medium"
               >
                 Log In
               </Link>

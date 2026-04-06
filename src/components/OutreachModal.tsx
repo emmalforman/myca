@@ -154,7 +154,7 @@ export default function OutreachModal({
                 </button>
                 <button
                   onClick={handleSend}
-                  className="flex-1 px-4 py-3 text-[12px] uppercase tracking-wider font-medium text-white bg-ink-900 hover:bg-ink-700 transition-colors"
+                  className="flex-1 px-4 py-3 text-[12px] uppercase tracking-wider font-medium text-white bg-forest-900 hover:bg-forest-700 transition-colors"
                 >
                   Open in Email
                 </button>

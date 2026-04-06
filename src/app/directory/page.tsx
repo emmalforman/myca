@@ -20,8 +20,8 @@ function FilterPill({
       onClick={onClick}
       className={`px-3.5 py-1.5 text-[12px] tracking-wide transition-all ${
         active
-          ? "bg-ink-900 text-white"
-          : "bg-white text-ink-500 border border-ink-200 hover:border-ink-400 hover:text-ink-700"
+          ? "bg-forest-900 text-cream"
+          : "bg-white text-ink-500 border border-ink-200 hover:border-forest-400 hover:text-forest-700"
       }`}
     >
       {label}
@@ -150,15 +150,15 @@ export default function DirectoryPage() {
     <MemberLogin>
       <div className="min-h-screen bg-ivory">
         {/* Header */}
-        <div className="bg-ink-950">
+        <div className="bg-forest-900">
           <div className="max-w-6xl mx-auto px-6 lg:px-8 py-16 sm:py-20">
-            <p className="text-[11px] uppercase tracking-[0.3em] text-clay-500 font-mono mb-3">
+            <p className="text-[11px] uppercase tracking-[0.3em] text-forest-400 font-mono mb-3">
               Directory
             </p>
-            <h1 className="text-3xl sm:text-4xl font-serif text-white mb-2">
+            <h1 className="text-3xl sm:text-4xl font-serif text-cream mb-2">
               The Collective.
             </h1>
-            <p className="text-ink-400 text-[15px]">
+            <p className="text-forest-300 text-[15px]">
               Founders, operators, and investors building the future of food &
               CPG.
             </p>
@@ -233,7 +233,7 @@ export default function DirectoryPage() {
               </svg>
               Filters
               {activeFilterCount > 0 && (
-                <span className="px-1.5 py-0.5 text-[10px] bg-ink-900 text-white font-mono">
+                <span className="px-1.5 py-0.5 text-[10px] bg-forest-900 text-cream font-mono">
                   {activeFilterCount}
                 </span>
               )}
@@ -336,7 +336,7 @@ export default function DirectoryPage() {
               {selectedLocations.map((loc) => (
                 <span
                   key={`loc-${loc}`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] uppercase tracking-wider bg-ink-900 text-white font-mono"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] uppercase tracking-wider bg-forest-900 text-cream font-mono"
                 >
                   {loc}
                   <button
@@ -354,7 +354,7 @@ export default function DirectoryPage() {
               {selectedOccupations.map((occ) => (
                 <span
                   key={`occ-${occ}`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] uppercase tracking-wider bg-ink-900 text-white font-mono"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] uppercase tracking-wider bg-forest-900 text-cream font-mono"
                 >
                   {occ}
                   <button
@@ -372,7 +372,7 @@ export default function DirectoryPage() {
               {selectedCompanies.map((co) => (
                 <span
                   key={`co-${co}`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] uppercase tracking-wider bg-ink-900 text-white font-mono"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] uppercase tracking-wider bg-forest-900 text-cream font-mono"
                 >
                   {co}
                   <button

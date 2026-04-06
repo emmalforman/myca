@@ -150,7 +150,7 @@ function ChatApp() {
   return (
     <div className="h-[calc(100vh-57px)] flex bg-ivory">
       {/* Sidebar - Desktop */}
-      <div className="hidden md:flex w-64 flex-col bg-ink-950 flex-shrink-0">
+      <div className="hidden md:flex w-64 flex-col bg-forest-950 flex-shrink-0">
         <div className="p-4 border-b border-ink-800">
           <p className="text-[11px] uppercase tracking-[0.2em] text-ink-500 font-mono">
             Channels
@@ -163,7 +163,7 @@ function ChatApp() {
               onClick={() => setChannel(ch.id)}
               className={`w-full text-left px-4 py-2.5 text-[13px] flex items-center gap-2.5 transition-colors ${
                 channel === ch.id
-                  ? "bg-ink-800 text-white"
+                  ? "bg-forest-800 text-white"
                   : "text-ink-400 hover:text-ink-200 hover:bg-ink-900"
               }`}
             >
@@ -189,7 +189,7 @@ function ChatApp() {
             className="absolute inset-0 bg-black/40"
             onClick={() => setSidebarOpen(false)}
           />
-          <div className="relative w-64 h-full bg-ink-950 flex flex-col">
+          <div className="relative w-64 h-full bg-forest-950 flex flex-col">
             <div className="p-4 border-b border-ink-800 flex items-center justify-between">
               <p className="text-[11px] uppercase tracking-[0.2em] text-ink-500 font-mono">
                 Channels
@@ -223,7 +223,7 @@ function ChatApp() {
                   }}
                   className={`w-full text-left px-4 py-2.5 text-[13px] flex items-center gap-2.5 transition-colors ${
                     channel === ch.id
-                      ? "bg-ink-800 text-white"
+                      ? "bg-forest-800 text-white"
                       : "text-ink-400 hover:text-ink-200"
                   }`}
                 >
@@ -305,7 +305,7 @@ function ChatApp() {
                   <div
                     className={`w-8 h-8 flex-shrink-0 flex items-center justify-center text-[12px] font-serif font-bold ${
                       isMe
-                        ? "bg-ink-900 text-white"
+                        ? "bg-forest-900 text-cream"
                         : "bg-clay-200 text-clay-700"
                     }`}
                   >
@@ -353,7 +353,7 @@ function ChatApp() {
             <button
               type="submit"
               disabled={!input.trim()}
-              className="px-5 py-3 text-[12px] uppercase tracking-wider font-medium text-white bg-ink-900 hover:bg-ink-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+              className="px-5 py-3 text-[12px] uppercase tracking-wider font-medium text-white bg-forest-900 hover:bg-forest-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex-shrink-0"
             >
               Send
             </button>

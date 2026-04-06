@@ -13,7 +13,7 @@
   }
 
   ::selection {
-    @apply bg-ink-900 text-ivory;
+    @apply bg-forest-900 text-cream;
   }
 }
 

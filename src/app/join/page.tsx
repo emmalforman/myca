@@ -284,7 +284,7 @@ export default function JoinPage() {
                     }`}
                   >
                     {form.location === loc && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-ink-900" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-forest-900" />
                     )}
                   </div>
                   <span className="text-[14px] text-ink-700">{loc}</span>
@@ -443,7 +443,7 @@ export default function JoinPage() {
           <button
             type="submit"
             disabled={submitting || !form.location}
-            className="px-8 py-3.5 text-[14px] font-medium text-white bg-ink-900 rounded-full hover:bg-ink-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-8 py-3.5 text-[14px] font-medium text-white bg-forest-900 rounded-full hover:bg-forest-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? "Submitting..." : "Submit"}
           </button>
