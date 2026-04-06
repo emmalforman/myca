@@ -52,7 +52,7 @@ export default function OnboardingFlow({
       // Get current user's profile for smart matching
       const { data: myProfile } = await supabase
         .from("contacts")
-        .select("name, location, occupation_type, company, industry_tags")
+        .select("name, location, occupation_type, industry_tags, focus_areas")
         .eq("email", email)
         .single();
 
@@ -65,25 +65,14 @@ export default function OnboardingFlow({
       const others = data.members.filter((m: Member) => m.email !== email);
       const myLocation = (myProfile?.location || "").toLowerCase();
       const myRole = (myProfile?.occupation_type || "").toLowerCase();
+      const myIndustryTags = (myProfile?.industry_tags || "").toLowerCase().split(",").map((t: string) => t.trim()).filter(Boolean);
+      const myFocusAreas = (myProfile?.focus_areas || "").toLowerCase().split(",").map((t: string) => t.trim()).filter(Boolean);
 
-      // Get my company metadata for deeper matching
-      let myCompanyMeta: any = null;
-      if (myProfile?.company) {
-        const metaRes = await fetch(`/api/enrich?company=${encodeURIComponent(myProfile.company)}`);
-        const metaData = await metaRes.json();
-        myCompanyMeta = metaData.metadata;
-      }
-      const myIndustry = (myCompanyMeta?.industry || myProfile?.industry_tags || "").toLowerCase();
-      const myKeywords = (myCompanyMeta?.keywords || "").toLowerCase().split(",").map((k: string) => k.trim()).filter(Boolean);
-      const myStage = (myCompanyMeta?.company_stage || "").toLowerCase();
-      const myModel = (myCompanyMeta?.business_model || "").toLowerCase();
-
-      // Score members with enriched matching
+      // Score members using existing profile data (no API calls)
       const scored = others.map((m: Member) => {
         let score = 0;
         const loc = (m.location || "").toLowerCase();
         const role = (m.occupationType || "").toLowerCase();
-        const cm = m.companyMetadata;
 
         // City match (+3)
         if (myLocation && loc) {
@@ -105,41 +94,18 @@ export default function OnboardingFlow({
           score += 2;
         }
 
-        // Company metadata matching
-        if (cm) {
-          // Same industry (+3)
-          const theirIndustry = (cm.industry || "").toLowerCase();
-          if (myIndustry && theirIndustry && myIndustry.includes(theirIndustry)) {
-            score += 3;
-          }
+        // Industry tag overlap (+2 per match, max 4)
+        if (myIndustryTags.length > 0 && m.industryTags) {
+          const theirTags = m.industryTags.toLowerCase().split(",").map((t: string) => t.trim());
+          const overlap = myIndustryTags.filter((t: string) => theirTags.some((tt: string) => tt.includes(t) || t.includes(tt))).length;
+          score += Math.min(overlap * 2, 4);
+        }
 
-          // Same sub-category (+2)
-          const theirSub = (cm.subCategory || "").toLowerCase();
-          if (theirSub && myIndustry.includes(theirSub)) {
-            score += 2;
-          }
-
-          // Same business model (+1)
-          if (myModel && cm.businessModel && myModel === cm.businessModel.toLowerCase()) {
-            score += 1;
-          }
-
-          // Similar company stage (+1)
-          if (myStage && cm.companyStage) {
-            const stages = ["pre-seed", "seed", "series-a", "series-b", "growth", "public"];
-            const myIdx = stages.indexOf(myStage);
-            const theirIdx = stages.indexOf(cm.companyStage);
-            if (myIdx >= 0 && theirIdx >= 0 && Math.abs(myIdx - theirIdx) <= 1) {
-              score += 1;
-            }
-          }
-
-          // Keyword overlap (+1 per shared keyword, max 3)
-          if (myKeywords.length > 0 && cm.keywords) {
-            const theirKeywords = cm.keywords.toLowerCase().split(",").map((k: string) => k.trim());
-            const overlap = myKeywords.filter((k: string) => theirKeywords.includes(k)).length;
-            score += Math.min(overlap, 3);
-          }
+        // Focus area overlap (+1 per match, max 3)
+        if (myFocusAreas.length > 0 && m.focusAreas) {
+          const theirFocus = m.focusAreas.toLowerCase().split(",").map((t: string) => t.trim());
+          const overlap = myFocusAreas.filter((t: string) => theirFocus.some((tf: string) => tf.includes(t) || t.includes(tf))).length;
+          score += Math.min(overlap, 3);
         }
 
         // Has photo = more engaged (+1)

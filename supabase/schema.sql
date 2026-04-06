@@ -60,34 +60,6 @@ create table if not exists public.group_members (
   primary key (group_id, member_id)
 );
 
--- Enriched company metadata for better member matching
-create table if not exists public.company_metadata (
-  id uuid default gen_random_uuid() primary key,
-  company_name text not null unique,
-  industry text,           -- e.g. "Food & Beverage", "Agriculture", "Food Tech"
-  sub_category text,       -- e.g. "Snacks", "Dairy Alternative", "Restaurant Tech"
-  business_model text,     -- e.g. "DTC", "B2B", "Marketplace", "Retail", "SaaS"
-  company_stage text check (company_stage in ('pre-seed', 'seed', 'series-a', 'series-b', 'growth', 'public', 'acquired', 'bootstrapped', null)),
-  company_size text check (company_size in ('1-10', '11-50', '51-200', '201-500', '500+', null)),
-  founded_year int,
-  headquarters text,       -- city/region
-  description text,        -- short company description
-  keywords text,           -- comma-separated tags for matching (e.g. "plant-based,sustainability,snacks")
-  enriched_at timestamptz default now(),
-  created_at timestamptz default now()
-);
-
-create index if not exists idx_company_metadata_name on public.company_metadata(company_name);
-create index if not exists idx_company_metadata_industry on public.company_metadata(industry);
-
-alter table public.company_metadata enable row level security;
-create policy "Company metadata is viewable by everyone"
-  on public.company_metadata for select using (true);
-create policy "Anyone can insert company metadata"
-  on public.company_metadata for insert with check (true);
-create policy "Anyone can update company metadata"
-  on public.company_metadata for update using (true);
-
 -- Channel join requests (for restricted channels requiring validation)
 create table if not exists public.channel_requests (
   id uuid default gen_random_uuid() primary key,
