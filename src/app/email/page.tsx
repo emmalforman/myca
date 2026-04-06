@@ -282,7 +282,7 @@ export default function WeeklyEmailBuilder() {
   return (
     <div className="min-h-screen bg-ink-100">
       {/* ── Toolbar ── */}
-      <div className="sticky top-0 z-50 bg-white border-b border-ink-200 shadow-sm">
+      <div className="sticky top-14 z-40 bg-white border-b border-ink-200 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 py-3 flex flex-wrap items-center gap-2">
           <button
             onClick={() => setActiveTab("edit")}
