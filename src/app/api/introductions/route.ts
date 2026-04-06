@@ -51,12 +51,30 @@ export async function GET(request: Request) {
     });
   }
 
-  // Enrich intros with contact info
-  const enriched = (intros || []).map((intro: any) => ({
-    ...intro,
-    person_a: contactMap[intro.person_a_id] || null,
-    person_b: contactMap[intro.person_b_id] || null,
-  }));
+  // Get admin's contact_id
+  const adminEmail = process.env.ADMIN_EMAIL || "";
+  let adminContactId: string | null = null;
+  if (adminEmail) {
+    const { data: adminContact } = await supabase
+      .from("contacts")
+      .select("contact_id")
+      .eq("email", adminEmail)
+      .single();
+    adminContactId = adminContact?.contact_id || null;
+  }
 
-  return NextResponse.json({ introductions: enriched });
+  // Enrich intros with contact info and categorize
+  const enriched = (intros || []).map((intro: any) => {
+    const isAdminIntro = adminContactId && (
+      intro.person_a_id === adminContactId || intro.person_b_id === adminContactId
+    );
+    return {
+      ...intro,
+      person_a: contactMap[intro.person_a_id] || null,
+      person_b: contactMap[intro.person_b_id] || null,
+      is_admin_intro: !!isAdminIntro,
+    };
+  });
+
+  return NextResponse.json({ introductions: enriched, adminContactId });
 }

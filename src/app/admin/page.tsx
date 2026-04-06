@@ -32,12 +32,105 @@ interface Introduction {
   archived: boolean;
   person_a: { name: string; email: string; company: string; role: string; photo_url: string } | null;
   person_b: { name: string; email: string; company: string; role: string; photo_url: string } | null;
+  is_admin_intro: boolean;
+}
+
+function IntroList({ intros, formatDate }: { intros: Introduction[]; formatDate: (d: string) => string }) {
+  if (intros.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <p className="font-serif text-xl text-ink-900 mb-2">None yet.</p>
+        <p className="text-[13px] text-ink-400">
+          Connections will appear here as they happen.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {intros.map((intro) => (
+        <div key={intro.id} className="bg-white border border-ink-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="w-9 h-9 bg-cream flex-shrink-0 overflow-hidden">
+                {intro.person_a?.photo_url ? (
+                  <img src={intro.person_a.photo_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-forest-400 font-serif text-xs">
+                    {intro.person_a?.name?.[0] || "?"}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[13px] font-serif text-ink-900 truncate">
+                  {intro.person_a?.name || "Unknown"}
+                </p>
+                <p className="text-[10px] text-ink-400 truncate">
+                  {intro.person_a?.role}
+                  {intro.person_a?.company ? `, ${intro.person_a.company}` : ""}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0 px-2">
+              <svg className="w-5 h-5 text-forest-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </div>
+
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="w-9 h-9 bg-cream flex-shrink-0 overflow-hidden">
+                {intro.person_b?.photo_url ? (
+                  <img src={intro.person_b.photo_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-forest-400 font-serif text-xs">
+                    {intro.person_b?.name?.[0] || "?"}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[13px] font-serif text-ink-900 truncate">
+                  {intro.person_b?.name || "Unknown"}
+                </p>
+                <p className="text-[10px] text-ink-400 truncate">
+                  {intro.person_b?.role}
+                  {intro.person_b?.company ? `, ${intro.person_b.company}` : ""}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0 text-right">
+              <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-mono ${
+                intro.status === "completed"
+                  ? "text-forest-700 bg-forest-50 border border-forest-200"
+                  : intro.status === "outreach_sent"
+                  ? "text-clay-600 bg-clay-50 border border-clay-200"
+                  : "text-ink-400 bg-ink-50 border border-ink-200"
+              }`}>
+                {intro.status?.replace(/_/g, " ") || "pending"}
+              </span>
+              <p className="text-[10px] text-ink-300 font-mono mt-1">
+                {formatDate(intro.created_at)}
+              </p>
+            </div>
+          </div>
+
+          {intro.context && (
+            <p className="text-[12px] text-ink-400 mt-2 pl-11 italic">
+              {intro.context}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function AdminPage() {
   const [adminKey, setAdminKey] = useState("");
   const [authed, setAuthed] = useState(false);
-  const [tab, setTab] = useState<"applications" | "introductions">("applications");
+  const [tab, setTab] = useState<"applications" | "my-intros" | "member-outreach">("applications");
   const [applications, setApplications] = useState<Application[]>([]);
   const [introductions, setIntroductions] = useState<Introduction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,7 +161,7 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    if (authed && tab === "introductions" && introductions.length === 0) {
+    if (authed && (tab === "my-intros" || tab === "member-outreach") && introductions.length === 0) {
       fetchIntros();
     }
   }, [authed, tab]);
@@ -147,7 +240,8 @@ export default function AdminPage() {
           <div className="flex gap-0">
             {[
               { id: "applications" as const, label: "Applications", count: applications.length },
-              { id: "introductions" as const, label: "Introductions", count: introductions.length },
+              { id: "my-intros" as const, label: "My Intros", count: introductions.filter((i) => i.is_admin_intro).length },
+              { id: "member-outreach" as const, label: "Member Outreach", count: introductions.filter((i) => !i.is_admin_intro).length },
             ].map((t) => (
               <button
                 key={t.id}
@@ -312,111 +406,39 @@ export default function AdminPage() {
           </>
         )}
 
-        {/* Introductions Tab */}
-        {tab === "introductions" && (
+        {/* My Intros Tab */}
+        {tab === "my-intros" && (
           <>
             <div className="flex items-center justify-between mb-6">
-              <p className="text-[13px] text-ink-500">
-                {introductions.length} connection{introductions.length !== 1 ? "s" : ""} made through the directory
-              </p>
-              <button
-                onClick={fetchIntros}
-                className="text-[11px] uppercase tracking-wider text-forest-600 hover:text-forest-900"
-              >
+              <div>
+                <p className="text-[14px] text-ink-700 font-serif">Your Introductions</p>
+                <p className="text-[12px] text-ink-400">
+                  Connections you&apos;ve facilitated as the organizer
+                </p>
+              </div>
+              <button onClick={fetchIntros} className="text-[11px] uppercase tracking-wider text-forest-600 hover:text-forest-900">
                 Refresh
               </button>
             </div>
+            <IntroList intros={introductions.filter((i) => i.is_admin_intro)} formatDate={formatDate} />
+          </>
+        )}
 
-            {introductions.length === 0 && (
-              <div className="text-center py-16">
-                <p className="font-serif text-xl text-ink-900 mb-2">No introductions yet.</p>
-                <p className="text-[13px] text-ink-400">
-                  When members connect through the directory, it shows up here.
+        {/* Member Outreach Tab */}
+        {tab === "member-outreach" && (
+          <>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-[14px] text-ink-700 font-serif">Member-to-Member Outreach</p>
+                <p className="text-[12px] text-ink-400">
+                  Connections members are making through the directory on their own
                 </p>
               </div>
-            )}
-
-            <div className="space-y-2">
-              {introductions.map((intro) => (
-                <div key={intro.id} className="bg-white border border-ink-100 p-4">
-                  <div className="flex items-center gap-3">
-                    {/* Person A */}
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <div className="w-9 h-9 bg-cream flex-shrink-0 overflow-hidden">
-                        {intro.person_a?.photo_url ? (
-                          <img src={intro.person_a.photo_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-forest-400 font-serif text-xs">
-                            {intro.person_a?.name?.[0] || "?"}
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-serif text-ink-900 truncate">
-                          {intro.person_a?.name || "Unknown"}
-                        </p>
-                        <p className="text-[10px] text-ink-400 truncate">
-                          {intro.person_a?.role}
-                          {intro.person_a?.company ? `, ${intro.person_a.company}` : ""}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Arrow */}
-                    <div className="flex-shrink-0 px-2">
-                      <svg className="w-5 h-5 text-forest-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                      </svg>
-                    </div>
-
-                    {/* Person B */}
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <div className="w-9 h-9 bg-cream flex-shrink-0 overflow-hidden">
-                        {intro.person_b?.photo_url ? (
-                          <img src={intro.person_b.photo_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-forest-400 font-serif text-xs">
-                            {intro.person_b?.name?.[0] || "?"}
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-serif text-ink-900 truncate">
-                          {intro.person_b?.name || "Unknown"}
-                        </p>
-                        <p className="text-[10px] text-ink-400 truncate">
-                          {intro.person_b?.role}
-                          {intro.person_b?.company ? `, ${intro.person_b.company}` : ""}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Status + Date */}
-                    <div className="flex-shrink-0 text-right">
-                      <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-mono ${
-                        intro.status === "completed"
-                          ? "text-forest-700 bg-forest-50 border border-forest-200"
-                          : intro.status === "outreach_sent"
-                          ? "text-clay-600 bg-clay-50 border border-clay-200"
-                          : "text-ink-400 bg-ink-50 border border-ink-200"
-                      }`}>
-                        {intro.status?.replace(/_/g, " ") || "pending"}
-                      </span>
-                      <p className="text-[10px] text-ink-300 font-mono mt-1">
-                        {formatDate(intro.created_at)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Context */}
-                  {intro.context && (
-                    <p className="text-[12px] text-ink-400 mt-2 pl-11 italic">
-                      {intro.context}
-                    </p>
-                  )}
-                </div>
-              ))}
+              <button onClick={fetchIntros} className="text-[11px] uppercase tracking-wider text-forest-600 hover:text-forest-900">
+                Refresh
+              </button>
             </div>
+            <IntroList intros={introductions.filter((i) => !i.is_admin_intro)} formatDate={formatDate} />
           </>
         )}
       </div>
