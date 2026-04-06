@@ -1,6 +1,21 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { Member } from "@/lib/types";
+
+const CHANNEL_LABELS: Record<string, string> = {
+  general: "General",
+  nyc: "New York",
+  sf: "San Francisco",
+  la: "Los Angeles",
+  london: "London",
+  chicago: "Chicago",
+  founders: "Founders",
+  investors: "Investors",
+  operators: "Operators",
+  "asks-offers": "Asks & Offers",
+};
 
 export default function MemberDrawer({
   member,
@@ -17,22 +32,50 @@ export default function MemberDrawer({
     (member.firstName?.[0] ?? displayName?.[0] ?? "") +
     (member.lastName?.[0] ?? displayName?.split(" ")[1]?.[0] ?? "");
 
+  const [sharedChannels, setSharedChannels] = useState<string[]>([]);
+  const [myChannels, setMyChannels] = useState<string[]>([]);
+  const [theirChannels, setTheirChannels] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadChannels = async () => {
+      const supabase = getSupabaseBrowser();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.email || !member.email) return;
+
+      // Fetch both members' channels
+      const [myRes, theirRes] = await Promise.all([
+        fetch(`/api/channels?email=${encodeURIComponent(session.user.email)}`),
+        fetch(`/api/channels?email=${encodeURIComponent(member.email)}`),
+      ]);
+
+      const myData = await myRes.json();
+      const theirData = await theirRes.json();
+
+      const mine = myData.channels || [];
+      const theirs = theirData.channels || [];
+      setMyChannels(mine);
+      setTheirChannels(theirs);
+
+      // Find shared channels (exclude general and asks-offers since everyone's in those)
+      const shared = mine.filter(
+        (ch: string) => theirs.includes(ch) && ch !== "general" && ch !== "asks-offers"
+      );
+      setSharedChannels(shared);
+    };
+
+    loadChannels();
+  }, [member.email]);
+
   return (
     <div className="fixed inset-0 z-50">
-      <div
-        className="absolute inset-0 bg-black/30"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-ivory shadow-2xl overflow-y-auto animate-slide-in">
         {/* Header */}
         <div className="sticky top-0 bg-ivory border-b border-ink-100 px-6 py-4 flex items-center justify-between z-10">
           <p className="text-[11px] uppercase tracking-[0.2em] text-ink-400 font-mono">
             Member Profile
           </p>
-          <button
-            onClick={onClose}
-            className="text-ink-400 hover:text-ink-700 transition-colors"
-          >
+          <button onClick={onClose} className="text-ink-400 hover:text-ink-700 transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -43,11 +86,7 @@ export default function MemberDrawer({
         <div className="px-6 pt-6 pb-4">
           <div className="w-24 h-24 bg-cream border border-ink-100 overflow-hidden mb-4">
             {member.photoUrl ? (
-              <img
-                src={member.photoUrl}
-                alt={displayName}
-                className="w-full h-full object-cover"
-              />
+              <img src={member.photoUrl} alt={displayName} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-forest-400 font-serif text-3xl">
                 {initials}
@@ -69,6 +108,50 @@ export default function MemberDrawer({
           )}
         </div>
 
+        {/* Shared context */}
+        {sharedChannels.length > 0 && (
+          <div className="mx-6 mb-4 p-3 bg-forest-50 border border-forest-100">
+            <p className="text-[10px] uppercase tracking-[0.15em] text-forest-600 font-mono mb-2">
+              You&apos;re both in
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {sharedChannels.map((ch) => (
+                <span
+                  key={ch}
+                  className="px-2.5 py-1 text-[11px] text-forest-800 bg-forest-100 font-medium"
+                >
+                  {CHANNEL_LABELS[ch] || ch}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Their channels */}
+        {theirChannels.length > 0 && (
+          <div className="mx-6 mb-4">
+            <p className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-mono mb-2">
+              Groups
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {theirChannels
+                .filter((ch) => ch !== "general" && ch !== "asks-offers")
+                .map((ch) => (
+                  <span
+                    key={ch}
+                    className={`px-2.5 py-1 text-[11px] border ${
+                      sharedChannels.includes(ch)
+                        ? "text-forest-700 border-forest-200 bg-forest-50"
+                        : "text-ink-500 border-ink-200"
+                    }`}
+                  >
+                    {CHANNEL_LABELS[ch] || ch}
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
+
         {/* Details */}
         <div className="px-6 space-y-5 pb-8">
           {member.location && (
@@ -85,9 +168,7 @@ export default function MemberDrawer({
               <p className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-mono mb-1">
                 Superpower
               </p>
-              <p className="text-[14px] text-ink-700 italic">
-                {member.superpower}
-              </p>
+              <p className="text-[14px] text-ink-700 italic">{member.superpower}</p>
             </div>
           )}
 
@@ -96,9 +177,7 @@ export default function MemberDrawer({
               <p className="text-[10px] uppercase tracking-[0.15em] text-forest-600 font-mono mb-1">
                 What They Offer
               </p>
-              <p className="text-[14px] text-ink-700 leading-relaxed">
-                {member.offers}
-              </p>
+              <p className="text-[14px] text-ink-700 leading-relaxed">{member.offers}</p>
             </div>
           )}
 
@@ -107,9 +186,7 @@ export default function MemberDrawer({
               <p className="text-[10px] uppercase tracking-[0.15em] text-rust-600 font-mono mb-1">
                 What They&apos;re Looking For
               </p>
-              <p className="text-[14px] text-ink-700 leading-relaxed">
-                {member.asks}
-              </p>
+              <p className="text-[14px] text-ink-700 leading-relaxed">{member.asks}</p>
             </div>
           )}
 

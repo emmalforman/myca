@@ -48,6 +48,12 @@ export default function MemberLogin({
 
     if (data && data.length > 0) {
       setState("authenticated");
+      // Auto-join channels based on profile
+      fetch("/api/channels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: userEmail }),
+      }).catch(() => {});
     } else {
       setState("not-member");
     }
