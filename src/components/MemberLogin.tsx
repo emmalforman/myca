@@ -1,14 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
-
-function getSupabase(): SupabaseClient {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-  );
-}
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 export default function MemberLogin({
   children,
@@ -23,7 +16,7 @@ export default function MemberLogin({
 
   useEffect(() => {
     // Check if already logged in
-    getSupabase().auth.getSession().then(({ data: { session } }) => {
+    getSupabaseBrowser().auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.email) {
         verifyMembership(session.user.email);
       } else {
@@ -34,7 +27,7 @@ export default function MemberLogin({
     // Listen for auth changes (magic link callback)
     const {
       data: { subscription },
-    } = getSupabase().auth.onAuthStateChange((_event, session) => {
+    } = getSupabaseBrowser().auth.onAuthStateChange((_event, session) => {
       if (session?.user?.email) {
         verifyMembership(session.user.email);
       }
@@ -44,7 +37,7 @@ export default function MemberLogin({
   }, []);
 
   const verifyMembership = async (userEmail: string) => {
-    const { data } = await getSupabase()
+    const { data } = await getSupabaseBrowser()
       .from("contacts")
       .select("contact_id")
       .eq("email", userEmail)
@@ -63,10 +56,10 @@ export default function MemberLogin({
     setError("");
 
     const redirectUrl = typeof window !== "undefined"
-      ? `${window.location.origin}/directory`
+      ? window.location.href
       : undefined;
 
-    const { error: authError } = await getSupabase().auth.signInWithOtp({
+    const { error: authError } = await getSupabaseBrowser().auth.signInWithOtp({
       email,
       options: { emailRedirectTo: redirectUrl },
     });
@@ -79,7 +72,7 @@ export default function MemberLogin({
   };
 
   const handleLogout = async () => {
-    await getSupabase().auth.signOut();
+    await getSupabaseBrowser().auth.signOut();
     setState("login");
   };
 
@@ -92,17 +85,7 @@ export default function MemberLogin({
   }
 
   if (state === "authenticated") {
-    return (
-      <div className="relative">
-        <button
-          onClick={handleLogout}
-          className="fixed bottom-6 right-6 z-40 px-4 py-2 text-[11px] uppercase tracking-wider text-ink-400 bg-white border border-ink-200 hover:border-ink-400 transition-colors font-mono"
-        >
-          Sign out
-        </button>
-        {children}
-      </div>
-    );
+    return <>{children}</>;
   }
 
   if (state === "not-member") {
@@ -120,7 +103,7 @@ export default function MemberLogin({
           </p>
           <button
             onClick={() => {
-              getSupabase().auth.signOut();
+              getSupabaseBrowser().auth.signOut();
               setState("login");
               setEmail("");
             }}

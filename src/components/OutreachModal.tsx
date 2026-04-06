@@ -1,15 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { Member } from "@/lib/types";
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-  );
-}
 
 export default function OutreachModal({
   member,
@@ -34,7 +27,7 @@ export default function OutreachModal({
   const [senderEmail, setSenderEmail] = useState("");
 
   useEffect(() => {
-    getSupabase().auth.getSession().then(({ data: { session } }) => {
+    getSupabaseBrowser().auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.email) setSenderEmail(session.user.email);
     });
   }, []);
@@ -47,7 +40,7 @@ export default function OutreachModal({
     // Log outreach to introductions table
     if (senderEmail && member.id) {
       try {
-        const supabase = getSupabase();
+        const supabase = getSupabaseBrowser();
         // Get sender's contact_id
         const { data: sender } = await supabase
           .from("contacts")

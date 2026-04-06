@@ -3,14 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-  );
-}
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -18,7 +11,7 @@ export default function Navigation() {
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
-    const supabase = getSupabase();
+    const supabase = getSupabaseBrowser();
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSignedIn(!!session);
     });
@@ -31,7 +24,7 @@ export default function Navigation() {
   }, []);
 
   const handleSignOut = async () => {
-    await getSupabase().auth.signOut();
+    await getSupabaseBrowser().auth.signOut();
     setSignedIn(false);
     window.location.href = "/";
   };

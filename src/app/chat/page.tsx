@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import MemberLogin from "@/components/MemberLogin";
 import MemberDrawer from "@/components/MemberDrawer";
 import OutreachModal from "@/components/OutreachModal";
@@ -27,13 +27,6 @@ interface Message {
   sender_name: string;
   content: string;
   created_at: string;
-}
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-  );
 }
 
 function ChatApp() {
@@ -69,7 +62,7 @@ function ChatApp() {
 
   // Get current user
   useEffect(() => {
-    const supabase = getSupabase();
+    const supabase = getSupabaseBrowser();
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user?.email) {
         const { data } = await supabase
@@ -89,7 +82,7 @@ function ChatApp() {
   // Load messages for current channel
   useEffect(() => {
     setLoading(true);
-    const supabase = getSupabase();
+    const supabase = getSupabaseBrowser();
 
     supabase
       .from("messages")
@@ -134,7 +127,7 @@ function ChatApp() {
     e.preventDefault();
     if (!input.trim() || !user) return;
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseBrowser();
     const { error } = await supabase.from("messages").insert({
       channel,
       sender_email: user.email,

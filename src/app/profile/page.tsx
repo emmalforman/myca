@@ -1,15 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import MemberLogin from "@/components/MemberLogin";
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-  );
-}
 
 interface Profile {
   name: string;
@@ -41,7 +34,7 @@ function ProfileEditor() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const supabase = getSupabase();
+    const supabase = getSupabaseBrowser();
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user?.email) {
         setEmail(session.user.email);
