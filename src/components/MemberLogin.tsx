@@ -3,6 +3,7 @@
 import { useState, useEffect, ReactNode } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import Link from "next/link";
+import OnboardingFlow from "./OnboardingFlow";
 
 export default function MemberLogin({
   children,
@@ -10,9 +11,10 @@ export default function MemberLogin({
   children: ReactNode;
 }) {
   const [state, setState] = useState<
-    "loading" | "login" | "signup" | "forgot" | "reset-sent" | "not-member" | "authenticated"
+    "loading" | "login" | "signup" | "forgot" | "reset-sent" | "not-member" | "onboarding" | "authenticated"
   >("loading");
   const [email, setEmail] = useState("");
+  const [authedEmail, setAuthedEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -47,13 +49,20 @@ export default function MemberLogin({
       .limit(1);
 
     if (data && data.length > 0) {
-      setState("authenticated");
-      // Auto-join channels based on profile
-      fetch("/api/channels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: userEmail }),
-      }).catch(() => {});
+      setAuthedEmail(userEmail);
+      // Check if onboarded
+      const { data: onboarded } = await getSupabaseBrowser()
+        .from("channel_members")
+        .select("channel")
+        .eq("email", userEmail)
+        .eq("channel", "_onboarded")
+        .limit(1);
+
+      if (onboarded && onboarded.length > 0) {
+        setState("authenticated");
+      } else {
+        setState("onboarding");
+      }
     } else {
       setState("not-member");
     }
@@ -173,6 +182,15 @@ export default function MemberLogin({
       <div className="min-h-[80vh] flex items-center justify-center">
         <div className="w-8 h-8 border border-forest-200 border-t-forest-600 rounded-full animate-spin" />
       </div>
+    );
+  }
+
+  if (state === "onboarding") {
+    return (
+      <OnboardingFlow
+        email={authedEmail}
+        onComplete={() => setState("authenticated")}
+      />
     );
   }
 
