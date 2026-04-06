@@ -46,25 +46,68 @@ export default function OnboardingFlow({
   const [senderName, setSenderName] = useState("");
 
   useEffect(() => {
-    fetch("/api/members")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.members) {
-          const others = data.members
-            .filter((m: Member) => m.email !== email)
-            .sort(() => Math.random() - 0.5);
-          setMembers(others);
+    const loadData = async () => {
+      const supabase = getSupabaseBrowser();
+
+      // Get current user's profile for smart matching
+      const { data: myProfile } = await supabase
+        .from("contacts")
+        .select("name, location, occupation_type")
+        .eq("email", email)
+        .single();
+
+      if (myProfile) setSenderName(myProfile.name);
+
+      const res = await fetch("/api/members");
+      const data = await res.json();
+      if (!data.members) return;
+
+      const others = data.members.filter((m: Member) => m.email !== email);
+      const myLocation = (myProfile?.location || "").toLowerCase();
+      const myRole = (myProfile?.occupation_type || "").toLowerCase();
+
+      // Score members: same city = 3, same role = 2, random tiebreaker
+      const scored = others.map((m: Member) => {
+        let score = 0;
+        const loc = (m.location || "").toLowerCase();
+        const role = (m.occupationType || "").toLowerCase();
+
+        // City match
+        if (myLocation && loc) {
+          const cities = ["new york", "nyc", "san francisco", "sf", "los angeles", "la", "london", "chicago", "europe"];
+          for (const city of cities) {
+            if (myLocation.includes(city) && loc.includes(city)) {
+              score += 3;
+              break;
+            }
+          }
         }
+
+        // Role match
+        if (myRole && role && (
+          (myRole.includes("founder") && role.includes("founder")) ||
+          (myRole.includes("investor") && role.includes("investor")) ||
+          (myRole.includes("operator") && role.includes("operator"))
+        )) {
+          score += 2;
+        }
+
+        // Recently active members get a slight boost
+        // (proxy: members with photos tend to be more engaged)
+        if (m.photoUrl) score += 1;
+
+        return { member: m, score, rand: Math.random() };
       });
 
-    getSupabaseBrowser()
-      .from("contacts")
-      .select("name")
-      .eq("email", email)
-      .single()
-      .then(({ data }) => {
-        if (data) setSenderName(data.name);
-      });
+      // Sort by score desc, then random within same score
+      scored.sort((a: { score: number; rand: number }, b: { score: number; rand: number }) =>
+        b.score - a.score || a.rand - b.rand
+      );
+
+      setMembers(scored.map((s: { member: Member }) => s.member));
+    };
+
+    loadData();
   }, [email]);
 
   const toggleChannel = (id: string) => {
