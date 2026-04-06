@@ -33,6 +33,7 @@ export default function JoinPage() {
     email: "",
     phone: "",
     location: "",
+    locationOther: "",
     comfortFood: "",
     referralSource: "",
     hopingToGet: "",
@@ -79,7 +80,7 @@ export default function JoinPage() {
         body: JSON.stringify({
           name: `${form.firstName} ${form.lastName}`.trim(),
           ...form,
-          location: [form.location],
+          location: [form.location === "Other" ? form.locationOther : form.location],
           photoUrl,
         }),
       });
@@ -275,11 +276,20 @@ export default function JoinPage() {
                 <label
                   key={loc}
                   className="flex items-center gap-3 cursor-pointer group"
+                  onClick={() => setForm((f) => ({ ...f, location: loc, locationOther: loc === "Other" ? f.locationOther : "" }))}
                 >
+                  <input
+                    type="radio"
+                    name="location"
+                    value={loc}
+                    checked={form.location === loc}
+                    onChange={() => {}}
+                    className="sr-only"
+                  />
                   <div
                     className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
                       form.location === loc
-                        ? "border-ink-900"
+                        ? "border-forest-900"
                         : "border-ink-300 group-hover:border-ink-400"
                     }`}
                   >
@@ -290,6 +300,18 @@ export default function JoinPage() {
                   <span className="text-[14px] text-ink-700">{loc}</span>
                 </label>
               ))}
+              {form.location === "Other" && (
+                <input
+                  type="text"
+                  value={form.locationOther}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, locationOther: e.target.value }))
+                  }
+                  placeholder="Enter your city"
+                  required
+                  className={`${inputClass} ml-8 max-w-xs`}
+                />
+              )}
             </div>
           </div>
 
@@ -442,7 +464,7 @@ export default function JoinPage() {
 
           <button
             type="submit"
-            disabled={submitting || !form.location}
+            disabled={submitting || !form.location || (form.location === "Other" && !form.locationOther)}
             className="px-8 py-3.5 text-[14px] font-medium text-white bg-forest-900 rounded-full hover:bg-forest-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? "Submitting..." : "Submit"}
