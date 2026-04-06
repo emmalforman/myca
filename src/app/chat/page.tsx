@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import MemberLogin from "@/components/MemberLogin";
+import MemberDrawer from "@/components/MemberDrawer";
+import OutreachModal from "@/components/OutreachModal";
+import { Member } from "@/lib/types";
 
 const CHANNELS = [
   { id: "general", label: "General", emoji: "💬" },
@@ -42,15 +45,33 @@ function ChatApp() {
   );
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [memberProfiles, setMemberProfiles] = useState<Map<string, Member>>(new Map());
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [outreachTarget, setOutreachTarget] = useState<Member | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Load all member profiles for lookups
+  useEffect(() => {
+    fetch("/api/members")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.members) {
+          const map = new Map<string, Member>();
+          data.members.forEach((m: Member) => {
+            if (m.email) map.set(m.email, m);
+          });
+          setMemberProfiles(map);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Get current user
   useEffect(() => {
     const supabase = getSupabase();
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user?.email) {
-        // Look up their name from contacts
         const { data } = await supabase
           .from("contacts")
           .select("name")
@@ -295,6 +316,14 @@ function ChatApp() {
             const showName =
               i === 0 || messages[i - 1].sender_email !== msg.sender_email;
             const initial = msg.sender_name?.[0]?.toUpperCase() || "?";
+            const memberProfile = memberProfiles.get(msg.sender_email);
+            const hasPhoto = memberProfile?.photoUrl;
+
+            const handleProfileClick = () => {
+              if (memberProfile && !isMe) {
+                setSelectedMember(memberProfile);
+              }
+            };
 
             return (
               <div
@@ -302,28 +331,52 @@ function ChatApp() {
                 className={`flex gap-3 ${showName ? "mt-4" : "mt-0.5"}`}
               >
                 {showName ? (
-                  <div
-                    className={`w-8 h-8 flex-shrink-0 flex items-center justify-center text-[12px] font-serif font-bold ${
-                      isMe
-                        ? "bg-forest-900 text-cream"
-                        : "bg-clay-200 text-clay-700"
+                  <button
+                    onClick={handleProfileClick}
+                    className={`w-8 h-8 flex-shrink-0 overflow-hidden ${
+                      !isMe ? "cursor-pointer hover:opacity-80" : ""
+                    } ${
+                      hasPhoto
+                        ? ""
+                        : `flex items-center justify-center text-[12px] font-serif font-bold ${
+                            isMe
+                              ? "bg-forest-900 text-cream"
+                              : "bg-clay-200 text-clay-700"
+                          }`
                     }`}
                   >
-                    {initial}
-                  </div>
+                    {hasPhoto ? (
+                      <img
+                        src={memberProfile!.photoUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      initial
+                    )}
+                  </button>
                 ) : (
                   <div className="w-8 flex-shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
                   {showName && (
                     <div className="flex items-baseline gap-2 mb-0.5">
-                      <span
+                      <button
+                        onClick={handleProfileClick}
                         className={`text-[13px] font-medium ${
-                          isMe ? "text-ink-900" : "text-ink-700"
+                          isMe
+                            ? "text-ink-900"
+                            : "text-ink-700 hover:text-forest-700 cursor-pointer"
                         }`}
                       >
                         {msg.sender_name}
-                      </span>
+                      </button>
+                      {memberProfile?.role && (
+                        <span className="text-[10px] text-ink-300 hidden sm:inline">
+                          {memberProfile.role}
+                          {memberProfile.company ? `, ${memberProfile.company}` : ""}
+                        </span>
+                      )}
                       <span className="text-[10px] text-ink-300 font-mono">
                         {formatTime(msg.created_at)}
                       </span>
@@ -360,6 +413,26 @@ function ChatApp() {
           </form>
         </div>
       </div>
+
+      {/* Member profile drawer */}
+      {selectedMember && (
+        <MemberDrawer
+          member={selectedMember}
+          onClose={() => setSelectedMember(null)}
+          onConnect={(m) => {
+            setSelectedMember(null);
+            setOutreachTarget(m);
+          }}
+        />
+      )}
+
+      {/* Outreach modal */}
+      {outreachTarget && (
+        <OutreachModal
+          member={outreachTarget}
+          onClose={() => setOutreachTarget(null)}
+        />
+      )}
     </div>
   );
 }
