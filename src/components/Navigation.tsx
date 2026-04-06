@@ -51,6 +51,12 @@ export default function Navigation() {
       ]
     : publicLinks;
 
+  const handleSignOut = async () => {
+    await getSupabase().auth.signOut();
+    setSignedIn(false);
+    window.location.href = "/";
+  };
+
   return (
     <nav className="bg-ivory/90 backdrop-blur-lg border-b border-ink-100 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-6 lg:px-8">
@@ -78,6 +84,21 @@ export default function Navigation() {
                 {link.label}
               </Link>
             ))}
+            {signedIn ? (
+              <button
+                onClick={handleSignOut}
+                className="ml-2 px-4 py-1.5 text-[13px] tracking-wide uppercase text-ink-400 hover:text-ink-700 transition-colors"
+              >
+                Sign Out
+              </button>
+            ) : (
+              <Link
+                href="/directory"
+                className="ml-2 px-5 py-1.5 text-[12px] tracking-wide uppercase font-medium text-white bg-ink-900 hover:bg-ink-700 transition-colors"
+              >
+                Log In
+              </Link>
+            )}
           </div>
 
           <button
@@ -110,6 +131,22 @@ export default function Navigation() {
                 {link.label}
               </Link>
             ))}
+            {signedIn ? (
+              <button
+                onClick={() => { handleSignOut(); setMobileOpen(false); }}
+                className="block w-full text-left px-3 py-2 text-sm tracking-wide uppercase text-ink-400"
+              >
+                Sign Out
+              </button>
+            ) : (
+              <Link
+                href="/directory"
+                onClick={() => setMobileOpen(false)}
+                className="block px-3 py-2 text-sm tracking-wide uppercase text-ink-900 font-medium"
+              >
+                Log In
+              </Link>
+            )}
           </div>
         )}
       </div>
