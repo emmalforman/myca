@@ -237,10 +237,13 @@ export default function OnboardingFlow({
                   </p>
                 </div>
                 <button
-                  onClick={() => setSelectedMember(null)}
+                  onClick={() => {
+                    setSelectedMember(null);
+                    setMessage("");
+                  }}
                   className="text-[11px] uppercase tracking-wider text-ink-400 hover:text-ink-700"
                 >
-                  Change
+                  Back
                 </button>
               </div>
 
@@ -265,9 +268,9 @@ export default function OnboardingFlow({
 
           <button
             onClick={finishOnboarding}
-            className="w-full mt-3 py-3 text-[12px] uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
+            className="w-full mt-4 py-3 text-[12px] uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors border border-ink-200"
           >
-            Skip for now
+            Skip &mdash; enter Myca without messaging
           </button>
         </div>
       </div>
