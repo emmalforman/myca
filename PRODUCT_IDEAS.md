@@ -12,7 +12,10 @@
 7. **Intro Requests** — Curated introductions, premium value
 8. **Company Logo Wall** — Social proof on homepage
 9. **Unread Message Badges** — Notification dots on Chat nav
-10. **Required Profile Onboarding** — Force users to complete profile + metadata (role, company, location, interests, etc.) at first login. Improves directory quality, search, intros, and matchmaking.
+10. **Required Profile Onboarding** — Force users to complete profile + metadata at first login. Improves directory quality, search, intros, and matchmaking.
+    - Fields: name, photo, role/title, company, location, interests/expertise tags, what they're looking for, website, **Instagram handle**, other socials
+    - Requires Supabase schema update to add new profile columns (e.g. `instagram_handle`, `socials`, `interests`, etc.)
+    - Block access to app until required fields are complete
 
 ## Events
 10. **Member Event Posting & RSVP** — Members host, post, and RSVP to events
