@@ -16,6 +16,7 @@
     - Fields: name, photo, role/title, company, location, interests/expertise tags, what they're looking for, website, **Instagram handle**, other socials
     - Requires Supabase schema update to add new profile columns (e.g. `instagram_handle`, `socials`, `interests`, etc.)
     - Block access to app until required fields are complete
+    - **Branching marketplace flow:** "Do you have a product or service?" → type (product / service / skill / event) → brand (pick existing or add new) → details. Auto-populates the brand directory and marketplace from signup.
 
 ## Events
 10. **Member Event Posting & RSVP** — Members host, post, and RSVP to events
