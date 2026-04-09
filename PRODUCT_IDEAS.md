@@ -17,6 +17,7 @@
     - Requires Supabase schema update to add new profile columns (e.g. `instagram_handle`, `socials`, `interests`, etc.)
     - Block access to app until required fields are complete
     - **Branching marketplace flow:** "Do you have a product or service?" → type (product / service / skill / event) → brand (pick existing or add new) → details. Auto-populates the brand directory and marketplace from signup.
+11. **AI Matchmaker Chatbot** — Conversational chatbot where members describe what they need ("I'm looking for a pastry chef in Brooklyn," "need help with packaging," "want to collab on a dinner pop-up") and the bot recommends the best-fit members to reach out to, with reasoning. Can pull from profiles, tags, marketplace listings, and past activity. Feeds into the Intro Requests feature — bot can even draft the outreach message.
 
 ## Events
 10. **Member Event Posting & RSVP** — Members host, post, and RSVP to events
