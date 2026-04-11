@@ -7,12 +7,15 @@ export interface Member {
   email: string;
   phone?: string;
   linkedin?: string;
+  instagram?: string;
   company?: string;
   role?: string;
   occupationType?: string;
   location?: string;
   industryTags?: string;
   focusAreas?: string;
+  skills?: string;
+  interests?: string;
   superpower?: string;
   asks?: string;
   offers?: string;

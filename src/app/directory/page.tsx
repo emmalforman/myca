@@ -78,6 +78,7 @@ export default function DirectoryPage() {
           m.name, m.firstName, m.lastName, m.role, m.company,
           m.occupationType, m.location, m.superpower,
           m.industryTags, m.offers, m.asks, m.focusAreas,
+          m.skills, m.interests,
         ]
           .filter(Boolean)
           .join(" ")
