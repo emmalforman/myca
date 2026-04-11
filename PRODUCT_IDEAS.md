@@ -17,8 +17,13 @@
     - Requires Supabase schema update to add new profile columns (e.g. `instagram_handle`, `socials`, `interests`, etc.)
     - Block access to app until required fields are complete
     - **Branching marketplace flow:** "Do you have a product or service?" → type (product / service / skill / event) → brand (pick existing or add new) → details. Auto-populates the brand directory and marketplace from signup.
-11. **AI Matchmaker Chatbot** — Conversational chatbot where members describe what they need ("I'm looking for a pastry chef in Brooklyn," "need help with packaging," "want to collab on a dinner pop-up") and the bot recommends the best-fit members to reach out to, with reasoning. Can pull from profiles, tags, marketplace listings, and past activity. Feeds into the Intro Requests feature — bot can even draft the outreach message.
+11. **AI Matchmaker Chatbot** — Conversational chatbot where members describe what they need ("I'm looking for a photographer in Brooklyn," "need help with packaging," "want to collab on a dinner pop-up") and the bot returns recommendations with reasoning. Feeds into Intro Requests — bot can draft the outreach message.
+    - **Search across three sources:**
+      1. **Members** — profiles, skills, tags, marketplace listings
+      2. **Brands / places** — brand directory, partner listings, venues
+      3. **Chat history** — past messages in channels and DMs where members mentioned/recommended people, brands, or places (huge unlocked knowledge base)
     - Recommendation cards should have a **"Start chat"** CTA that opens a DM with that member directly from the UI (no copy/paste, no separate message box)
+    - For chat-history results, show the quote + link back to the original message as context
 
 ## Events
 10. **Member Event Posting & RSVP** — Members host, post, and RSVP to events
