@@ -71,6 +71,12 @@ create table if not exists public.channel_requests (
   unique(channel, email)
 );
 
+-- Add instagram, skills, and interests to contacts (Notion-synced member table)
+-- Skills/interests are comma-separated tags used for matching
+alter table public.contacts add column if not exists instagram text;
+alter table public.contacts add column if not exists skills text;
+alter table public.contacts add column if not exists interests text;
+
 -- Indexes
 create index if not exists idx_members_location on public.members using gin(location);
 create index if not exists idx_members_email on public.members(email);

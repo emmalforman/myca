@@ -52,7 +52,7 @@ export default function OnboardingFlow({
       // Get current user's profile for smart matching
       const { data: myProfile } = await supabase
         .from("contacts")
-        .select("name, location, occupation_type, industry_tags, focus_areas")
+        .select("name, location, occupation_type, industry_tags, focus_areas, skills, interests")
         .eq("email", email)
         .single();
 
@@ -67,6 +67,8 @@ export default function OnboardingFlow({
       const myRole = (myProfile?.occupation_type || "").toLowerCase();
       const myIndustryTags = (myProfile?.industry_tags || "").toLowerCase().split(",").map((t: string) => t.trim()).filter(Boolean);
       const myFocusAreas = (myProfile?.focus_areas || "").toLowerCase().split(",").map((t: string) => t.trim()).filter(Boolean);
+      const mySkills = (myProfile?.skills || "").toLowerCase().split(",").map((t: string) => t.trim()).filter(Boolean);
+      const myInterests = (myProfile?.interests || "").toLowerCase().split(",").map((t: string) => t.trim()).filter(Boolean);
 
       // Score members using existing profile data (no API calls)
       const scored = others.map((m: Member) => {
@@ -106,6 +108,20 @@ export default function OnboardingFlow({
           const theirFocus = m.focusAreas.toLowerCase().split(",").map((t: string) => t.trim());
           const overlap = myFocusAreas.filter((t: string) => theirFocus.some((tf: string) => tf.includes(t) || t.includes(tf))).length;
           score += Math.min(overlap, 3);
+        }
+
+        // Skills overlap (+1 per match, max 3) - complementary skills connect well
+        if (mySkills.length > 0 && m.skills) {
+          const theirSkills = m.skills.toLowerCase().split(",").map((t: string) => t.trim());
+          const overlap = mySkills.filter((t: string) => theirSkills.includes(t)).length;
+          score += Math.min(overlap, 3);
+        }
+
+        // Interests overlap (+2 per match, max 4) - shared interests = stronger connection
+        if (myInterests.length > 0 && m.interests) {
+          const theirInterests = m.interests.toLowerCase().split(",").map((t: string) => t.trim());
+          const overlap = myInterests.filter((t: string) => theirInterests.includes(t)).length;
+          score += Math.min(overlap * 2, 4);
         }
 
         // Has photo = more engaged (+1)

@@ -20,7 +20,7 @@ export async function GET() {
       // First try with is_myca_member filter
       let { data, error } = await supabase
         .from("contacts")
-        .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,company,role,occupation_type,location,industry_tags,focus_areas,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url")
+        .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,instagram,company,role,occupation_type,location,industry_tags,focus_areas,skills,interests,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url")
         .eq("is_myca_member", true)
         .order("name");
 
@@ -46,7 +46,7 @@ export async function GET() {
         if (result.data && result.data.length > 0) {
           const allResult = await supabase
             .from("contacts")
-            .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,company,role,occupation_type,location,industry_tags,focus_areas,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url")
+            .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,instagram,company,role,occupation_type,location,industry_tags,focus_areas,skills,interests,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url")
             .order("name");
           data = allResult.data;
           error = allResult.error;
@@ -72,12 +72,15 @@ export async function GET() {
           email: row.email ?? "",
           phone: row.phone ?? undefined,
           linkedin: row.linkedin ?? undefined,
+          instagram: row.instagram ?? undefined,
           company: row.company ?? undefined,
           role: row.role ?? undefined,
           occupationType: row.occupation_type ?? undefined,
           location: row.location ?? undefined,
           industryTags: row.industry_tags ?? undefined,
           focusAreas: row.focus_areas ?? undefined,
+          skills: row.skills ?? undefined,
+          interests: row.interests ?? undefined,
           superpower: row.superpower ?? undefined,
           asks: row.asks ?? undefined,
           offers: row.offers ?? undefined,

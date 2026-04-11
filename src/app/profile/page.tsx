@@ -15,13 +15,33 @@ interface Profile {
   occupation_type: string;
   location: string;
   linkedin: string;
+  instagram: string;
   superpower: string;
   asks: string;
   offers: string;
   photo_url: string;
+  skills: string;
+  interests: string;
 }
 
 const OCCUPATIONS = ["Founder", "Operator", "Investor", "Creator", "Media", "Advisor", "Other"];
+
+const SKILL_SUGGESTIONS = [
+  "Product", "Engineering", "Design", "Marketing", "Sales", "Operations",
+  "Finance", "Fundraising", "Brand", "Content", "Community", "Supply Chain",
+  "R&D", "Culinary", "Retail", "E-commerce", "Partnerships", "PR",
+];
+
+const INTEREST_SUGGESTIONS = [
+  "Plant-Based", "Sustainability", "Regenerative Ag", "Functional Foods",
+  "Fermentation", "Zero Waste", "Wellness", "Climate", "Food Justice",
+  "Hospitality", "Wine", "Coffee", "Spirits", "Snacks", "Beverages",
+  "Restaurants", "Travel", "Foraging", "Female Founders",
+];
+
+// Tag input helpers
+const parseTags = (str: string) => str.split(",").map((t) => t.trim()).filter(Boolean);
+const tagsToStr = (tags: string[]) => tags.join(", ");
 
 function ProfileEditor() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -92,11 +112,14 @@ function ProfileEditor() {
         occupation_type: profile.occupation_type,
         location: profile.location,
         linkedin: profile.linkedin,
+        instagram: profile.instagram,
         phone: profile.phone,
         superpower: profile.superpower,
         asks: profile.asks,
         offers: profile.offers,
         photo_url: profile.photo_url,
+        skills: profile.skills,
+        interests: profile.interests,
       }),
     });
 
@@ -280,6 +303,94 @@ function ProfileEditor() {
               placeholder="https://linkedin.com/in/..."
               className={inputClass}
             />
+          </div>
+
+          {/* Instagram */}
+          <div>
+            <label className={labelClass}>Instagram</label>
+            <input
+              type="text"
+              value={profile.instagram || ""}
+              onChange={(e) => handleChange("instagram", e.target.value)}
+              placeholder="@yourhandle or https://instagram.com/yourhandle"
+              className={inputClass}
+            />
+          </div>
+
+          {/* Skills */}
+          <div>
+            <label className={labelClass}>Skills</label>
+            <input
+              type="text"
+              value={profile.skills || ""}
+              onChange={(e) => handleChange("skills", e.target.value)}
+              placeholder="e.g. Product, Marketing, Fundraising"
+              className={inputClass}
+            />
+            <p className="text-[11px] text-ink-300 mt-1.5 mb-2">Comma-separated. Click to add:</p>
+            <div className="flex flex-wrap gap-1.5">
+              {SKILL_SUGGESTIONS.map((sk) => {
+                const current = parseTags(profile.skills || "");
+                const active = current.includes(sk);
+                return (
+                  <button
+                    key={sk}
+                    type="button"
+                    onClick={() => {
+                      const next = active
+                        ? current.filter((t) => t !== sk)
+                        : [...current, sk];
+                      handleChange("skills", tagsToStr(next));
+                    }}
+                    className={`px-2.5 py-1 text-[11px] transition-colors ${
+                      active
+                        ? "bg-forest-900 text-cream"
+                        : "bg-white text-ink-500 border border-ink-200 hover:border-forest-400"
+                    }`}
+                  >
+                    {sk}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Interests */}
+          <div>
+            <label className={labelClass}>Interests</label>
+            <input
+              type="text"
+              value={profile.interests || ""}
+              onChange={(e) => handleChange("interests", e.target.value)}
+              placeholder="e.g. Plant-Based, Sustainability, Hospitality"
+              className={inputClass}
+            />
+            <p className="text-[11px] text-ink-300 mt-1.5 mb-2">Comma-separated. Click to add:</p>
+            <div className="flex flex-wrap gap-1.5">
+              {INTEREST_SUGGESTIONS.map((tag) => {
+                const current = parseTags(profile.interests || "");
+                const active = current.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => {
+                      const next = active
+                        ? current.filter((t) => t !== tag)
+                        : [...current, tag];
+                      handleChange("interests", tagsToStr(next));
+                    }}
+                    className={`px-2.5 py-1 text-[11px] transition-colors ${
+                      active
+                        ? "bg-clay-600 text-cream"
+                        : "bg-white text-ink-500 border border-ink-200 hover:border-clay-400"
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Phone */}
