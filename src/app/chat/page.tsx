@@ -29,6 +29,20 @@ interface Message {
   created_at: string;
 }
 
+// Photo messages store the image URL inline with an optional caption,
+// formatted as `[photo:<url>]<optional caption>`. This avoids a schema
+// change to the messages table.
+function parseMessageContent(content: string): {
+  imageUrl: string | null;
+  text: string;
+} {
+  const match = content.match(/^\[photo:([^\]]+)\]([\s\S]*)$/);
+  if (match) {
+    return { imageUrl: match[1], text: match[2] };
+  }
+  return { imageUrl: null, text: content };
+}
+
 function ChatApp() {
   const [channel, setChannel] = useState("general");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -42,8 +56,11 @@ function ChatApp() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [outreachTarget, setOutreachTarget] = useState<Member | null>(null);
   const [dmChannels, setDmChannels] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load all member profiles for lookups
   useEffect(() => {
@@ -151,7 +168,13 @@ function ChatApp() {
   }, [channel]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Scope the scroll to the messages container so the whole page
+    // (including the nav) doesn't jump. `scrollIntoView` would scroll
+    // every scrollable ancestor, which on some layouts moves the window.
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -169,6 +192,52 @@ function ChatApp() {
     if (!error) {
       setInput("");
       inputRef.current?.focus();
+    }
+  };
+
+  const handlePhotoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    // Reset so the same file can be re-selected later
+    e.target.value = "";
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const { url, error, message } = await res.json();
+
+      if (!url) {
+        alert(
+          error || message || "Photo upload failed. Please try again."
+        );
+        return;
+      }
+
+      const caption = input.trim();
+      const supabase = getSupabaseBrowser();
+      const { error: insertError } = await supabase.from("messages").insert({
+        channel,
+        sender_email: user.email,
+        sender_name: user.name,
+        content: `[photo:${url}]${caption}`,
+      });
+
+      if (!insertError) {
+        setInput("");
+        inputRef.current?.focus();
+      }
+    } catch (err) {
+      alert("Photo upload failed. Please try again.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -358,7 +427,10 @@ function ChatApp() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto px-5 py-4"
+        >
           {loading && (
             <div className="flex items-center justify-center h-full">
               <div className="w-6 h-6 border border-ink-200 border-t-ink-500 rounded-full animate-spin" />
@@ -454,9 +526,35 @@ function ChatApp() {
                       </span>
                     </div>
                   )}
-                  <p className="text-[14px] text-ink-700 leading-relaxed break-words">
-                    {msg.content}
-                  </p>
+                  {(() => {
+                    const { imageUrl, text } = parseMessageContent(
+                      msg.content
+                    );
+                    return (
+                      <>
+                        {imageUrl && (
+                          <a
+                            href={imageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block mt-1 mb-1 max-w-xs overflow-hidden border border-ink-100 hover:border-ink-200 transition-colors"
+                          >
+                            <img
+                              src={imageUrl}
+                              alt=""
+                              className="max-w-full max-h-80 object-contain"
+                              onLoad={scrollToBottom}
+                            />
+                          </a>
+                        )}
+                        {text && (
+                          <p className="text-[14px] text-ink-700 leading-relaxed break-words">
+                            {text}
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             );
@@ -468,16 +566,54 @@ function ChatApp() {
         <div className="px-5 pb-5 pt-2 flex-shrink-0">
           <form onSubmit={sendMessage} className="flex gap-2">
             <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              title="Attach photo"
+              aria-label="Attach photo"
+              className="px-3 py-3 text-ink-400 hover:text-forest-700 border border-ink-200 hover:border-forest-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+            >
+              {uploading ? (
+                <div className="w-5 h-5 border border-ink-200 border-t-forest-700 rounded-full animate-spin" />
+              ) : (
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              )}
+            </button>
+            <input
               ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={`Message ${currentChannel?.label}...`}
-              className="flex-1 px-4 py-3 text-[14px] bg-white border border-ink-200 text-ink-900 placeholder-ink-300 focus:outline-none focus:border-ink-400 transition-colors"
+              placeholder={
+                uploading
+                  ? "Uploading photo..."
+                  : `Message ${channelDisplayName ?? ""}...`
+              }
+              disabled={uploading}
+              className="flex-1 px-4 py-3 text-[14px] bg-white border border-ink-200 text-ink-900 placeholder-ink-300 focus:outline-none focus:border-ink-400 disabled:opacity-50 transition-colors"
             />
             <button
               type="submit"
-              disabled={!input.trim()}
+              disabled={!input.trim() || uploading}
               className="px-5 py-3 text-[12px] uppercase tracking-wider font-medium text-white bg-forest-900 hover:bg-forest-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex-shrink-0"
             >
               Send
