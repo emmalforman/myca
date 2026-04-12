@@ -13,6 +13,8 @@ export default function Home() {
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
+
+    // Check current session (same pattern as MemberLogin)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.email) {
         setEmail(session.user.email);
@@ -22,6 +24,7 @@ export default function Home() {
       }
     });
 
+    // Listen for future changes (login/logout while on page)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -37,11 +40,7 @@ export default function Home() {
   }, []);
 
   if (authState === "loading") {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <span className="text-forest-400 font-mono text-sm">Loading...</span>
-      </div>
-    );
+    return <div className="min-h-[80vh]" />;
   }
 
   if (authState === "signed-in") {
