@@ -34,6 +34,7 @@ export default function Navigation() {
         { href: "/", label: "Home" },
         { href: "/directory", label: "Directory" },
         { href: "/events", label: "Events" },
+        { href: "/jobs", label: "Jobs" },
         { href: "/chat", label: "Chat" },
         { href: "/newsletter", label: "Newsletter" },
         { href: "/profile", label: "Profile" },
