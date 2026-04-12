@@ -4,10 +4,38 @@ import { NextResponse, type NextRequest } from "next/server";
 // Pages that require authentication
 const PROTECTED_PAGES = ["/directory", "/chat", "/profile", "/events", "/jobs", "/admin"];
 
-// Pages that are always public
-const PUBLIC_PAGES = ["/", "/join", "/login", "/newsletter"];
+// Known bot/scraper user agents to block on API routes
+const BOT_PATTERNS = [
+  /curl\//i,
+  /wget\//i,
+  /python-requests/i,
+  /scrapy/i,
+  /httpclient/i,
+  /java\//i,
+  /libwww/i,
+  /lwp-trivial/i,
+  /PHP\//i,
+  /Go-http-client/i,
+  /node-fetch/i,
+  /axios/i,
+  /postman/i,
+  /insomnia/i,
+];
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Block known bot user agents on API routes
+  if (pathname.startsWith("/api/")) {
+    const ua = request.headers.get("user-agent") || "";
+    if (!ua || BOT_PATTERNS.some((p) => p.test(ua))) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -35,8 +63,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const pathname = request.nextUrl.pathname;
 
   // Redirect unauthenticated users away from protected pages
   const isProtected = PROTECTED_PAGES.some(

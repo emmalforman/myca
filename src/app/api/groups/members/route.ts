@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/auth";
 
 function hasSupabase() {
   return !!(
@@ -9,6 +10,9 @@ function hasSupabase() {
 
 // POST add member to group
 export async function POST(request: Request) {
+  const user = await getAuthenticatedUser();
+  if (!user) return unauthorizedResponse();
+
   if (!hasSupabase()) {
     return NextResponse.json(
       { error: "Supabase not configured" },
@@ -36,6 +40,9 @@ export async function POST(request: Request) {
 
 // DELETE remove member from group
 export async function DELETE(request: Request) {
+  const user = await getAuthenticatedUser();
+  if (!user) return unauthorizedResponse();
+
   if (!hasSupabase()) {
     return NextResponse.json(
       { error: "Supabase not configured" },

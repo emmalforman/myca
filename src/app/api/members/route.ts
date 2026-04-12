@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sampleMembers } from "@/data/members";
 import { Member } from "@/lib/types";
 import { getAuthenticatedUser, isAdmin, unauthorizedResponse } from "@/lib/auth";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ function sanitizeMember(member: Member, userIsAdmin: boolean): Partial<Member> {
 
 export async function GET() {
   let userIsAdmin = false;
+  let userEmail = "anonymous";
 
   // Try server-side auth, but don't block if it fails
   // (the directory page already requires login via MemberLogin)
@@ -27,8 +29,13 @@ export async function GET() {
     const user = await getAuthenticatedUser();
     if (user?.email) {
       userIsAdmin = isAdmin(user.email);
+      userEmail = user.email;
     }
   } catch {}
+
+  // Rate limit: 30 requests per minute per user
+  const rl = checkRateLimit({ name: "api-members", max: 30, windowSeconds: 60 }, userEmail);
+  if (!rl.allowed) return rateLimitResponse(rl.resetAt);
 
   // Try Supabase contacts table
   if (hasSupabase()) {

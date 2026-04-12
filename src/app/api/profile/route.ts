@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getAuthenticatedUser, isAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,13 +11,21 @@ function getSupabaseAdmin() {
   );
 }
 
-// GET profile by email
+// GET profile by email — users can only fetch their own profile, admins can fetch any
 export async function GET(request: Request) {
+  const user = await getAuthenticatedUser();
+  if (!user) return unauthorizedResponse();
+
   const { searchParams } = new URL(request.url);
   const email = searchParams.get("email");
 
   if (!email) {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
+  }
+
+  // Users can only view their own profile unless they are admin
+  if (email !== user.email && !isAdmin(user.email)) {
+    return forbiddenResponse();
   }
 
   const supabase = getSupabaseAdmin();
@@ -27,19 +36,27 @@ export async function GET(request: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 404 });
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   return NextResponse.json({ profile: data });
 }
 
-// PATCH update profile
+// PATCH update profile — users can only update their own profile, admins can update any
 export async function PATCH(request: Request) {
+  const user = await getAuthenticatedUser();
+  if (!user) return unauthorizedResponse();
+
   const { searchParams } = new URL(request.url);
   const email = searchParams.get("email");
 
   if (!email) {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
+  }
+
+  // Users can only update their own profile unless they are admin
+  if (email !== user.email && !isAdmin(user.email)) {
+    return forbiddenResponse();
   }
 
   const body = await request.json();
@@ -70,7 +87,7 @@ export async function PATCH(request: Request) {
     .eq("email", email);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

@@ -1,7 +1,20 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  // Rate limit by IP: 5 applications per hour
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rl = checkRateLimit({ name: "apply", max: 5, windowSeconds: 3600 }, ip);
+  if (!rl.allowed) return rateLimitResponse(rl.resetAt);
+
   const body = await request.json();
+
+  // Honeypot: if the hidden field is filled, it's a bot
+  if (body.website_url) {
+    // Silently accept to not tip off the bot, but don't save
+    return NextResponse.json({ success: true });
+  }
+
   const {
     name,
     firstName,

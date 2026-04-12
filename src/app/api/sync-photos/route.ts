@@ -49,6 +49,12 @@ async function downloadWithRetry(url: string): Promise<{ data: Uint8Array; conte
 }
 
 export async function POST(request: Request) {
+  // Admin-only: sync photos from Notion to Supabase
+  const { getAuthenticatedUser, isAdmin, unauthorizedResponse, forbiddenResponse } = await import("@/lib/auth");
+  const user = await getAuthenticatedUser();
+  if (!user) return unauthorizedResponse();
+  if (!isAdmin(user.email)) return forbiddenResponse();
+
   const { searchParams } = new URL(request.url);
   const limit = parseInt(searchParams.get("limit") || "0");
   const notionKey = process.env.NOTION_API_KEY;

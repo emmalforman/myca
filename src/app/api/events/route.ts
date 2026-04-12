@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, isAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 function getSupabaseAdmin() {
   const { createClient } = require("@supabase/supabase-js");
@@ -12,6 +13,9 @@ function getSupabaseAdmin() {
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user) return unauthorizedResponse();
+
+  const rl = checkRateLimit({ name: "events-read", max: 60, windowSeconds: 60 }, user.email!);
+  if (!rl.allowed) return rateLimitResponse(rl.resetAt);
 
   const { searchParams } = new URL(request.url);
   const startDate = searchParams.get("startDate");
