@@ -250,11 +250,7 @@ export default function MemberDrawer({
             )}
             {member.instagram && (
               <a
-                href={
-                  member.instagram.startsWith("http")
-                    ? member.instagram
-                    : `https://instagram.com/${member.instagram.replace(/^@/, "")}`
-                }
+                href={member.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-[13px] text-ink-500 hover:text-clay-600 transition-colors"
