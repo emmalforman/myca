@@ -210,10 +210,30 @@ function ProfileEditor() {
     }
   };
 
+  const isUrl = (v: string) => {
+    if (!v?.trim()) return true; // empty is ok (optional on edit page)
+    try { return new URL(v.trim()).protocol.startsWith("http"); }
+    catch { return false; }
+  };
+
   const handleSave = async () => {
     if (!profile || !email) return;
-    setSaving(true);
     setError("");
+
+    if (profile.linkedin && !isUrl(profile.linkedin)) {
+      setError("LinkedIn must be a valid URL (e.g. https://linkedin.com/in/...)");
+      return;
+    }
+    if (profile.instagram && !isUrl(profile.instagram)) {
+      setError("Instagram must be a valid URL (e.g. https://instagram.com/yourhandle)");
+      return;
+    }
+    if (profile.substack && !isUrl(profile.substack)) {
+      setError("Newsletter must be a valid URL (e.g. https://yourname.substack.com)");
+      return;
+    }
+
+    setSaving(true);
 
     const res = await fetch(`/api/profile?email=${encodeURIComponent(email)}`, {
       method: "PATCH",
