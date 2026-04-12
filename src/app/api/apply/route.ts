@@ -10,11 +10,18 @@ export async function POST(request: Request) {
     title,
     occupation,
     linkedin,
+    instagram,
+    website,
     email,
     phone,
     location,
+    industryFocus,
+    skills,
+    yearsExperience,
     comfortFood,
     referralSource,
+    referredByName,
+    referredByEmail,
     hopingToGet,
     excitedToContribute,
     photoUrl,
@@ -22,7 +29,6 @@ export async function POST(request: Request) {
 
   const fullName = name || `${firstName} ${lastName}`.trim();
 
-  // Validate required fields
   if (
     !fullName ||
     !company ||
@@ -41,7 +47,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // Save to Supabase applications table
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -60,11 +65,18 @@ export async function POST(request: Request) {
       title,
       occupation,
       linkedin,
+      instagram: instagram || null,
+      website: website || null,
       email,
       phone,
       location: Array.isArray(location) ? location : [location].filter(Boolean),
+      industry_focus: industryFocus || null,
+      skills: skills || null,
+      years_experience: yearsExperience || null,
       comfort_food: comfortFood,
       referral_source: referralSource || null,
+      referred_by_name: referredByName || null,
+      referred_by_email: referredByEmail || null,
       hoping_to_get: hopingToGet,
       excited_to_contribute: excitedToContribute,
       photo_url: photoUrl || null,
