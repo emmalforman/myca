@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, KeyboardEvent } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import MemberLogin from "@/components/MemberLogin";
 
@@ -42,6 +42,120 @@ const INTEREST_SUGGESTIONS = [
 // Tag input helpers
 const parseTags = (str: string) => str.split(",").map((t) => t.trim()).filter(Boolean);
 const tagsToStr = (tags: string[]) => tags.join(", ");
+
+function TagInput({
+  label,
+  value,
+  onChange,
+  suggestions,
+  placeholder,
+  activeColor,
+  inputClass,
+  labelClass,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  suggestions: string[];
+  placeholder: string;
+  activeColor: "forest" | "clay";
+  inputClass: string;
+  labelClass: string;
+}) {
+  const [inputValue, setInputValue] = useState("");
+  const tags = parseTags(value);
+
+  const addTag = (tag: string) => {
+    const trimmed = tag.trim();
+    if (!trimmed || tags.includes(trimmed)) return;
+    onChange(tagsToStr([...tags, trimmed]));
+    setInputValue("");
+  };
+
+  const removeTag = (tag: string) => {
+    onChange(tagsToStr(tags.filter((t) => t !== tag)));
+  };
+
+  const toggleSuggestion = (tag: string) => {
+    if (tags.includes(tag)) {
+      removeTag(tag);
+    } else {
+      addTag(tag);
+    }
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if ((e.key === "Enter" || e.key === ",") && inputValue.trim()) {
+      e.preventDefault();
+      addTag(inputValue.replace(",", ""));
+    }
+    if (e.key === "Backspace" && !inputValue && tags.length > 0) {
+      removeTag(tags[tags.length - 1]);
+    }
+  };
+
+  const activeBg = activeColor === "forest" ? "bg-forest-900" : "bg-clay-600";
+  const chipBg = activeColor === "forest" ? "bg-forest-100 text-forest-800" : "bg-clay-100 text-clay-800";
+  const hoverBorder = activeColor === "forest" ? "hover:border-forest-400" : "hover:border-clay-400";
+
+  return (
+    <div>
+      <label className={labelClass}>{label}</label>
+      {/* Selected tags as removable chips */}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] ${chipBg}`}
+            >
+              {tag}
+              <button
+                type="button"
+                onClick={() => removeTag(tag)}
+                className="ml-0.5 opacity-60 hover:opacity-100"
+              >
+                x
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      {/* Text input for custom tags */}
+      <input
+        type="text"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={tags.length > 0 ? "Add more..." : placeholder}
+        className={inputClass}
+      />
+      <p className="text-[11px] text-ink-300 mt-1.5 mb-2">
+        Press Enter or comma to add. Click suggestions below:
+      </p>
+      {/* Suggestions */}
+      <div className="flex flex-wrap gap-1.5">
+        {suggestions.map((s) => {
+          const active = tags.includes(s);
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => toggleSuggestion(s)}
+              className={`px-2.5 py-1 text-[11px] transition-colors ${
+                active
+                  ? `${activeBg} text-cream`
+                  : `bg-white text-ink-500 border border-ink-200 ${hoverBorder}`
+              }`}
+            >
+              {s}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function ProfileEditor() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -318,80 +432,28 @@ function ProfileEditor() {
           </div>
 
           {/* Skills */}
-          <div>
-            <label className={labelClass}>Skills</label>
-            <input
-              type="text"
-              value={profile.skills || ""}
-              onChange={(e) => handleChange("skills", e.target.value)}
-              placeholder="e.g. Product, Marketing, Fundraising"
-              className={inputClass}
-            />
-            <p className="text-[11px] text-ink-300 mt-1.5 mb-2">Comma-separated. Click to add:</p>
-            <div className="flex flex-wrap gap-1.5">
-              {SKILL_SUGGESTIONS.map((sk) => {
-                const current = parseTags(profile.skills || "");
-                const active = current.includes(sk);
-                return (
-                  <button
-                    key={sk}
-                    type="button"
-                    onClick={() => {
-                      const next = active
-                        ? current.filter((t) => t !== sk)
-                        : [...current, sk];
-                      handleChange("skills", tagsToStr(next));
-                    }}
-                    className={`px-2.5 py-1 text-[11px] transition-colors ${
-                      active
-                        ? "bg-forest-900 text-cream"
-                        : "bg-white text-ink-500 border border-ink-200 hover:border-forest-400"
-                    }`}
-                  >
-                    {sk}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <TagInput
+            label="Skills"
+            value={profile.skills || ""}
+            onChange={(v) => handleChange("skills", v)}
+            suggestions={SKILL_SUGGESTIONS}
+            placeholder="Type a skill and press Enter..."
+            activeColor="forest"
+            inputClass={inputClass}
+            labelClass={labelClass}
+          />
 
           {/* Interests */}
-          <div>
-            <label className={labelClass}>Interests</label>
-            <input
-              type="text"
-              value={profile.interests || ""}
-              onChange={(e) => handleChange("interests", e.target.value)}
-              placeholder="e.g. Plant-Based, Sustainability, Hospitality"
-              className={inputClass}
-            />
-            <p className="text-[11px] text-ink-300 mt-1.5 mb-2">Comma-separated. Click to add:</p>
-            <div className="flex flex-wrap gap-1.5">
-              {INTEREST_SUGGESTIONS.map((tag) => {
-                const current = parseTags(profile.interests || "");
-                const active = current.includes(tag);
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => {
-                      const next = active
-                        ? current.filter((t) => t !== tag)
-                        : [...current, tag];
-                      handleChange("interests", tagsToStr(next));
-                    }}
-                    className={`px-2.5 py-1 text-[11px] transition-colors ${
-                      active
-                        ? "bg-clay-600 text-cream"
-                        : "bg-white text-ink-500 border border-ink-200 hover:border-clay-400"
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <TagInput
+            label="Interests"
+            value={profile.interests || ""}
+            onChange={(v) => handleChange("interests", v)}
+            suggestions={INTEREST_SUGGESTIONS}
+            placeholder="Type an interest and press Enter..."
+            activeColor="clay"
+            inputClass={inputClass}
+            labelClass={labelClass}
+          />
 
           {/* Phone */}
           <div>
