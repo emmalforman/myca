@@ -8,6 +8,7 @@ export interface Member {
   phone?: string;
   linkedin?: string;
   instagram?: string;
+  substack?: string;
   company?: string;
   role?: string;
   occupationType?: string;

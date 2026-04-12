@@ -47,7 +47,7 @@ export async function PATCH(request: Request) {
   // Only allow updating these fields
   const allowed = [
     "name", "first_name", "last_name", "company", "role",
-    "occupation_type", "location", "linkedin", "instagram", "phone",
+    "occupation_type", "location", "linkedin", "instagram", "substack", "phone",
     "superpower", "asks", "offers", "photo_url",
     "skills", "interests",
   ];

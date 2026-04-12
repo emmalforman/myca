@@ -16,6 +16,7 @@ interface Profile {
   location: string;
   linkedin: string;
   instagram: string;
+  substack: string;
   superpower: string;
   asks: string;
   offers: string;
@@ -227,6 +228,7 @@ function ProfileEditor() {
         location: profile.location,
         linkedin: profile.linkedin,
         instagram: profile.instagram,
+        substack: profile.substack,
         phone: profile.phone,
         superpower: profile.superpower,
         asks: profile.asks,
@@ -427,6 +429,18 @@ function ProfileEditor() {
               value={profile.instagram || ""}
               onChange={(e) => handleChange("instagram", e.target.value)}
               placeholder="@yourhandle or https://instagram.com/yourhandle"
+              className={inputClass}
+            />
+          </div>
+
+          {/* Substack */}
+          <div>
+            <label className={labelClass}>Substack</label>
+            <input
+              type="url"
+              value={profile.substack || ""}
+              onChange={(e) => handleChange("substack", e.target.value)}
+              placeholder="https://yourname.substack.com"
               className={inputClass}
             />
           </div>

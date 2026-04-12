@@ -20,7 +20,7 @@ export async function GET() {
       // First try with is_myca_member filter
       let { data, error } = await supabase
         .from("contacts")
-        .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,instagram,company,role,occupation_type,location,industry_tags,focus_areas,skills,interests,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url")
+        .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,instagram,substack,company,role,occupation_type,location,industry_tags,focus_areas,skills,interests,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url")
         .eq("is_myca_member", true)
         .order("name");
 
@@ -46,7 +46,7 @@ export async function GET() {
         if (result.data && result.data.length > 0) {
           const allResult = await supabase
             .from("contacts")
-            .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,instagram,company,role,occupation_type,location,industry_tags,focus_areas,skills,interests,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url")
+            .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,instagram,substack,company,role,occupation_type,location,industry_tags,focus_areas,skills,interests,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url")
             .order("name");
           data = allResult.data;
           error = allResult.error;
@@ -73,6 +73,7 @@ export async function GET() {
           phone: row.phone ?? undefined,
           linkedin: row.linkedin ?? undefined,
           instagram: row.instagram ?? undefined,
+          substack: row.substack ?? undefined,
           company: row.company ?? undefined,
           role: row.role ?? undefined,
           occupationType: row.occupation_type ?? undefined,

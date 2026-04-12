@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, ReactNode, KeyboardEvent } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import Link from "next/link";
 import OnboardingFlow from "./OnboardingFlow";
@@ -11,7 +11,7 @@ export default function MemberLogin({
   children: ReactNode;
 }) {
   const [state, setState] = useState<
-    "loading" | "login" | "signup" | "forgot" | "reset-sent" | "not-member" | "onboarding" | "authenticated"
+    "loading" | "login" | "signup" | "forgot" | "reset-sent" | "not-member" | "onboarding" | "profile-incomplete" | "authenticated"
   >("loading");
   const [email, setEmail] = useState("");
   const [authedEmail, setAuthedEmail] = useState("");
@@ -41,9 +41,10 @@ export default function MemberLogin({
   }, []);
 
   const verifyMembership = async (userEmail: string) => {
-    const { data } = await getSupabaseBrowser()
+    const supabase = getSupabaseBrowser();
+    const { data } = await supabase
       .from("contacts")
-      .select("contact_id")
+      .select("contact_id, skills, interests")
       .eq("email", userEmail)
       .eq("is_myca_member", true)
       .limit(1);
@@ -51,17 +52,24 @@ export default function MemberLogin({
     if (data && data.length > 0) {
       setAuthedEmail(userEmail);
       // Check if onboarded
-      const { data: onboarded } = await getSupabaseBrowser()
+      const { data: onboarded } = await supabase
         .from("channel_members")
         .select("channel")
         .eq("email", userEmail)
         .eq("channel", "_onboarded")
         .limit(1);
 
-      if (onboarded && onboarded.length > 0) {
-        setState("authenticated");
-      } else {
+      if (!onboarded || onboarded.length === 0) {
         setState("onboarding");
+      } else {
+        // Check if profile has at least 1 skill and 1 interest
+        const hasSkills = !!(data[0].skills && data[0].skills.trim());
+        const hasInterests = !!(data[0].interests && data[0].interests.trim());
+        if (!hasSkills || !hasInterests) {
+          setState("profile-incomplete");
+        } else {
+          setState("authenticated");
+        }
       }
     } else {
       setState("not-member");
@@ -188,6 +196,18 @@ export default function MemberLogin({
   if (state === "onboarding") {
     return (
       <OnboardingFlow
+        email={authedEmail}
+        onComplete={() => {
+          // After onboarding, check if profile is complete
+          verifyMembership(authedEmail);
+        }}
+      />
+    );
+  }
+
+  if (state === "profile-incomplete") {
+    return (
+      <ProfileCompleter
         email={authedEmail}
         onComplete={() => setState("authenticated")}
       />
@@ -346,6 +366,206 @@ export default function MemberLogin({
             </Link>
           </p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ------ Profile Completer: forces skills + interests before entry ------
+
+const SKILL_SUGGESTIONS = [
+  "Product", "Engineering", "Design", "Marketing", "Sales", "Operations",
+  "Finance", "Fundraising", "Brand", "Content", "Community", "Supply Chain",
+  "R&D", "Culinary", "Retail", "E-commerce", "Partnerships", "PR",
+];
+
+const INTEREST_SUGGESTIONS = [
+  "Plant-Based", "Sustainability", "Regenerative Ag", "Functional Foods",
+  "Fermentation", "Zero Waste", "Wellness", "Climate", "Food Justice",
+  "Hospitality", "Wine", "Coffee", "Spirits", "Snacks", "Beverages",
+  "Restaurants", "Travel", "Foraging", "Female Founders",
+];
+
+const parseTags = (s: string) => s.split(",").map((t) => t.trim()).filter(Boolean);
+const tagsToStr = (tags: string[]) => tags.join(", ");
+
+function MiniTagInput({
+  tags,
+  setTags,
+  suggestions,
+  placeholder,
+  color,
+}: {
+  tags: string[];
+  setTags: (t: string[]) => void;
+  suggestions: string[];
+  placeholder: string;
+  color: "forest" | "clay";
+}) {
+  const [input, setInput] = useState("");
+
+  const add = (tag: string) => {
+    const t = tag.trim();
+    if (t && !tags.includes(t)) setTags([...tags, t]);
+    setInput("");
+  };
+
+  const remove = (tag: string) => setTags(tags.filter((t) => t !== tag));
+
+  const chipBg = color === "forest" ? "bg-forest-100 text-forest-800" : "bg-clay-100 text-clay-800";
+  const activeBg = color === "forest" ? "bg-forest-900" : "bg-clay-600";
+  const hoverBorder = color === "forest" ? "hover:border-forest-400" : "hover:border-clay-400";
+
+  return (
+    <div>
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {tags.map((tag) => (
+            <span key={tag} className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] ${chipBg}`}>
+              {tag}
+              <button type="button" onClick={() => remove(tag)} className="ml-0.5 opacity-60 hover:opacity-100">x</button>
+            </span>
+          ))}
+        </div>
+      )}
+      <input
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === ",") && input.trim()) {
+            e.preventDefault();
+            add(input.replace(",", ""));
+          }
+          if (e.key === "Backspace" && !input && tags.length > 0) remove(tags[tags.length - 1]);
+        }}
+        placeholder={tags.length > 0 ? "Add more..." : placeholder}
+        className="w-full px-4 py-3 text-[14px] border border-ink-200 bg-white text-ink-900 placeholder-ink-300 focus:outline-none focus:border-forest-400 transition-colors"
+      />
+      <div className="flex flex-wrap gap-1.5 mt-2">
+        {suggestions.map((s) => {
+          const active = tags.includes(s);
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => active ? remove(s) : add(s)}
+              className={`px-2.5 py-1 text-[11px] transition-colors ${
+                active ? `${activeBg} text-cream` : `bg-white text-ink-500 border border-ink-200 ${hoverBorder}`
+              }`}
+            >
+              {s}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ProfileCompleter({
+  email,
+  onComplete,
+}: {
+  email: string;
+  onComplete: () => void;
+}) {
+  const [skills, setSkills] = useState<string[]>([]);
+  const [interests, setInterests] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  // Load existing values
+  useEffect(() => {
+    getSupabaseBrowser()
+      .from("contacts")
+      .select("skills, interests")
+      .eq("email", email)
+      .single()
+      .then(({ data }) => {
+        if (data?.skills) setSkills(parseTags(data.skills));
+        if (data?.interests) setInterests(parseTags(data.interests));
+      });
+  }, [email]);
+
+  const canSave = skills.length >= 1 && interests.length >= 1;
+
+  const handleSave = async () => {
+    if (!canSave) return;
+    setSaving(true);
+
+    await fetch(`/api/profile?email=${encodeURIComponent(email)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        skills: tagsToStr(skills),
+        interests: tagsToStr(interests),
+      }),
+    });
+
+    setSaving(false);
+    onComplete();
+  };
+
+  return (
+    <div className="min-h-screen bg-ivory flex items-center justify-center px-6">
+      <div className="w-full max-w-lg">
+        <div className="text-center mb-10">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-forest-500 font-mono mb-3">
+            Complete Your Profile
+          </p>
+          <h1 className="text-3xl font-serif text-ink-900 mb-3">
+            Add your skills &amp; interests.
+          </h1>
+          <p className="text-[14px] text-ink-400">
+            This helps us connect you with the right people. Add at least one of each.
+          </p>
+        </div>
+
+        <div className="space-y-6">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-mono mb-3">
+              Skills
+              {skills.length === 0 && (
+                <span className="ml-2 text-[9px] text-rust-500 normal-case tracking-normal">
+                  Add at least 1
+                </span>
+              )}
+            </p>
+            <MiniTagInput
+              tags={skills}
+              setTags={setSkills}
+              suggestions={SKILL_SUGGESTIONS}
+              placeholder="Type a skill and press Enter..."
+              color="forest"
+            />
+          </div>
+
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-mono mb-3">
+              Interests
+              {interests.length === 0 && (
+                <span className="ml-2 text-[9px] text-rust-500 normal-case tracking-normal">
+                  Add at least 1
+                </span>
+              )}
+            </p>
+            <MiniTagInput
+              tags={interests}
+              setTags={setInterests}
+              suggestions={INTEREST_SUGGESTIONS}
+              placeholder="Type an interest and press Enter..."
+              color="clay"
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={!canSave || saving}
+          className="w-full mt-8 py-3.5 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          {saving ? "Saving..." : canSave ? "Continue to Myca" : "Add at least 1 skill and 1 interest"}
+        </button>
       </div>
     </div>
   );
