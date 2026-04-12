@@ -37,6 +37,16 @@ interface Message {
   created_at: string;
 }
 
+interface BotMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  recommendations?: { email: string; reason: string }[];
+  created_at: string;
+}
+
+const BOT_CHANNEL = "bot:myca";
+
 function ChatApp() {
   const [channel, setChannel] = useState("general");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -50,8 +60,12 @@ function ChatApp() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [outreachTarget, setOutreachTarget] = useState<Member | null>(null);
   const [dmChannels, setDmChannels] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [botMessages, setBotMessages] = useState<BotMessage[]>([]);
+  const [botLoading, setBotLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isBot = channel === BOT_CHANNEL;
 
   // Load all member profiles for lookups
   useEffect(() => {
@@ -128,8 +142,14 @@ function ChatApp() {
     }
   }, [memberProfiles]);
 
-  // Load messages for current channel
+  // Load messages for current channel (skip for bot channel)
   useEffect(() => {
+    if (channel === BOT_CHANNEL) {
+      setLoading(false);
+      setTimeout(scrollToBottom, 100);
+      return;
+    }
+
     setLoading(true);
     const supabase = getSupabaseBrowser();
 
@@ -176,6 +196,10 @@ function ChatApp() {
     e.preventDefault();
     if (!input.trim() || !user) return;
 
+    if (isBot) {
+      return sendBotMessage(input.trim());
+    }
+
     const supabase = getSupabaseBrowser();
     const { error } = await supabase.from("messages").insert({
       channel,
@@ -188,6 +212,62 @@ function ChatApp() {
       setInput("");
       inputRef.current?.focus();
     }
+  };
+
+  const sendBotMessage = async (text: string) => {
+    if (!user) return;
+    const userMsg: BotMessage = {
+      id: `user-${Date.now()}`,
+      role: "user",
+      content: text,
+      created_at: new Date().toISOString(),
+    };
+    setBotMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setBotLoading(true);
+    setTimeout(scrollToBottom, 50);
+
+    try {
+      const history = botMessages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      const res = await fetch("/api/bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          email: user.email,
+          history,
+        }),
+      });
+
+      const data = await res.json();
+
+      const botMsg: BotMessage = {
+        id: `bot-${Date.now()}`,
+        role: "assistant",
+        content: data.reply || "Sorry, I couldn't process that. Try again?",
+        recommendations: data.recommendations || [],
+        created_at: new Date().toISOString(),
+      };
+      setBotMessages((prev) => [...prev, botMsg]);
+    } catch {
+      setBotMessages((prev) => [
+        ...prev,
+        {
+          id: `bot-err-${Date.now()}`,
+          role: "assistant",
+          content: "Something went wrong. Please try again.",
+          created_at: new Date().toISOString(),
+        },
+      ]);
+    }
+
+    setBotLoading(false);
+    setTimeout(scrollToBottom, 100);
+    inputRef.current?.focus();
   };
 
   const formatTime = (dateStr: string) => {
@@ -212,21 +292,37 @@ function ChatApp() {
   const isDM = channel.startsWith("dm:");
   const dmRecipient = isDM ? dmChannels.find((d) => d.id === channel) : null;
   const dmProfile = dmRecipient ? memberProfiles.get(dmRecipient.email) : null;
-  const channelDisplayName = isDM
-    ? dmRecipient?.name || "Direct Message"
-    : currentChannel?.label;
-  const channelDisplayEmoji = isDM ? "✉️" : currentChannel?.emoji;
+  const channelDisplayName = isBot
+    ? "Ask Myca"
+    : isDM
+      ? dmRecipient?.name || "Direct Message"
+      : currentChannel?.label;
+  const channelDisplayEmoji = isBot ? "✨" : isDM ? "✉️" : currentChannel?.emoji;
 
   return (
     <div className="h-[calc(100vh-57px)] flex bg-ivory">
       {/* Sidebar - Desktop */}
       <div className="hidden md:flex w-64 flex-col bg-forest-950 flex-shrink-0">
         <div className="p-4 border-b border-ink-800">
+          <button
+            onClick={() => setChannel(BOT_CHANNEL)}
+            className={`w-full text-left px-3 py-2.5 text-[13px] flex items-center gap-2.5 transition-colors rounded ${
+              isBot
+                ? "bg-forest-700 text-white"
+                : "text-cream hover:bg-forest-800"
+            }`}
+          >
+            <span className="text-base">✨</span>
+            <span className="font-medium">Ask Myca</span>
+            <span className="ml-auto text-[9px] uppercase tracking-wider text-forest-400 font-mono">Private</span>
+          </button>
+        </div>
+        <div className="px-4 pt-3 pb-1">
           <p className="text-[11px] uppercase tracking-[0.2em] text-ink-500 font-mono">
             Channels
           </p>
         </div>
-        <div className="flex-1 overflow-y-auto py-2">
+        <div className="flex-1 overflow-y-auto py-1">
           {CHANNELS.map((ch) => (
             <button
               key={ch.id}
@@ -320,6 +416,18 @@ function ChatApp() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto py-2">
+              <button
+                onClick={() => { setChannel(BOT_CHANNEL); setSidebarOpen(false); }}
+                className={`w-full text-left px-4 py-2.5 text-[13px] flex items-center gap-2.5 transition-colors ${
+                  isBot ? "bg-forest-800 text-white" : "text-cream hover:bg-forest-900"
+                }`}
+              >
+                <span className="text-base">✨</span>
+                <span className="font-medium">Ask Myca</span>
+              </button>
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-ink-500 font-mono">Channels</p>
+              </div>
               {CHANNELS.map((ch) => (
                 <button
                   key={ch.id}
@@ -377,13 +485,142 @@ function ChatApp() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          {loading && (
+          {loading && !isBot && (
             <div className="flex items-center justify-center h-full">
               <div className="w-6 h-6 border border-ink-200 border-t-ink-500 rounded-full animate-spin" />
             </div>
           )}
 
-          {!loading && messages.length === 0 && (
+          {/* Bot channel */}
+          {isBot && botMessages.length === 0 && !botLoading && (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center max-w-sm">
+                <p className="text-4xl mb-4">✨</p>
+                <p className="text-lg font-serif text-ink-900 mb-2">
+                  Hi, I&apos;m Myca
+                </p>
+                <p className="text-[14px] text-ink-400 mb-6">
+                  I can help you find the right person to connect with. Try asking me something like:
+                </p>
+                <div className="space-y-2">
+                  {[
+                    "Who can help me with retail distribution?",
+                    "I'm looking for a co-packer in NYC",
+                    "Who knows about DTC marketing?",
+                    "Connect me with other founders in food tech",
+                  ].map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => sendBotMessage(q)}
+                      className="w-full text-left px-4 py-2.5 text-[13px] text-ink-600 bg-white border border-ink-100 hover:border-forest-400 transition-colors"
+                    >
+                      &ldquo;{q}&rdquo;
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isBot && botMessages.map((msg) => (
+            <div key={msg.id} className={`flex gap-3 mt-4`}>
+              <div className={`w-8 h-8 flex-shrink-0 flex items-center justify-center text-[14px] ${
+                msg.role === "user" ? "bg-forest-900 text-cream font-serif font-bold" : "bg-clay-100 text-clay-700"
+              }`}>
+                {msg.role === "user" ? (user?.name?.[0] || "?") : "✨"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-2 mb-0.5">
+                  <span className="text-[13px] font-medium text-ink-900">
+                    {msg.role === "user" ? user?.name : "Myca"}
+                  </span>
+                  <span className="text-[10px] text-ink-300 font-mono">
+                    {formatTime(msg.created_at)}
+                  </span>
+                </div>
+                <p className="text-[14px] text-ink-700 leading-relaxed break-words whitespace-pre-wrap">
+                  {msg.content}
+                </p>
+                {/* Recommendation cards */}
+                {msg.recommendations && msg.recommendations.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {msg.recommendations.map((rec) => {
+                      const profile = memberProfiles.get(rec.email);
+                      if (!profile) return null;
+                      const initials = (profile.firstName?.[0] || profile.name?.[0] || "") +
+                        (profile.lastName?.[0] || profile.name?.split(" ")[1]?.[0] || "");
+                      return (
+                        <div key={rec.email} className="flex items-start gap-3 p-3 bg-white border border-ink-100">
+                          <div className="w-11 h-11 bg-cream flex-shrink-0 overflow-hidden">
+                            {profile.photoUrl ? (
+                              <img src={profile.photoUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-forest-400 font-serif text-sm">
+                                {initials}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <button
+                              onClick={() => setSelectedMember(profile)}
+                              className="text-[14px] font-serif text-ink-900 hover:text-forest-700 transition-colors"
+                            >
+                              {profile.name}
+                            </button>
+                            <p className="text-[12px] text-ink-400 truncate">
+                              {profile.role}{profile.company ? `, ${profile.company}` : ""}
+                            </p>
+                            <p className="text-[12px] text-forest-700 mt-1">{rec.reason}</p>
+                          </div>
+                          <div className="flex gap-1.5 flex-shrink-0">
+                            <button
+                              onClick={() => setSelectedMember(profile)}
+                              className="px-3 py-1.5 text-[11px] uppercase tracking-wider text-ink-500 border border-ink-200 hover:border-ink-400 transition-colors"
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={() => {
+                                const dmId = `dm:${[user!.email, profile.email].sort().join(":")}`;
+                                setChannel(dmId);
+                                // Add to DM list if not already there
+                                setDmChannels((prev) => {
+                                  if (prev.some((d) => d.id === dmId)) return prev;
+                                  return [...prev, { id: dmId, email: profile.email, name: profile.name }];
+                                });
+                              }}
+                              className="px-3 py-1.5 text-[11px] uppercase tracking-wider text-cream bg-forest-900 hover:bg-forest-700 transition-colors"
+                            >
+                              DM
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {isBot && botLoading && (
+            <div className="flex gap-3 mt-4">
+              <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-clay-100 text-clay-700 text-[14px]">
+                ✨
+              </div>
+              <div className="flex-1">
+                <p className="text-[13px] font-medium text-ink-900 mb-1">Myca</p>
+                <div className="flex gap-1.5">
+                  <div className="w-2 h-2 bg-ink-300 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <div className="w-2 h-2 bg-ink-300 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <div className="w-2 h-2 bg-ink-300 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Regular channel messages */}
+          {!isBot && !loading && messages.length === 0 && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <p className="text-3xl mb-3">{channelDisplayEmoji}</p>
@@ -401,7 +638,7 @@ function ChatApp() {
             </div>
           )}
 
-          {messages.map((msg, i) => {
+          {!isBot && messages.map((msg, i) => {
             const isMe = msg.sender_email === user?.email;
             const showName =
               i === 0 || messages[i - 1].sender_email !== msg.sender_email;
@@ -490,7 +727,7 @@ function ChatApp() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={`Message ${currentChannel?.label}...`}
+              placeholder={isBot ? "Ask Myca anything..." : `Message ${currentChannel?.label || channelDisplayName}...`}
               className="flex-1 px-4 py-3 text-[14px] bg-white border border-ink-200 text-ink-900 placeholder-ink-300 focus:outline-none focus:border-ink-400 transition-colors"
             />
             <button
