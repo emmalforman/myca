@@ -64,21 +64,8 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Redirect unauthenticated users away from protected pages
-  const isProtected = PROTECTED_PAGES.some(
-    (p) => pathname === p || pathname.startsWith(p + "/")
-  );
-
-  if (isProtected && !user) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // If user is logged in and visits /login, redirect to home
-  if (pathname === "/login" && user) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
+  // Auth for protected pages is handled client-side by the MemberLogin component.
+  // The middleware just refreshes the session token above.
 
   // Add security headers
   supabaseResponse.headers.set("X-Frame-Options", "DENY");
