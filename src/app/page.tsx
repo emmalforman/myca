@@ -1,8 +1,53 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import ScrollReveal from "@/components/ScrollReveal";
+import MemberDashboard from "@/components/MemberDashboard";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 export default function Home() {
+  const [authState, setAuthState] = useState<"loading" | "signed-in" | "signed-out">("loading");
+  const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowser();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        setEmail(session.user.email);
+        setAuthState("signed-in");
+      } else {
+        setAuthState("signed-out");
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.email) {
+        setEmail(session.user.email);
+        setAuthState("signed-in");
+      } else {
+        setAuthState("signed-out");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (authState === "loading") {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <span className="text-forest-400 font-mono text-sm">Loading...</span>
+      </div>
+    );
+  }
+
+  if (authState === "signed-in") {
+    return <MemberDashboard userEmail={email} />;
+  }
+
   return (
     <div>
       {/* Hero */}
