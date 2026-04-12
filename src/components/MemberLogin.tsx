@@ -499,7 +499,7 @@ function ProfileCompleter({
   const [interests, setInterests] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [missingFields, setMissingFields] = useState<Set<string>>(new Set());
+  const [missingFields, setMissingFields] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
@@ -527,19 +527,19 @@ function ProfileCompleter({
           if (data.skills) setSkills(parseTags(data.skills));
           if (data.interests) setInterests(parseTags(data.interests));
 
-          // Capture which fields are missing at load time
-          const missing = new Set<string>();
-          if (!data.name?.trim()) missing.add("name");
-          if (!data.company?.trim()) missing.add("company");
-          if (!data.role?.trim()) missing.add("role");
-          if (!data.occupation_type?.trim()) missing.add("occupation_type");
-          if (!data.location?.trim()) missing.add("location");
-          if (!data.linkedin?.trim()) missing.add("linkedin");
-          if (!data.instagram?.trim()) missing.add("instagram");
-          if (!data.superpower?.trim()) missing.add("superpower");
-          if (!data.skills?.trim()) missing.add("skills");
-          if (!data.interests?.trim()) missing.add("interests");
-          if (!data.photo_url?.trim()) missing.add("photo_url");
+          // Capture which fields are missing at load time (frozen list)
+          const missing: string[] = [];
+          if (!data.name?.trim()) missing.push("name");
+          if (!data.company?.trim()) missing.push("company");
+          if (!data.role?.trim()) missing.push("role");
+          if (!data.occupation_type?.trim()) missing.push("occupation_type");
+          if (!data.location?.trim()) missing.push("location");
+          if (!data.linkedin?.trim()) missing.push("linkedin");
+          if (!data.instagram?.trim()) missing.push("instagram");
+          if (!data.superpower?.trim()) missing.push("superpower");
+          if (!data.skills?.trim()) missing.push("skills");
+          if (!data.interests?.trim()) missing.push("interests");
+          if (!data.photo_url?.trim()) missing.push("photo_url");
           setMissingFields(missing);
         }
         setLoadingProfile(false);
@@ -617,7 +617,7 @@ function ProfileCompleter({
 
         <div className="space-y-5">
           {/* Photo */}
-          {missingFields.has("photo_url") && (
+          {missingFields.includes("photo_url") && (
             <div>
               <label className={labelClass}>Photo {req(has(fields.photo_url))}</label>
               <div className="flex items-center gap-4">
@@ -639,28 +639,28 @@ function ProfileCompleter({
             </div>
           )}
 
-          {missingFields.has("name") && (
+          {missingFields.includes("name") && (
             <div>
               <label className={labelClass}>Full Name {req(has(fields.name))}</label>
               <input type="text" value={fields.name} onChange={(e) => set("name", e.target.value)} placeholder="Your name" className={inputClass} />
             </div>
           )}
 
-          {missingFields.has("company") && (
+          {missingFields.includes("company") && (
             <div>
               <label className={labelClass}>Company {req(has(fields.company))}</label>
               <input type="text" value={fields.company} onChange={(e) => set("company", e.target.value)} placeholder="Where do you work?" className={inputClass} />
             </div>
           )}
 
-          {missingFields.has("role") && (
+          {missingFields.includes("role") && (
             <div>
               <label className={labelClass}>Title {req(has(fields.role))}</label>
               <input type="text" value={fields.role} onChange={(e) => set("role", e.target.value)} placeholder="Your job title" className={inputClass} />
             </div>
           )}
 
-          {missingFields.has("occupation_type") && (
+          {missingFields.includes("occupation_type") && (
             <div>
               <label className={labelClass}>Role Type {req(has(fields.occupation_type))}</label>
               <div className="flex flex-wrap gap-1.5">
@@ -675,42 +675,42 @@ function ProfileCompleter({
             </div>
           )}
 
-          {missingFields.has("location") && (
+          {missingFields.includes("location") && (
             <div>
               <label className={labelClass}>Location {req(has(fields.location))}</label>
               <input type="text" value={fields.location} onChange={(e) => set("location", e.target.value)} placeholder="e.g. New York" className={inputClass} />
             </div>
           )}
 
-          {missingFields.has("linkedin") && (
+          {missingFields.includes("linkedin") && (
             <div>
               <label className={labelClass}>LinkedIn {req(has(fields.linkedin))}</label>
               <input type="url" value={fields.linkedin} onChange={(e) => set("linkedin", e.target.value)} placeholder="https://linkedin.com/in/..." className={inputClass} />
             </div>
           )}
 
-          {missingFields.has("instagram") && (
+          {missingFields.includes("instagram") && (
             <div>
               <label className={labelClass}>Instagram {req(has(fields.instagram))}</label>
               <input type="text" value={fields.instagram} onChange={(e) => set("instagram", e.target.value)} placeholder="@yourhandle" className={inputClass} />
             </div>
           )}
 
-          {missingFields.has("superpower") && (
+          {missingFields.includes("superpower") && (
             <div>
               <label className={labelClass}>Your Superpower {req(has(fields.superpower))}</label>
               <input type="text" value={fields.superpower} onChange={(e) => set("superpower", e.target.value)} placeholder="What are you known for?" className={inputClass} />
             </div>
           )}
 
-          {missingFields.has("skills") && (
+          {missingFields.includes("skills") && (
             <div>
               <label className={labelClass}>Skills {req(skills.length > 0)}</label>
               <MiniTagInput tags={skills} setTags={setSkills} suggestions={SKILL_SUGGESTIONS} placeholder="Type a skill and press Enter..." color="forest" />
             </div>
           )}
 
-          {missingFields.has("interests") && (
+          {missingFields.includes("interests") && (
             <div>
               <label className={labelClass}>Interests {req(interests.length > 0)}</label>
               <MiniTagInput tags={interests} setTags={setInterests} suggestions={INTEREST_SUGGESTIONS} placeholder="Type an interest and press Enter..." color="clay" />
