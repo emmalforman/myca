@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Member } from "@/lib/types";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 interface AskMessage {
   id: string;
@@ -98,14 +99,26 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
 
   useEffect(() => {
     // Fetch members and dashboard feed in parallel
+    // Look up name directly via browser client (same pattern as MemberLogin)
+    const supabase = getSupabaseBrowser();
+    supabase
+      .from("contacts")
+      .select("first_name, name")
+      .eq("email", userEmail)
+      .eq("is_myca_member", true)
+      .limit(1)
+      .then(({ data: meData }) => {
+        const me = meData?.[0];
+        setFirstName(me?.first_name || me?.name?.split(" ")[0] || userEmail.split("@")[0]);
+      });
+
     Promise.all([
       fetch("/api/members").then((r) => r.json()),
-      fetch("/api/dashboard").then((r) => r.json()).catch(() => ({ firstName: "", asks: [], events: [] })),
+      fetch("/api/dashboard").then((r) => r.json()).catch(() => ({ asks: [], events: [] })),
     ]).then(([membersData, feedData]) => {
       setMembers(membersData.members || []);
       setAsks(feedData.asks || []);
       setEvents(feedData.events || []);
-      setFirstName(feedData.firstName || userEmail.split("@")[0]);
       setLoading(false);
     });
   }, [userEmail]);
@@ -153,7 +166,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
           </svg>
           <div>
             <p className="text-sm font-medium tracking-wide uppercase">Browse Directory</p>
-            <p className="text-[12px] text-forest-400 mt-0.5">Search {members.length} members</p>
+            <p className="text-[12px] text-forest-400 mt-0.5">Search members</p>
           </div>
         </Link>
         <Link
