@@ -35,7 +35,7 @@ function MemberAvatar({ member }: { member: Member }) {
 
   return (
     <Link
-      href={`/directory?member=${encodeURIComponent(member.email)}`}
+      href={`/directory?member=${encodeURIComponent(member.id)}`}
       className="flex items-center gap-4 p-4 bg-white border border-forest-100 hover:border-forest-300 transition-all"
     >
       <div className="w-12 h-12 rounded-full overflow-hidden bg-cream flex-shrink-0">
@@ -118,7 +118,10 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
     });
   }, [userEmail]);
 
-  const newMembers = [...members].slice(-8).reverse();
+  const newMembers = [...members]
+    .filter((m) => m.createdAt)
+    .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
+    .slice(0, 8);
 
   if (loading) {
     return (

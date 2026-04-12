@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sampleMembers } from "@/data/members";
 import { Member } from "@/lib/types";
+import { getAuthenticatedUser, isAdmin, unauthorizedResponse } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,18 @@ function hasSupabase() {
   );
 }
 
+function sanitizeMember(member: Member, userIsAdmin: boolean): Partial<Member> {
+  if (userIsAdmin) return member;
+  const { email, phone, notes, warmth, ...safe } = member;
+  return safe;
+}
+
 export async function GET() {
+  const user = await getAuthenticatedUser();
+  if (!user) return unauthorizedResponse();
+
+  const userIsAdmin = isAdmin(user.email);
+
   // Try Supabase contacts table
   if (hasSupabase()) {
     try {
@@ -20,13 +32,12 @@ export async function GET() {
       // First try with is_myca_member filter
       let { data, error } = await supabase
         .from("contacts")
-        .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,instagram,substack,company,role,occupation_type,location,industry_tags,focus_areas,skills,interests,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url")
+        .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,instagram,substack,company,role,occupation_type,location,industry_tags,focus_areas,skills,interests,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url,created_at")
         .eq("is_myca_member", true)
         .order("name");
 
-      // If that returns nothing, try without the filter (maybe column doesn't exist or isn't set)
+      // If that returns nothing, try without the filter
       if (!error && (!data || data.length === 0)) {
-        console.log("No members with is_myca_member=true, trying all contacts...");
         const result = await supabase
           .from("contacts")
           .select("contact_id,name,photo_url")
@@ -35,18 +46,13 @@ export async function GET() {
 
         if (result.error) {
           console.error("Supabase contacts query failed:", result.error.message);
-          return NextResponse.json({
-            members: sampleMembers,
-            source: "sample",
-            debug: { error: result.error.message, supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL },
-          });
+          return NextResponse.json({ members: [], source: "error" }, { status: 500 });
         }
 
-        // If we got results without the filter, use all contacts
         if (result.data && result.data.length > 0) {
           const allResult = await supabase
             .from("contacts")
-            .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,instagram,substack,company,role,occupation_type,location,industry_tags,focus_areas,skills,interests,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url")
+            .select("contact_id,notion_id,name,first_name,last_name,email,phone,linkedin,instagram,substack,company,role,occupation_type,location,industry_tags,focus_areas,skills,interests,superpower,asks,offers,notes,communities,cohort_tags,warmth,photo_url,created_at")
             .order("name");
           data = allResult.data;
           error = allResult.error;
@@ -55,11 +61,7 @@ export async function GET() {
 
       if (error) {
         console.error("Supabase fetch failed:", error.message);
-        return NextResponse.json({
-          members: sampleMembers,
-          source: "sample",
-          debug: { error: error.message },
-        });
+        return NextResponse.json({ members: [], source: "error" }, { status: 500 });
       }
 
       if (data && data.length > 0) {
@@ -90,27 +92,23 @@ export async function GET() {
           cohortTags: row.cohort_tags ?? undefined,
           warmth: row.warmth ?? undefined,
           photoUrl: row.photo_url ?? undefined,
+          createdAt: row.created_at ?? undefined,
         }));
 
         return NextResponse.json({
-          members,
+          members: members.map((m) => sanitizeMember(m, userIsAdmin)),
           source: "supabase",
           count: members.length,
         });
       }
     } catch (err: any) {
       console.error("Supabase connection error:", err.message);
-      return NextResponse.json({
-        members: sampleMembers,
-        source: "sample",
-        debug: { error: err.message },
-      });
+      return NextResponse.json({ members: [], source: "error" }, { status: 500 });
     }
   }
 
   return NextResponse.json({
-    members: sampleMembers,
+    members: sampleMembers.map((m) => sanitizeMember(m, userIsAdmin)),
     source: "sample",
-    debug: { hasSupabase: hasSupabase(), url: process.env.NEXT_PUBLIC_SUPABASE_URL ? "set" : "missing", key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "set" : "missing" },
   });
 }
