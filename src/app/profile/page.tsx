@@ -433,9 +433,9 @@ function ProfileEditor() {
             />
           </div>
 
-          {/* Substack */}
+          {/* Newsletter */}
           <div>
-            <label className={labelClass}>Substack</label>
+            <label className={labelClass}>Newsletter</label>
             <input
               type="url"
               value={profile.substack || ""}
