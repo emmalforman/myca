@@ -87,12 +87,20 @@ export default function OnboardingFlow({
     const supabase = getSupabaseBrowser();
     const channelId = `dm:${[email, selectedMember.email].sort().join(":")}`;
 
+    const name = senderName || email.split("@")[0];
     await supabase.from("messages").insert({
       channel: channelId,
       sender_email: email,
-      sender_name: senderName || email.split("@")[0],
+      sender_name: name,
       content: message.trim(),
     });
+
+    // Fire-and-forget email notification
+    fetch("/api/notify-dm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipientEmail: selectedMember.email, senderName: name }),
+    }).catch(() => {});
 
     // Mark onboarding complete
     await supabase

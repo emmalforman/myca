@@ -123,5 +123,47 @@ create policy "Anyone can manage group members"
 create policy "Anyone can remove group members"
   on public.group_members for delete using (true);
 
+-- Messages table (chat + DMs)
+create table if not exists public.messages (
+  id uuid default gen_random_uuid() primary key,
+  channel text not null,
+  sender_email text not null,
+  sender_name text not null,
+  content text not null,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_messages_channel_created
+  on public.messages(channel, created_at desc);
+
+alter table public.messages enable row level security;
+create policy "Messages are viewable by everyone"
+  on public.messages for select using (true);
+create policy "Authenticated users can send messages"
+  on public.messages for insert with check (true);
+
+-- Track when each user last read each channel (for unread badges)
+create table if not exists public.channel_last_read (
+  email text not null,
+  channel text not null,
+  last_read_at timestamptz not null default now(),
+  primary key (email, channel)
+);
+
+alter table public.channel_last_read enable row level security;
+create policy "Users can read own last_read"
+  on public.channel_last_read for select using (true);
+create policy "Users can upsert own last_read"
+  on public.channel_last_read for insert with check (true);
+create policy "Users can update own last_read"
+  on public.channel_last_read for update using (true);
+
+-- DM email notification log (anti-spam: one email per recipient per cooldown)
+create table if not exists public.dm_notification_log (
+  recipient_email text primary key,
+  last_notified_at timestamptz not null default now()
+);
+
 -- Enable realtime
 alter publication supabase_realtime add table public.members;
+alter publication supabase_realtime add table public.messages;

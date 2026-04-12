@@ -2,30 +2,89 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 export default function Navigation() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [hasUnread, setHasUnread] = useState(false);
+
+  const fetchUnread = useCallback((email: string) => {
+    fetch(`/api/unread?email=${encodeURIComponent(email)}`)
+      .then((r) => r.json())
+      .then((data) => setHasUnread((data.count || 0) > 0))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSignedIn(!!session);
+      if (session?.user?.email) {
+        setUserEmail(session.user.email);
+        fetchUnread(session.user.email);
+      }
     });
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSignedIn(!!session);
+      if (session?.user?.email) {
+        setUserEmail(session.user.email);
+        fetchUnread(session.user.email);
+      } else {
+        setUserEmail(null);
+        setHasUnread(false);
+      }
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchUnread]);
+
+  // Subscribe to new messages so the badge updates live
+  useEffect(() => {
+    if (!userEmail) return;
+
+    const supabase = getSupabaseBrowser();
+    const channel = supabase
+      .channel("nav-unread")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload: any) => {
+          // Only count messages from other people
+          if (payload.new?.sender_email !== userEmail) {
+            // If we're currently on the chat page, the chat component
+            // handles marking as read — skip bumping the badge
+            if (window.location.pathname !== "/chat") {
+              setHasUnread(true);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userEmail]);
+
+  // Clear the badge when the user navigates to /chat
+  useEffect(() => {
+    if (pathname === "/chat" && userEmail) {
+      // Small delay to let the chat page mark channels as read
+      const timer = setTimeout(() => fetchUnread(userEmail), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [pathname, userEmail, fetchUnread]);
 
   const handleSignOut = async () => {
     await getSupabaseBrowser().auth.signOut();
     setSignedIn(false);
+    setUserEmail(null);
+    setHasUnread(false);
     window.location.href = "/";
   };
 
@@ -40,6 +99,11 @@ export default function Navigation() {
         { href: "/", label: "Home" },
         { href: "/join", label: "Apply" },
       ];
+
+  const UnreadDot = () =>
+    hasUnread ? (
+      <span className="ml-1 inline-block w-1.5 h-1.5 bg-clay-400 rounded-full" />
+    ) : null;
 
   return (
     <nav className="bg-forest-900 sticky top-0 z-50">
@@ -56,13 +120,14 @@ export default function Navigation() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`px-4 py-1.5 text-[13px] tracking-wide uppercase transition-colors ${
+                className={`px-4 py-1.5 text-[13px] tracking-wide uppercase transition-colors flex items-center ${
                   pathname === link.href
                     ? "text-cream font-medium"
                     : "text-forest-300 hover:text-cream"
                 }`}
               >
                 {link.label}
+                {link.href === "/chat" && <UnreadDot />}
               </Link>
             ))}
             {signedIn ? (
@@ -107,9 +172,10 @@ export default function Navigation() {
                   pathname === link.href
                     ? "text-cream font-medium"
                     : "text-forest-400"
-                }`}
+                } ${link.href === "/chat" ? "flex items-center" : ""}`}
               >
                 {link.label}
+                {link.href === "/chat" && <UnreadDot />}
               </Link>
             ))}
             {signedIn ? (

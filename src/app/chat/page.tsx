@@ -138,6 +138,19 @@ function ChatApp() {
     }
   }, [memberProfiles]);
 
+  // Mark the current channel as read
+  const markChannelRead = () => {
+    if (!user) return;
+    const supabase = getSupabaseBrowser();
+    supabase
+      .from("channel_last_read")
+      .upsert(
+        { email: user.email, channel, last_read_at: new Date().toISOString() },
+        { onConflict: "email,channel" }
+      )
+      .then(() => {});
+  };
+
   // Load messages for current channel
   useEffect(() => {
     setLoading(true);
@@ -153,6 +166,7 @@ function ChatApp() {
         setMessages(data || []);
         setLoading(false);
         setTimeout(scrollToBottom, 100);
+        markChannelRead();
       });
 
     // Subscribe to new messages
@@ -169,6 +183,7 @@ function ChatApp() {
         (payload) => {
           setMessages((prev) => [...prev, payload.new as Message]);
           setTimeout(scrollToBottom, 100);
+          markChannelRead();
         }
       )
       .subscribe();
@@ -176,7 +191,7 @@ function ChatApp() {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [channel]);
+  }, [channel, user]);
 
   const scrollToBottom = () => {
     // Scope the scroll to the messages container so the whole page
@@ -186,6 +201,15 @@ function ChatApp() {
     if (container) {
       container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
     }
+  };
+
+  // Fire-and-forget DM email notification
+  const notifyDmRecipient = (recipientEmail: string, senderName: string) => {
+    fetch("/api/notify-dm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipientEmail, senderName }),
+    }).catch(() => {});
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -203,6 +227,11 @@ function ChatApp() {
     if (!error) {
       setInput("");
       inputRef.current?.focus();
+
+      // Notify DM recipient via email
+      if (isDM && dmRecipient) {
+        notifyDmRecipient(dmRecipient.email, user.name);
+      }
     }
   };
 
@@ -244,6 +273,10 @@ function ChatApp() {
       if (!insertError) {
         setInput("");
         inputRef.current?.focus();
+
+        if (isDM && dmRecipient) {
+          notifyDmRecipient(dmRecipient.email, user.name);
+        }
       }
     } catch (err) {
       alert("Photo upload failed. Please try again.");

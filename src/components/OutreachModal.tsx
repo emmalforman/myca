@@ -62,12 +62,20 @@ export default function OutreachModal({
     // Create a DM channel ID (sorted emails for consistency)
     const channelId = `dm:${[senderEmail, member.email].sort().join(":")}`;
 
+    const name = senderName || senderEmail.split("@")[0];
     await supabase.from("messages").insert({
       channel: channelId,
       sender_email: senderEmail,
-      sender_name: senderName || senderEmail.split("@")[0],
+      sender_name: name,
       content: dmMessage.trim(),
     });
+
+    // Fire-and-forget email notification
+    fetch("/api/notify-dm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipientEmail: member.email, senderName: name }),
+    }).catch(() => {});
 
     setSent(true);
     setSending(false);
