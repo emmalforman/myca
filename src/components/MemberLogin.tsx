@@ -551,10 +551,14 @@ function ProfileCompleter({
   };
 
   const has = (v: string) => !!v.trim();
+  const isUrl = (v: string) => {
+    try { return !!v.trim() && new URL(v.trim()).protocol.startsWith("http"); }
+    catch { return false; }
+  };
   const canSave =
     has(fields.name) && has(fields.company) && has(fields.role) &&
-    has(fields.occupation_type) && has(fields.location) && has(fields.linkedin) &&
-    has(fields.instagram) && skills.length >= 1 && interests.length >= 1 &&
+    has(fields.occupation_type) && has(fields.location) && isUrl(fields.linkedin) &&
+    isUrl(fields.instagram) && skills.length >= 1 && interests.length >= 1 &&
     has(fields.superpower) && has(fields.photo_url);
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -684,15 +688,21 @@ function ProfileCompleter({
 
           {missingFields.includes("linkedin") && (
             <div>
-              <label className={labelClass}>LinkedIn {req(has(fields.linkedin))}</label>
+              <label className={labelClass}>LinkedIn {req(isUrl(fields.linkedin))}</label>
               <input type="url" value={fields.linkedin} onChange={(e) => set("linkedin", e.target.value)} placeholder="https://linkedin.com/in/..." className={inputClass} />
+              {fields.linkedin.trim() && !isUrl(fields.linkedin) && (
+                <p className="text-[11px] text-rust-500 mt-1">Enter a valid URL starting with https://</p>
+              )}
             </div>
           )}
 
           {missingFields.includes("instagram") && (
             <div>
-              <label className={labelClass}>Instagram {req(has(fields.instagram))}</label>
+              <label className={labelClass}>Instagram {req(isUrl(fields.instagram))}</label>
               <input type="url" value={fields.instagram} onChange={(e) => set("instagram", e.target.value)} placeholder="https://instagram.com/yourhandle" className={inputClass} />
+              {fields.instagram.trim() && !isUrl(fields.instagram) && (
+                <p className="text-[11px] text-rust-500 mt-1">Enter a valid URL starting with https://</p>
+              )}
             </div>
           )}
 
