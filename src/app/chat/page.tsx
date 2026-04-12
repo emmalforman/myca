@@ -62,6 +62,17 @@ function ChatApp() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Prevent the body from scrolling while the chat page is open.
+  // The layout renders a Footer below <main>, which makes the page
+  // taller than the viewport. Without this, users can accidentally
+  // scroll past the chat to the footer.
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
   // Load all member profiles for lookups
   useEffect(() => {
     fetch("/api/members")
