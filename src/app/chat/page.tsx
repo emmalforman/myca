@@ -62,17 +62,6 @@ function ChatApp() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Prevent the body from scrolling while the chat page is open.
-  // The layout renders a Footer below <main>, which makes the page
-  // taller than the viewport. Without this, users can accidentally
-  // scroll past the chat to the footer.
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, []);
-
   // Load all member profiles for lookups
   useEffect(() => {
     fetch("/api/members")
@@ -313,7 +302,7 @@ function ChatApp() {
   const channelDisplayEmoji = isDM ? "✉️" : currentChannel?.emoji;
 
   return (
-    <div className="h-[calc(100vh-57px)] flex bg-ivory">
+    <div className="fixed inset-0 top-14 z-30 flex bg-ivory">
       {/* Sidebar - Desktop */}
       <div className="hidden md:flex w-64 flex-col bg-forest-950 flex-shrink-0">
         <div className="p-4 border-b border-ink-800">
