@@ -33,11 +33,13 @@ export default function Navigation() {
     ? [
         { href: "/", label: "Home" },
         { href: "/directory", label: "Directory" },
+        { href: "/events", label: "Events" },
         { href: "/chat", label: "Chat" },
         { href: "/profile", label: "Profile" },
       ]
     : [
         { href: "/", label: "Home" },
+        { href: "/pricing", label: "Membership" },
         { href: "/join", label: "Apply" },
       ];
 

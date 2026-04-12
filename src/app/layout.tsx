@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import TrialBanner from "@/components/TrialBanner";
 
 export const metadata: Metadata = {
   title: {
@@ -82,6 +83,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans min-h-screen flex flex-col">
         <Navigation />
+        <TrialBanner />
         <main className="flex-1">{children}</main>
         <Footer />
       </body>

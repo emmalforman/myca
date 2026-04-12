@@ -40,6 +40,15 @@ export interface ApplicationData {
   photo: File | null;
 }
 
+export type TierSlug = "member" | "founding";
+
+export interface SubscriptionInfo {
+  tier: TierSlug | null;
+  subscriptionStatus: "trialing" | "active" | "past_due" | "canceled" | "unpaid" | null;
+  trialEndsAt: string | null;
+  currentPeriodEnd: string | null;
+}
+
 export interface Filters {
   search: string;
   locations: string[];

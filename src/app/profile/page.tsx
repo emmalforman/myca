@@ -21,6 +21,17 @@ interface Profile {
   photo_url: string;
 }
 
+interface AccessInfo {
+  tier: string | null;
+  subscriptionStatus: string | null;
+  isActive: boolean;
+  isTrialing: boolean;
+  trialDaysLeft: number;
+  introsUsedThisMonth: number;
+  introsRemaining: number | null;
+  currentPeriodEnd: string | null;
+}
+
 const OCCUPATIONS = ["Founder", "Operator", "Investor", "Creator", "Media", "Advisor", "Other"];
 
 function ProfileEditor() {
@@ -31,6 +42,8 @@ function ProfileEditor() {
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [access, setAccess] = useState<AccessInfo | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -44,6 +57,13 @@ function ProfileEditor() {
         if (res.ok) {
           const data = await res.json();
           setProfile(data.profile);
+        }
+
+        // Fetch access/billing info
+        const accessRes = await fetch(`/api/access?email=${encodeURIComponent(session.user.email)}`);
+        if (accessRes.ok) {
+          const accessData = await accessRes.json();
+          setAccess(accessData);
         }
       }
       setLoading(false);
@@ -339,6 +359,71 @@ function ProfileEditor() {
               className={inputClass + " bg-cream text-ink-400 cursor-not-allowed"}
             />
           </div>
+
+          {/* Billing section */}
+          {access && (
+            <div className="border-t border-ink-100 pt-6">
+              <p className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-mono mb-4">
+                Membership & Billing
+              </p>
+              <div className="bg-white border border-ink-100 p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-[14px] font-medium text-ink-900">
+                      {access.tier === "founding" ? "Founding Member" : access.tier === "member" ? "Member" : "No Plan"}
+                    </p>
+                    <p className="text-[12px] text-ink-400 mt-0.5">
+                      {access.isTrialing
+                        ? `Trial — ${access.trialDaysLeft} day${access.trialDaysLeft !== 1 ? "s" : ""} left`
+                        : access.isActive
+                        ? `Active${access.currentPeriodEnd ? ` — renews ${new Date(access.currentPeriodEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : ""}`
+                        : access.subscriptionStatus === "canceled"
+                        ? "Canceled"
+                        : access.subscriptionStatus === "past_due"
+                        ? "Payment past due"
+                        : "Inactive"}
+                    </p>
+                  </div>
+                  {access.introsRemaining !== null && (
+                    <div className="text-right">
+                      <p className="text-[20px] font-serif text-ink-900">{access.introsRemaining}</p>
+                      <p className="text-[10px] text-ink-400 font-mono uppercase tracking-wider">intros left</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  {(access.isActive || access.isTrialing) && access.subscriptionStatus !== "trialing" && (
+                    <button
+                      onClick={async () => {
+                        setPortalLoading(true);
+                        const res = await fetch("/api/stripe/portal", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email }),
+                        });
+                        const data = await res.json();
+                        if (data.url) window.location.href = data.url;
+                        setPortalLoading(false);
+                      }}
+                      disabled={portalLoading}
+                      className="px-4 py-2 text-[12px] uppercase tracking-wider text-ink-600 border border-ink-200 hover:border-ink-400 transition-colors disabled:opacity-50"
+                    >
+                      {portalLoading ? "..." : "Manage Billing"}
+                    </button>
+                  )}
+                  {(!access.isActive && !access.isTrialing) || access.subscriptionStatus === "trialing" ? (
+                    <a
+                      href="/pricing"
+                      className="px-4 py-2 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 transition-colors"
+                    >
+                      {access.isTrialing ? "Choose a Plan" : "Upgrade"}
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Save */}
           {error && (
