@@ -25,6 +25,7 @@
       3. **Chat history** — past messages in channels and DMs where members mentioned/recommended people, brands, or places (huge unlocked knowledge base)
     - Recommendation cards should have a **"Start chat"** CTA that opens a DM with that member directly from the UI
     - For chat-history results, show the quote + link back to the original message as context
+13. **Curated Lists → Substack Content Pipeline** — Create themed lists ("Best coffee shops in NYC," "Favorite packaging suppliers," "Go-to kitchen tools under $50") and send to members. Members vote, add picks, and leave short recs. Crowdsourced results become polished Substack posts (e.g. "Myca Members' Top 10 Coffee Shops"). Drives growth (non-members discover content → join), engagement (members love contributing), and brand value (Myca becomes the trusted rec source in food/bev).
 
 ## Events
 13. **Member Event Posting & RSVP** — Members host, post, and RSVP to events
