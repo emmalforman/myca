@@ -1,18 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
-
 export default function NewsletterPage() {
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://substackapi.com/widget.js";
-    script.async = true;
-    document.body.appendChild(script);
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
-
   return (
     <div className="min-h-screen bg-ivory">
       <div className="bg-forest-900">
@@ -27,24 +15,14 @@ export default function NewsletterPage() {
             Subscribe to stay up to date on events, community news, and
             the latest from Myca Collective.
           </p>
-          <div id="custom-substack-embed" />
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.CustomSubstackWidget = {
-                  substackUrl: "emmalforman.substack.com",
-                  placeholder: "Enter your email",
-                  buttonText: "Subscribe",
-                  theme: "custom",
-                  colors: {
-                    primary: "#FDFBF7",
-                    input: "#1a3a2a",
-                    email: "#FDFBF7",
-                    text: "#1B2B1F",
-                  },
-                };
-              `,
-            }}
+          <iframe
+            src="https://emmalforman.substack.com/embed"
+            width="480"
+            height="150"
+            className="max-w-full border-0 bg-transparent"
+            frameBorder={0}
+            scrolling="no"
+            title="Subscribe to newsletter"
           />
         </div>
       </div>
@@ -69,7 +47,7 @@ export default function NewsletterPage() {
             src="https://substack.com/@emmalforman"
             className="w-full border-0"
             style={{ height: "calc(100vh - 120px)" }}
-            title="Newsletter Events"
+            title="Newsletter Posts"
           />
         </div>
 
