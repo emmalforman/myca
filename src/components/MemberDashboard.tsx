@@ -100,20 +100,12 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
     // Fetch members and dashboard feed in parallel
     Promise.all([
       fetch("/api/members").then((r) => r.json()),
-      fetch("/api/dashboard").then((r) => r.json()).catch(() => ({ asks: [], events: [] })),
+      fetch("/api/dashboard").then((r) => r.json()).catch(() => ({ firstName: "", asks: [], events: [] })),
     ]).then(([membersData, feedData]) => {
-      const allMembers: Member[] = membersData.members || [];
-      setMembers(allMembers);
+      setMembers(membersData.members || []);
       setAsks(feedData.asks || []);
       setEvents(feedData.events || []);
-
-      const me = allMembers.find(
-        (m) => m.email?.toLowerCase() === userEmail.toLowerCase()
-      );
-      setFirstName(
-        me?.firstName || me?.name?.split(" ")[0] || userEmail.split("@")[0]
-      );
-
+      setFirstName(feedData.firstName || userEmail.split("@")[0]);
       setLoading(false);
     });
   }, [userEmail]);

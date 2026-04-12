@@ -17,6 +17,16 @@ export async function GET() {
 
   const supabase = getSupabaseAdmin();
 
+  // Look up the logged-in user's name from contacts
+  const { data: meData } = await supabase
+    .from("contacts")
+    .select("first_name, name")
+    .eq("email", user.email)
+    .limit(1);
+
+  const me = meData?.[0];
+  const firstName = me?.first_name || me?.name?.split(" ")[0] || "";
+
   // Fetch recent messages from jobs-asks channel
   const { data: askMessages } = await supabase
     .from("messages")
@@ -44,6 +54,7 @@ export async function GET() {
     .limit(4);
 
   return NextResponse.json({
+    firstName,
     asks: askMessages || [],
     events: events || [],
   });
