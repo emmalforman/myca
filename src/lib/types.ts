@@ -51,6 +51,33 @@ export interface Filters {
   companies: string[];
 }
 
+export interface Event {
+  id: string;
+  title: string;
+  host?: string;
+  hostCompany?: string;
+  description?: string;
+  date: string;
+  dayOfWeek?: string;
+  startTime?: string;
+  endTime?: string;
+  location?: string;
+  city?: string;
+  rsvpUrl?: string;
+  rsvpPlatform?: string;
+  coverImageUrl?: string;
+  source?: string;
+  sourceEventId?: string;
+  submittedByName?: string;
+  submittedByEmail?: string;
+  isMycaMemberEvent?: boolean;
+  isFeatured?: boolean;
+  status?: string;
+  personalNote?: string;
+  newsletterIncluded?: boolean;
+  createdAt?: string;
+}
+
 export const LOCATIONS = [
   "New York",
   "San Francisco",
