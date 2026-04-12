@@ -26,6 +26,14 @@
     - Recommendation cards should have a **"Start chat"** CTA that opens a DM with that member directly from the UI
     - For chat-history results, show the quote + link back to the original message as context
 13. **Curated Lists → Substack Content Pipeline** — Create themed lists ("Best coffee shops in NYC," "Favorite packaging suppliers," "Go-to kitchen tools under $50") and send to members. Members vote, add picks, and leave short recs. Crowdsourced results become polished Substack posts (e.g. "Myca Members' Top 10 Coffee Shops"). Drives growth (non-members discover content → join), engagement (members love contributing), and brand value (Myca becomes the trusted rec source in food/bev).
+    - **AI Agent for scalability** — automates the full pipeline:
+      1. **Topic generation** — monitors chat for trending topics, suggests list ideas
+      2. **Distribution** — sends list to members via email/in-app, sets deadline
+      3. **Nudging** — reminds non-respondents ("12 members shared picks — add yours!")
+      4. **Aggregation** — tallies votes, ranks results, pulls member quotes from chat history
+      5. **Draft generation** — auto-writes Substack post with rankings, quotes, photos, links
+      6. **Cross-posting** — formats for Instagram (carousel), email digest, and Myca site
+    - You just approve the topic and review the final draft. Could run weekly on autopilot.
 
 ## Events
 13. **Member Event Posting & RSVP** — Members host, post, and RSVP to events
