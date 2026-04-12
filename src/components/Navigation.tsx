@@ -34,10 +34,12 @@ export default function Navigation() {
         { href: "/", label: "Home" },
         { href: "/directory", label: "Directory" },
         { href: "/chat", label: "Chat" },
+        { href: "/newsletter", label: "Newsletter" },
         { href: "/profile", label: "Profile" },
       ]
     : [
         { href: "/", label: "Home" },
+        { href: "/newsletter", label: "Newsletter" },
         { href: "/join", label: "Apply" },
       ];
 
