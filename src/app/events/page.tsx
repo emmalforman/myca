@@ -68,6 +68,7 @@ export default function EventsPage() {
   const [month, setMonth] = useState(today.getMonth());
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [view, setView] = useState<"calendar" | "list">("calendar");
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
@@ -132,6 +133,10 @@ export default function EventsPage() {
 
   const selectedDayEvents = selectedDate ? (eventsByDate[selectedDate] || []) : [];
 
+  const sortedGrouped = useMemo(() => {
+    return Object.entries(eventsByDate).sort(([a], [b]) => a.localeCompare(b));
+  }, [eventsByDate]);
+
   return (
     <div className="min-h-screen bg-cream">
       {/* Header */}
@@ -156,7 +161,44 @@ export default function EventsPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 lg:px-8 py-10">
+        {/* View toggle */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex border border-ink-200 rounded overflow-hidden">
+            <button
+              onClick={() => setView("calendar")}
+              className={`flex items-center gap-1.5 px-4 py-2 text-[12px] uppercase tracking-wider font-medium transition-colors ${
+                view === "calendar"
+                  ? "bg-forest-900 text-cream"
+                  : "bg-white text-ink-400 hover:text-ink-600"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Calendar
+            </button>
+            <button
+              onClick={() => setView("list")}
+              className={`flex items-center gap-1.5 px-4 py-2 text-[12px] uppercase tracking-wider font-medium border-l border-ink-200 transition-colors ${
+                view === "list"
+                  ? "bg-forest-900 text-cream"
+                  : "bg-white text-ink-400 hover:text-ink-600"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              List
+            </button>
+          </div>
+          <span className="text-[11px] text-ink-300 font-mono uppercase tracking-wider">
+            {events.length} events
+          </span>
+        </div>
+
         {/* Calendar card */}
+        {view === "calendar" && (
+        <>
         <div className="bg-ivory/80 rounded-lg shadow-sm border border-ink-100 overflow-hidden">
           {/* Month header */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-ink-100">
@@ -305,8 +347,8 @@ export default function EventsPage() {
           )}
         </div>
 
-        {/* Selected event detail panel */}
-        {selectedEvent && signedIn && (
+          {/* Selected event detail panel */}
+          {selectedEvent && signedIn && (
           <div className="mt-6 bg-white rounded-lg border border-ink-100 shadow-sm overflow-hidden">
             <div className="flex flex-col sm:flex-row">
               {selectedEvent.coverImageUrl && (
@@ -427,6 +469,117 @@ export default function EventsPage() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+        </>
+        )}
+
+        {/* ==================== LIST VIEW ==================== */}
+        {view === "list" && !loading && (
+          <div>
+            {/* Month header for list */}
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-xl font-serif text-ink-900">
+                {MONTH_NAMES[month]} {year}
+              </p>
+              <div className="flex items-center gap-1">
+                <button onClick={prevMonth} className="w-9 h-9 flex items-center justify-center text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button onClick={nextMonth} className="w-9 h-9 flex items-center justify-center text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {sortedGrouped.length === 0 && signedIn && (
+              <div className="text-center py-20">
+                <p className="font-serif text-xl text-ink-900 mb-2">No events this month.</p>
+                <p className="text-[13px] text-ink-400">Check back soon or submit your own.</p>
+              </div>
+            )}
+
+            {sortedGrouped.map(([date, dayEvents]) => (
+              <div key={date} className="mb-8">
+                <div className="sticky top-14 z-10 bg-cream/95 backdrop-blur-sm py-2 mb-3 border-b border-ink-100">
+                  <p className="text-[12px] uppercase tracking-[0.2em] text-forest-600 font-mono">
+                    {new Date(date + "T00:00:00").toLocaleDateString("en-US", {
+                      weekday: "long", month: "short", day: "numeric",
+                    })}
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {dayEvents.map((event) => (
+                    <div
+                      key={event.id}
+                      className="bg-white border border-ink-100 rounded-lg overflow-hidden transition-all hover:border-forest-300"
+                    >
+                      <div className="flex flex-col sm:flex-row">
+                        {event.coverImageUrl && (
+                          <div className="sm:w-48 sm:min-h-[130px] flex-shrink-0">
+                            <img src={event.coverImageUrl} alt={event.title} className="w-full h-40 sm:h-full object-cover" />
+                          </div>
+                        )}
+                        <div className="flex-1 p-5">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div>
+                              <h3 className="font-serif text-lg text-ink-900 leading-tight">
+                                {event.title}
+                              </h3>
+                              {event.host && (
+                                <p className="text-[13px] text-ink-400 mt-0.5">
+                                  Hosted by {event.host}
+                                  {event.hostCompany ? ` @ ${event.hostCompany}` : ""}
+                                </p>
+                              )}
+                            </div>
+                            {event.isMycaMemberEvent && (
+                              <span className="flex-shrink-0 px-2.5 py-0.5 text-[10px] uppercase tracking-wider font-mono bg-forest-50 text-forest-700 border border-forest-200 rounded">
+                                Myca Member
+                              </span>
+                            )}
+                          </div>
+
+                          {event.description && (
+                            <p className="text-[14px] text-ink-500 leading-relaxed mb-3 line-clamp-2">
+                              {event.description}
+                            </p>
+                          )}
+
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-400 font-mono">
+                            {event.startTime && (
+                              <span>{event.startTime}{event.endTime ? ` – ${event.endTime}` : ""}</span>
+                            )}
+                            {event.location && (
+                              <span className="truncate max-w-[250px]">{event.location}</span>
+                            )}
+                            {event.city && (
+                              <span className="uppercase text-[11px]">{event.city}</span>
+                            )}
+                          </div>
+
+                          {event.rsvpUrl && signedIn && (
+                            <a
+                              href={event.rsvpUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-block mt-3 px-4 py-1.5 text-[12px] uppercase tracking-wider font-medium text-forest-800 border border-forest-300 hover:bg-forest-50 rounded transition-colors"
+                            >
+                              RSVP
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
