@@ -425,10 +425,10 @@ function ProfileEditor() {
           <div>
             <label className={labelClass}>Instagram</label>
             <input
-              type="text"
+              type="url"
               value={profile.instagram || ""}
               onChange={(e) => handleChange("instagram", e.target.value)}
-              placeholder="@yourhandle or https://instagram.com/yourhandle"
+              placeholder="https://instagram.com/yourhandle"
               className={inputClass}
             />
           </div>

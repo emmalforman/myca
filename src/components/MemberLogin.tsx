@@ -692,7 +692,7 @@ function ProfileCompleter({
           {missingFields.includes("instagram") && (
             <div>
               <label className={labelClass}>Instagram {req(has(fields.instagram))}</label>
-              <input type="text" value={fields.instagram} onChange={(e) => set("instagram", e.target.value)} placeholder="@yourhandle" className={inputClass} />
+              <input type="url" value={fields.instagram} onChange={(e) => set("instagram", e.target.value)} placeholder="https://instagram.com/yourhandle" className={inputClass} />
             </div>
           )}
 
