@@ -448,54 +448,40 @@ export default function JoinPage() {
               Where do you spend most of your time?{" "}
               <span className={requiredClass}>(required)</span>
             </p>
-            <div className="space-y-3 mt-2">
-              {LOCATIONS.map((loc) => (
-                <label
-                  key={loc}
-                  className="flex items-center gap-3 cursor-pointer group"
-                  onClick={() =>
-                    setForm((f) => ({
-                      ...f,
-                      location: loc,
-                      locationOther: loc === "Other" ? f.locationOther : "",
-                    }))
-                  }
-                >
-                  <input
-                    type="radio"
-                    name="location"
-                    value={loc}
-                    checked={form.location === loc}
-                    onChange={() => {}}
-                    className="sr-only"
-                  />
-                  <div
-                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                      form.location === loc
-                        ? "border-forest-900"
-                        : "border-ink-300 group-hover:border-ink-400"
-                    }`}
-                  >
-                    {form.location === loc && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-forest-900" />
-                    )}
-                  </div>
-                  <span className="text-[14px] text-ink-700">{loc}</span>
-                </label>
-              ))}
-              {form.location === "Other" && (
-                <input
-                  type="text"
-                  value={form.locationOther}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, locationOther: e.target.value }))
-                  }
-                  placeholder="Enter your city"
-                  required
-                  className={`${inputClass} ml-8 max-w-xs`}
-                />
-              )}
+            <div className="relative">
+              <select
+                required
+                value={form.location}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    location: e.target.value,
+                    locationOther: e.target.value === "Other" ? f.locationOther : "",
+                  }))
+                }
+                className={`${inputClass} appearance-none cursor-pointer pr-10`}
+              >
+                <option value="">Select your city</option>
+                {LOCATIONS.map((loc) => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))}
+              </select>
+              <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
+            {form.location === "Other" && (
+              <input
+                type="text"
+                value={form.locationOther}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, locationOther: e.target.value }))
+                }
+                placeholder="Enter your city"
+                required
+                className={`${inputClass} mt-3`}
+              />
+            )}
           </div>
 
           {/* Comfort food */}
