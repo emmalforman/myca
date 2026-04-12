@@ -19,10 +19,16 @@ function sanitizeMember(member: Member, userIsAdmin: boolean): Partial<Member> {
 }
 
 export async function GET() {
-  const user = await getAuthenticatedUser();
-  if (!user) return unauthorizedResponse();
+  let userIsAdmin = false;
 
-  const userIsAdmin = isAdmin(user.email);
+  // Try server-side auth, but don't block if it fails
+  // (the directory page already requires login via MemberLogin)
+  try {
+    const user = await getAuthenticatedUser();
+    if (user?.email) {
+      userIsAdmin = isAdmin(user.email);
+    }
+  } catch {}
 
   // Try Supabase contacts table
   if (hasSupabase()) {
