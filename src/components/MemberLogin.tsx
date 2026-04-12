@@ -478,6 +478,7 @@ interface ProfileFields {
   location: string;
   linkedin: string;
   instagram: string;
+  substack: string;
   superpower: string;
   skills: string;
   interests: string;
@@ -493,7 +494,7 @@ function ProfileCompleter({
 }) {
   const [fields, setFields] = useState<ProfileFields>({
     name: "", company: "", role: "", occupation_type: "", location: "",
-    linkedin: "", instagram: "", superpower: "", skills: "", interests: "", photo_url: "",
+    linkedin: "", instagram: "", substack: "", superpower: "", skills: "", interests: "", photo_url: "",
   });
   const [skills, setSkills] = useState<string[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
@@ -506,7 +507,7 @@ function ProfileCompleter({
   useEffect(() => {
     getSupabaseBrowser()
       .from("contacts")
-      .select("name, company, role, occupation_type, location, linkedin, instagram, superpower, skills, interests, photo_url")
+      .select("name, company, role, occupation_type, location, linkedin, instagram, substack, superpower, skills, interests, photo_url")
       .eq("email", email)
       .single()
       .then(({ data }) => {
@@ -519,6 +520,7 @@ function ProfileCompleter({
             location: data.location || "",
             linkedin: data.linkedin || "",
             instagram: data.instagram || "",
+            substack: data.substack || "",
             superpower: data.superpower || "",
             skills: data.skills || "",
             interests: data.interests || "",
@@ -536,6 +538,7 @@ function ProfileCompleter({
           if (!data.location?.trim()) missing.push("location");
           if (!data.linkedin?.trim()) missing.push("linkedin");
           if (!data.instagram?.trim()) missing.push("instagram");
+          if (!data.substack?.trim()) missing.push("substack");
           if (!data.superpower?.trim()) missing.push("superpower");
           if (!data.skills?.trim()) missing.push("skills");
           if (!data.interests?.trim()) missing.push("interests");
@@ -555,11 +558,12 @@ function ProfileCompleter({
     try { return !!v.trim() && new URL(v.trim()).protocol.startsWith("http"); }
     catch { return false; }
   };
+  const substackValid = !fields.substack.trim() || isUrl(fields.substack);
   const canSave =
     has(fields.name) && has(fields.company) && has(fields.role) &&
     has(fields.occupation_type) && has(fields.location) && isUrl(fields.linkedin) &&
     isUrl(fields.instagram) && skills.length >= 1 && interests.length >= 1 &&
-    has(fields.superpower) && has(fields.photo_url);
+    has(fields.superpower) && has(fields.photo_url) && substackValid;
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -701,6 +705,16 @@ function ProfileCompleter({
               <label className={labelClass}>Instagram {req(isUrl(fields.instagram))}</label>
               <input type="url" value={fields.instagram} onChange={(e) => set("instagram", e.target.value)} placeholder="https://instagram.com/yourhandle" className={inputClass} />
               {fields.instagram.trim() && !isUrl(fields.instagram) && (
+                <p className="text-[11px] text-rust-500 mt-1">Enter a valid URL starting with https://</p>
+              )}
+            </div>
+          )}
+
+          {missingFields.includes("substack") && (
+            <div>
+              <label className={labelClass}>Newsletter <span className="text-[9px] text-ink-300 normal-case tracking-normal ml-1">Optional</span></label>
+              <input type="url" value={fields.substack} onChange={(e) => set("substack", e.target.value)} placeholder="https://yourname.substack.com" className={inputClass} />
+              {fields.substack.trim() && !isUrl(fields.substack) && (
                 <p className="text-[11px] text-rust-500 mt-1">Enter a valid URL starting with https://</p>
               )}
             </div>
