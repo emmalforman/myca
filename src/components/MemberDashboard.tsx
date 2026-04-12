@@ -324,7 +324,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
         <h2 className="text-xl font-serif text-forest-900 mb-5">From Myca</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <a
-            href="https://mycacollective.substack.com"
+            href="https://substack.com/@emmalforman"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-4 p-5 bg-white border border-forest-100 hover:border-forest-300 transition-all group"
