@@ -46,15 +46,14 @@ export default function NewsletterPage() {
             Subscribe to stay up to date on events, community news, and
             the latest from Myca Collective.
           </p>
-          <iframe
-            src="https://emmalforman.substack.com/embed"
-            width="480"
-            height="150"
-            className="max-w-full border-0 bg-transparent"
-            frameBorder={0}
-            scrolling="no"
-            title="Subscribe to newsletter"
-          />
+          <a
+            href="https://emmalforman.substack.com/subscribe"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-8 py-3.5 text-sm tracking-wide uppercase font-medium text-forest-900 bg-cream hover:bg-white transition-colors"
+          >
+            Subscribe
+          </a>
         </div>
       </div>
 
