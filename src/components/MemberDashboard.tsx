@@ -53,21 +53,27 @@ function MemberAvatar({ member }: { member: Member }) {
 export default function MemberDashboard({ userEmail }: { userEmail: string }) {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
+  const [firstName, setFirstName] = useState("");
 
   useEffect(() => {
     fetch("/api/members")
       .then((res) => res.json())
       .then((data) => {
-        setMembers(data.members || []);
+        const allMembers: Member[] = data.members || [];
+        setMembers(allMembers);
+
+        // Find the logged-in user's name from the member list
+        const me = allMembers.find(
+          (m) => m.email?.toLowerCase() === userEmail.toLowerCase()
+        );
+        setFirstName(
+          me?.firstName || me?.name?.split(" ")[0] || userEmail.split("@")[0]
+        );
+
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
-
-  const firstName = userEmail
-    .split("@")[0]
-    .replace(/[._-]/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  }, [userEmail]);
 
   const newMembers = [...members].slice(-8).reverse();
 
@@ -112,23 +118,6 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
         <h1 className="text-3xl sm:text-4xl font-serif text-forest-900">
           Hey, {firstName}.
         </h1>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-14">
-        {[
-          { label: "Members", value: members.length },
-          { label: "Cities", value: Object.keys(cityCounts).length },
-          { label: "Open Asks", value: members.filter((m) => m.asks).length },
-          { label: "Open Offers", value: members.filter((m) => m.offers).length },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-white border border-forest-100 p-5 text-center">
-            <p className="text-2xl font-serif text-forest-900">{stat.value}</p>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-mono mt-1">
-              {stat.label}
-            </p>
-          </div>
-        ))}
       </div>
 
       {/* Quick Links */}
