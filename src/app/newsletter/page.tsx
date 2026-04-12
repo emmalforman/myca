@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 interface Post {
   title: string;
@@ -14,8 +15,16 @@ interface Post {
 export default function NewsletterPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSignedIn, setIsSignedIn] = useState(false);
 
   useEffect(() => {
+    const supabase = getSupabaseBrowser();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        setIsSignedIn(true);
+      }
+    });
+
     fetch("/api/newsletter")
       .then((r) => r.json())
       .then((data) => setPosts(data.posts || []))
@@ -57,12 +66,14 @@ export default function NewsletterPage() {
             >
               Subscribe
             </a>
-            <Link
-              href="/join"
-              className="inline-flex items-center px-8 py-3.5 text-sm tracking-wide uppercase font-medium text-forest-200 border border-forest-600 hover:border-cream hover:text-cream transition-colors"
-            >
-              Apply for Membership
-            </Link>
+            {!isSignedIn && (
+              <Link
+                href="/join"
+                className="inline-flex items-center px-8 py-3.5 text-sm tracking-wide uppercase font-medium text-forest-200 border border-forest-600 hover:border-cream hover:text-cream transition-colors"
+              >
+                Apply for Membership
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -151,8 +162,48 @@ export default function NewsletterPage() {
               </a>
             ))}
 
-            {/* Blurred preview + dual CTA */}
-            {posts.length > 3 && (
+            {/* Signed-in: show all posts. Signed-out: blur with CTA */}
+            {posts.length > 3 && isSignedIn && posts.slice(3).map((post, i) => (
+              <a
+                key={i}
+                href={post.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block bg-white border border-ink-100 hover:border-ink-200 transition-colors group"
+              >
+                <div className="flex flex-col sm:flex-row">
+                  {post.image && (
+                    <div className="sm:w-64 sm:flex-shrink-0">
+                      <img
+                        src={post.image}
+                        alt=""
+                        className="w-full h-48 sm:h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="p-6 flex-1">
+                    {post.date && (
+                      <p className="text-[11px] text-ink-300 font-mono uppercase tracking-wider mb-2">
+                        {formatDate(post.date)}
+                      </p>
+                    )}
+                    <h3 className="text-lg font-serif text-ink-900 group-hover:text-forest-700 transition-colors mb-2">
+                      {post.title}
+                    </h3>
+                    {post.description && (
+                      <p className="text-[14px] text-ink-400 leading-relaxed line-clamp-2">
+                        {post.description}
+                      </p>
+                    )}
+                    <span className="inline-block mt-4 text-[12px] uppercase tracking-wider text-forest-600 group-hover:text-forest-800 transition-colors">
+                      Read more
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
+
+            {posts.length > 3 && !isSignedIn && (
               <div className="relative">
                 <div className="space-y-6 overflow-hidden max-h-72">
                   <div className="pointer-events-none select-none blur-[3px] opacity-50">
