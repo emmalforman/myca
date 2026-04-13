@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     // Instagram JSON-LD fallback
     if (!imageUrl && url.includes("instagram.com")) {
       const jsonLdMatch = html.match(
-        /<script type="application\/ld\+json">([\s\S]*?)<\/script>/
+        /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/
       );
       if (jsonLdMatch) {
         try {
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     // Try JSON-LD for structured event data
     let eventData: any = {};
     const jsonLdMatches = html.matchAll(
-      /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
+      /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g
     );
     for (const m of jsonLdMatches) {
       try {
@@ -226,11 +226,22 @@ export async function POST(request: NextRequest) {
       } else if (eventData.location.name) {
         location = eventData.location.name;
         if (eventData.location.address) {
-          const addr =
-            typeof eventData.location.address === "string"
-              ? eventData.location.address
-              : eventData.location.address.streetAddress || "";
-          if (addr) location += `, ${addr}`;
+          const addrObj = eventData.location.address;
+          const street =
+            typeof addrObj === "string"
+              ? addrObj
+              : addrObj.streetAddress || "";
+          // Only append address if it's different from the name
+          if (street && street !== eventData.location.name) {
+            location += `, ${street}`;
+          }
+          // Add city/region if available
+          if (typeof addrObj === "object") {
+            const city = addrObj.addressLocality;
+            const region = addrObj.addressRegion;
+            if (city && region) location += `, ${city}, ${region}`;
+            else if (city) location += `, ${city}`;
+          }
         }
       }
     }
@@ -274,15 +285,29 @@ export async function POST(request: NextRequest) {
 }
 
 function extractMeta(html: string, attrMatch: string): string | null {
-  const escaped = attrMatch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const patterns = [
-    new RegExp(`<meta[^>]*${escaped}[^>]*content=["']([^"']+)["'][^>]*/?>`, "i"),
-    new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*${escaped}[^>]*/?>`, "i"),
-  ];
+  // Find all meta tags and check each one for an exact attribute match
+  const metaTags = html.match(/<meta[^>]+>/gi) || [];
+  for (const tag of metaTags) {
+    // Check if this tag has the exact attribute we're looking for
+    // Use a word-boundary approach: the attribute value must end at the quote
+    if (!tag.includes(attrMatch.split("=")[0])) continue;
 
-  for (const pattern of patterns) {
-    const match = html.match(pattern);
-    if (match?.[1]) return match[1];
+    // Extract all attr="value" pairs from the tag
+    const attrs: Record<string, string> = {};
+    const attrRegex = /(\w[\w-]*)=["']([^"']*?)["']/g;
+    let m;
+    while ((m = attrRegex.exec(tag)) !== null) {
+      attrs[m[1].toLowerCase()] = m[2];
+    }
+
+    // Parse the expected attribute from attrMatch (e.g. 'property="og:image"')
+    const expected = attrMatch.match(/(\w[\w-]*)=["']([^"']*?)["']/);
+    if (!expected) continue;
+
+    const [, expKey, expVal] = expected;
+    if (attrs[expKey.toLowerCase()] === expVal && attrs.content) {
+      return attrs.content;
+    }
   }
   return null;
 }
