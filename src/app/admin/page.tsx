@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 interface Application {
   id: string;
@@ -123,6 +124,83 @@ function IntroList({ intros, formatDate }: { intros: Introduction[]; formatDate:
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSubmitting(true);
+    try {
+      const { error: authError } = await getSupabaseBrowser().auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (authError) {
+        setError(authError.message);
+      } else {
+        onSuccess();
+      }
+    } catch {
+      setError("Something went wrong.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-[80vh] flex items-center justify-center px-6">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-clay-500 font-mono mb-4">
+            Admin
+          </p>
+          <h1 className="text-3xl font-serif text-ink-900 mb-3">
+            Myca Dashboard
+          </h1>
+          <p className="text-[14px] text-ink-400">
+            Sign in with your admin account.
+          </p>
+        </div>
+        <form onSubmit={handleLogin}>
+          <div className="space-y-3">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              required
+              autoFocus
+              className="w-full px-4 py-3 text-[14px] border border-ink-200 bg-white text-ink-900 placeholder-ink-300 focus:outline-none focus:border-forest-400"
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              required
+              className="w-full px-4 py-3 text-[14px] border border-ink-200 bg-white text-ink-900 placeholder-ink-300 focus:outline-none focus:border-forest-400"
+            />
+          </div>
+          {error && (
+            <p className="text-[13px] text-rust-500 mt-3">{error}</p>
+          )}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full mt-4 py-3 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 disabled:opacity-50 transition-colors"
+          >
+            {submitting ? "..." : "Sign In"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -272,21 +350,7 @@ export default function AdminPage() {
   }
 
   if (!authed) {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center px-6">
-        <div className="w-full max-w-sm text-center">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-clay-500 font-mono mb-4">
-            Admin
-          </p>
-          <h1 className="text-3xl font-serif text-ink-900 mb-4">
-            Access Denied
-          </h1>
-          <p className="text-[14px] text-ink-400">
-            You don&apos;t have admin access. Sign in with an admin account.
-          </p>
-        </div>
-      </div>
-    );
+    return <AdminLogin onSuccess={fetchApps} />;
   }
 
   return (

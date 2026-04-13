@@ -3,7 +3,10 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase());
+const ADMIN_EMAILS = [
+  ...(process.env.ADMIN_EMAILS || "").split(","),
+  ...(process.env.ADMIN_EMAIL || "").split(","),
+].map((e) => e.trim().toLowerCase()).filter(Boolean);
 
 export async function getAuthenticatedUser() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
