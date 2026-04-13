@@ -203,12 +203,12 @@ export default function SubmitJobPage() {
             board once approved.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link
+            <a
               href="/jobs"
               className="px-6 py-2.5 text-[13px] uppercase tracking-wide font-medium text-cream bg-forest-900 hover:bg-forest-800 transition-colors"
             >
               Back to Jobs
-            </Link>
+            </a>
             <button
               onClick={() => {
                 setSubmitted(false);
