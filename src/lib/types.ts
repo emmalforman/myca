@@ -77,6 +77,7 @@ export interface Event {
   personalNote?: string;
   newsletterIncluded?: boolean;
   createdAt?: string;
+  attendees?: { email: string; name: string; photoUrl?: string }[];
 }
 
 export interface Job {

@@ -99,11 +99,14 @@ export default function EventsPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [view, setView] = useState<"calendar" | "list">("calendar");
+  const [userEmail, setUserEmail] = useState("");
+  const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSignedIn(!!session);
+      setUserEmail(session?.user?.email || "");
     });
   }, []);
 
@@ -166,6 +169,60 @@ export default function EventsPage() {
   const sortedGrouped = useMemo(() => {
     return Object.entries(eventsByDate).sort(([a], [b]) => a.localeCompare(b));
   }, [eventsByDate]);
+
+  async function toggleRsvp(eventId: string) {
+    if (!signedIn) return;
+    setRsvpLoading(eventId);
+
+    const event = events.find((e) => e.id === eventId);
+    const isGoing = event?.attendees?.some((a) => a.email === userEmail);
+
+    try {
+      if (isGoing) {
+        await fetch("/api/events/rsvp", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId }),
+        });
+        // Optimistic update
+        setEvents((prev) =>
+          prev.map((e) =>
+            e.id === eventId
+              ? { ...e, attendees: (e.attendees || []).filter((a) => a.email !== userEmail) }
+              : e
+          )
+        );
+        if (selectedEvent?.id === eventId) {
+          setSelectedEvent((prev) =>
+            prev ? { ...prev, attendees: (prev.attendees || []).filter((a) => a.email !== userEmail) } : prev
+          );
+        }
+      } else {
+        const res = await fetch("/api/events/rsvp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const newAttendee = { email: userEmail, name: data.rsvp?.member_name || userEmail, photoUrl: data.rsvp?.member_photo_url };
+          setEvents((prev) =>
+            prev.map((e) =>
+              e.id === eventId
+                ? { ...e, attendees: [...(e.attendees || []), newAttendee] }
+                : e
+            )
+          );
+          if (selectedEvent?.id === eventId) {
+            setSelectedEvent((prev) =>
+              prev ? { ...prev, attendees: [...(prev.attendees || []), newAttendee] } : prev
+            );
+          }
+        }
+      }
+    } catch {}
+    setRsvpLoading(null);
+  }
 
   return (
     <div className="min-h-screen bg-cream">
@@ -441,18 +498,63 @@ export default function EventsPage() {
                       )}
                     </div>
 
-                    {selectedEvent.rsvpUrl && (
-                      <a
-                        href={selectedEvent.rsvpUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-5 py-2.5 text-[13px] uppercase tracking-wide font-medium text-cream bg-forest-800 hover:bg-forest-700 rounded transition-colors"
+                    <div className="flex flex-wrap items-center gap-3">
+                      {selectedEvent.rsvpUrl && (
+                        <a
+                          href={selectedEvent.rsvpUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-5 py-2.5 text-[13px] uppercase tracking-wide font-medium text-cream bg-forest-800 hover:bg-forest-700 rounded transition-colors"
+                        >
+                          {selectedEvent.rsvpPlatform === "resy" ? "Reserve" : selectedEvent.rsvpPlatform === "luma" || selectedEvent.rsvpPlatform === "partiful" ? "RSVP" : "Event Details"}
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      )}
+                      <button
+                        onClick={() => toggleRsvp(selectedEvent.id)}
+                        disabled={rsvpLoading === selectedEvent.id}
+                        className={`inline-flex items-center gap-2 px-5 py-2.5 text-[13px] uppercase tracking-wide font-medium rounded transition-colors ${
+                          selectedEvent.attendees?.some((a) => a.email === userEmail)
+                            ? "text-forest-800 bg-forest-100 border border-forest-300 hover:bg-forest-200"
+                            : "text-ink-600 bg-white border border-ink-300 hover:border-forest-400 hover:text-forest-700"
+                        }`}
                       >
-                        {selectedEvent.rsvpPlatform === "resy" ? "Reserve" : selectedEvent.rsvpPlatform === "luma" || selectedEvent.rsvpPlatform === "partiful" ? "RSVP" : "Event Details"}
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
+                        {selectedEvent.attendees?.some((a) => a.email === userEmail) ? (
+                          <>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            Going
+                          </>
+                        ) : (
+                          rsvpLoading === selectedEvent.id ? "..." : "I'm Going"
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Members attending */}
+                    {(selectedEvent.attendees?.length || 0) > 0 && (
+                      <div className="mt-4 pt-4 border-t border-ink-100">
+                        <p className="text-[11px] uppercase tracking-wider text-ink-400 font-mono mb-2">
+                          Myca Members Going ({selectedEvent.attendees!.length})
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {selectedEvent.attendees!.map((a) => (
+                            <div key={a.email} className="flex items-center gap-1.5 px-2.5 py-1 bg-forest-50 rounded-full border border-forest-100">
+                              {a.photoUrl ? (
+                                <img src={a.photoUrl} alt={a.name} className="w-5 h-5 rounded-full object-cover" />
+                              ) : (
+                                <div className="w-5 h-5 rounded-full bg-forest-200 flex items-center justify-center text-[9px] font-medium text-forest-700">
+                                  {a.name?.charAt(0)?.toUpperCase() || "?"}
+                                </div>
+                              )}
+                              <span className="text-[12px] text-forest-800">{a.name?.split(" ")[0]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
 
                     {selectedDayEvents.length > 1 && (
@@ -578,15 +680,48 @@ export default function EventsPage() {
                               )}
                             </div>
 
-                            {event.rsvpUrl && signedIn && (
-                              <a
-                                href={event.rsvpUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-block mt-3 px-4 py-1.5 text-[12px] uppercase tracking-wider font-medium text-forest-800 border border-forest-300 hover:bg-forest-50 rounded transition-colors"
-                              >
-                                {event.rsvpPlatform === "resy" ? "Reserve" : event.rsvpPlatform === "luma" || event.rsvpPlatform === "partiful" ? "RSVP" : "Event Details"}
-                              </a>
+                            {signedIn && (
+                              <div className="flex flex-wrap items-center gap-2 mt-3">
+                                {event.rsvpUrl && (
+                                  <a
+                                    href={event.rsvpUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-4 py-1.5 text-[12px] uppercase tracking-wider font-medium text-forest-800 border border-forest-300 hover:bg-forest-50 rounded transition-colors"
+                                  >
+                                    {event.rsvpPlatform === "resy" ? "Reserve" : event.rsvpPlatform === "luma" || event.rsvpPlatform === "partiful" ? "RSVP" : "Event Details"}
+                                  </a>
+                                )}
+                                <button
+                                  onClick={() => toggleRsvp(event.id)}
+                                  disabled={rsvpLoading === event.id}
+                                  className={`px-4 py-1.5 text-[12px] uppercase tracking-wider font-medium rounded transition-colors ${
+                                    event.attendees?.some((a) => a.email === userEmail)
+                                      ? "text-forest-700 bg-forest-50 border border-forest-200"
+                                      : "text-ink-500 border border-ink-200 hover:border-forest-300 hover:text-forest-700"
+                                  }`}
+                                >
+                                  {event.attendees?.some((a) => a.email === userEmail) ? "Going \u2713" : rsvpLoading === event.id ? "..." : "I'm Going"}
+                                </button>
+                                {(event.attendees?.length || 0) > 0 && (
+                                  <div className="flex items-center gap-1 ml-1">
+                                    <div className="flex -space-x-1.5">
+                                      {event.attendees!.slice(0, 5).map((a) => (
+                                        a.photoUrl ? (
+                                          <img key={a.email} src={a.photoUrl} alt={a.name} className="w-6 h-6 rounded-full border-2 border-white object-cover" title={a.name} />
+                                        ) : (
+                                          <div key={a.email} className="w-6 h-6 rounded-full border-2 border-white bg-forest-100 flex items-center justify-center text-[9px] font-medium text-forest-700" title={a.name}>
+                                            {a.name?.charAt(0)?.toUpperCase() || "?"}
+                                          </div>
+                                        )
+                                      ))}
+                                    </div>
+                                    <span className="text-[11px] text-ink-400 font-mono ml-1">
+                                      {event.attendees!.length} going
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>

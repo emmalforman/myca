@@ -58,6 +58,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Failed to fetch events" }, { status: 500 });
   }
 
+  // Fetch RSVPs for these events
+  const eventIds = (data || []).map((r: any) => r.id);
+  let rsvpsByEvent: Record<string, any[]> = {};
+  if (eventIds.length > 0) {
+    const { data: rsvpData } = await supabaseAdmin
+      .from("event_rsvps")
+      .select("event_id, member_email, member_name, member_photo_url")
+      .in("event_id", eventIds);
+    for (const rsvp of rsvpData || []) {
+      if (!rsvpsByEvent[rsvp.event_id]) rsvpsByEvent[rsvp.event_id] = [];
+      rsvpsByEvent[rsvp.event_id].push({
+        email: rsvp.member_email,
+        name: rsvp.member_name,
+        photoUrl: rsvp.member_photo_url,
+      });
+    }
+  }
+
   const events = (data || []).map((row: any) => ({
     id: row.id,
     title: row.title,
@@ -83,9 +101,10 @@ export async function GET(request: NextRequest) {
     personalNote: row.personal_note,
     newsletterIncluded: row.newsletter_included,
     createdAt: row.created_at,
+    attendees: rsvpsByEvent[row.id] || [],
   }));
 
-  return NextResponse.json({ events });
+  return NextResponse.json({ events, userEmail });
 }
 
 export async function POST(request: NextRequest) {
