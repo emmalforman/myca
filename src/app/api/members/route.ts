@@ -15,7 +15,9 @@ function hasSupabase() {
 
 function sanitizeMember(member: Member, userIsAdmin: boolean): Partial<Member> {
   if (userIsAdmin) return member;
-  const { email, phone, notes, warmth, ...safe } = member;
+  // Keep email (needed for chat, DM, and bot recommendation lookups)
+  // Strip phone, notes, warmth which are admin-only
+  const { phone, notes, warmth, ...safe } = member;
   return safe;
 }
 
