@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 const ALLOWED_HOSTS = [
   "linkedin.com",
   "www.linkedin.com",
