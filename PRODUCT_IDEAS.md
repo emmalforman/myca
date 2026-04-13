@@ -43,17 +43,18 @@
     - You just approve the topic and review the final draft. Could run weekly on autopilot.
 
 ## Events
-13. **Member Event Posting & RSVP** — Members host, post, and RSVP to events
-14. **Email/Outbound Integration** — Automated comms tied to events
-15. **AI Learning Sessions** — With calendar access
+14. **Member Event Posting & RSVP** — Members host, post, and RSVP to events
+15. **Email/Outbound Integration** — Automated comms tied to events
+16. **AI Learning Sessions** — With calendar access
+17. **Member Cohorts** — Batch new members into onboarding cohorts (monthly or bi-weekly). Host a welcome Zoom/event where they meet each other. Could be grouped by city, industry, or interest. Auto-create a cohort chat channel so they stay connected. Builds instant belonging and stronger retention vs. solo signups.
 
 ## Growth
-16. **Public-Facing Member Directory** — Preview for non-members to drive conversions
-17. **Brand Directory** — Curated brands/products members can shop; brands pay to be featured
-18. **Member Outreach Pipeline** — Track and manage outreach to prospective members, sponsors, and collaborators
+18. **Public-Facing Member Directory** — Preview for non-members to drive conversions
+19. **Brand Directory** — Curated brands/products members can shop; brands pay to be featured
+20. **Member Outreach Pipeline** — Track and manage outreach to prospective members, sponsors, and collaborators
 
 ## Infrastructure
-19. **Payment & Processing** — Stripe for memberships and job board
+21. **Payment & Processing** — Stripe for memberships and job board
 
 ---
 
