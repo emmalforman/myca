@@ -12,6 +12,7 @@ const LOCATIONS = [
 ];
 
 const REFERRAL_SOURCES = [
+  "Existing Myca member",
   "A friend or colleague",
   "LinkedIn",
   "Instagram",
@@ -20,6 +21,20 @@ const REFERRAL_SOURCES = [
   "Newsletter",
   "Google Search",
   "Other",
+];
+
+const SKILL_SUGGESTIONS = [
+  "Product", "Engineering", "Design", "Marketing", "Sales",
+  "Operations", "Finance", "Fundraising", "Brand", "Content",
+  "Community", "Supply Chain", "R&D", "Culinary", "Retail",
+  "E-commerce", "Partnerships", "PR",
+];
+
+const INTEREST_SUGGESTIONS = [
+  "Plant-Based", "Sustainability", "Regenerative Ag", "Functional Foods",
+  "Fermentation", "Zero Waste", "Wellness", "Climate", "Food Justice",
+  "Hospitality", "Coffee", "Spirits", "Snacks", "Beverages",
+  "Restaurants", "Travel", "Foraging", "Female Founders", "Wine",
 ];
 
 const INDUSTRIES = [
@@ -33,6 +48,23 @@ const INDUSTRIES = [
   "Nonprofits & Policy",
   "Supply Chain & Logistics",
   "Sustainability & Climate",
+  "Other",
+];
+
+const OCCUPATIONS = [
+  "Founder / Co-Founder",
+  "Investor / VC",
+  "Operator",
+  "Executive / C-Suite",
+  "Brand Builder",
+  "Creative / Designer",
+  "Engineer / Product",
+  "Marketing / Growth",
+  "Sales / Business Development",
+  "Chef / Culinary Professional",
+  "Consultant / Advisor",
+  "Journalist / Media",
+  "Researcher / Academic",
   "Other",
 ];
 
@@ -57,6 +89,7 @@ export default function JoinPage() {
     company: "",
     title: "",
     occupation: "",
+    occupationOther: "",
     linkedin: "",
     instagram: "",
     website: "",
@@ -65,22 +98,32 @@ export default function JoinPage() {
     location: "",
     locationOther: "",
     industryFocus: "",
-    skills: "",
     yearsExperience: "",
     comfortFood: "",
     referralSource: "",
     referredByName: "",
     referredByEmail: "",
+    superpower: "",
+    asks: "",
+    offers: "",
     hopingToGet: "",
     excitedToContribute: "",
     website_url: "",
   });
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState("");
+  const [interests, setInterests] = useState<string[]>([]);
+  const [interestInput, setInterestInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Company autocomplete
+  const [companyResults, setCompanyResults] = useState<string[]>([]);
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
 
   // Referral search
   const [referralQuery, setReferralQuery] = useState("");
@@ -104,6 +147,19 @@ export default function JoinPage() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (form.company.length < 2) {
+      setCompanyResults([]);
+      return;
+    }
+    const q = form.company.toLowerCase();
+    const uniqueCompanies = [...new Set(allMembers.map((m) => m.company).filter(Boolean))];
+    const matches = uniqueCompanies
+      .filter((c) => c.toLowerCase().includes(q) && c.toLowerCase() !== q)
+      .slice(0, 6);
+    setCompanyResults(matches);
+  }, [form.company, allMembers]);
 
   useEffect(() => {
     if (referralQuery.length < 2) {
@@ -144,6 +200,12 @@ export default function JoinPage() {
     setSubmitting(true);
     setError(null);
 
+    if (!photo) {
+      setError("Please upload a photo of yourself.");
+      setSubmitting(false);
+      return;
+    }
+
     try {
       let photoUrl: string | undefined;
       if (photo) {
@@ -165,6 +227,9 @@ export default function JoinPage() {
         body: JSON.stringify({
           name: `${form.firstName} ${form.lastName}`.trim(),
           ...form,
+          occupation: form.occupation === "Other" ? form.occupationOther : form.occupation,
+          skills: skills.join(", "),
+          interests: interests.join(", "),
           location: [
             form.location === "Other" ? form.locationOther : form.location,
           ],
@@ -266,7 +331,7 @@ export default function JoinPage() {
 
           {/* Company + Title */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="relative">
               <p className={labelClass}>
                 Where do you work? <span className={requiredClass}>(required)</span>
               </p>
@@ -274,11 +339,32 @@ export default function JoinPage() {
                 type="text"
                 required
                 value={form.company}
-                onChange={(e) =>
-                  setForm((f: any) => ({ ...f, company: e.target.value }))
-                }
+                onChange={(e) => {
+                  setForm((f: any) => ({ ...f, company: e.target.value }));
+                  setShowCompanyDropdown(true);
+                }}
+                onFocus={() => form.company.length >= 2 && setShowCompanyDropdown(true)}
+                onBlur={() => setTimeout(() => setShowCompanyDropdown(false), 200)}
+                placeholder="Company name"
                 className={inputClass}
               />
+              {showCompanyDropdown && companyResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-ink-200 shadow-lg z-20 max-h-48 overflow-y-auto rounded-xl">
+                  {companyResults.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        setForm((f: any) => ({ ...f, company: c }));
+                        setShowCompanyDropdown(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-[14px] text-ink-900 hover:bg-forest-50 transition-colors border-b border-ink-50 last:border-0"
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <p className={labelClass}>
@@ -302,16 +388,40 @@ export default function JoinPage() {
               How would you describe your occupation?{" "}
               <span className={requiredClass}>(required)</span>
             </p>
-            <input
-              type="text"
-              required
-              value={form.occupation}
-              onChange={(e) =>
-                setForm((f: any) => ({ ...f, occupation: e.target.value }))
-              }
-              placeholder="Founder, investor, operator, creative..."
-              className={inputClass}
-            />
+            <div className="relative">
+              <select
+                required
+                value={form.occupation}
+                onChange={(e) =>
+                  setForm((f: any) => ({
+                    ...f,
+                    occupation: e.target.value,
+                    occupationOther: e.target.value === "Other" ? f.occupationOther : "",
+                  }))
+                }
+                className={`${inputClass} appearance-none cursor-pointer pr-10`}
+              >
+                <option value="">Select your occupation</option>
+                {OCCUPATIONS.map((occ) => (
+                  <option key={occ} value={occ}>{occ}</option>
+                ))}
+              </select>
+              <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            {form.occupation === "Other" && (
+              <input
+                type="text"
+                required
+                value={form.occupationOther}
+                onChange={(e) =>
+                  setForm((f: any) => ({ ...f, occupationOther: e.target.value }))
+                }
+                placeholder="Describe your occupation"
+                className={`${inputClass} mt-3`}
+              />
+            )}
           </div>
 
           {/* Industry Focus */}
@@ -341,18 +451,106 @@ export default function JoinPage() {
 
           {/* Skills */}
           <div>
-            <p className={labelClass}>
-              Skills & expertise
+            <p className="block text-[11px] uppercase tracking-[0.2em] text-ink-500 font-mono mb-3">
+              Skills <span className={requiredClass}>(required)</span>
             </p>
+            {skills.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {skills.map((s) => (
+                  <span key={s} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-forest-900 text-cream text-[13px] rounded-full">
+                    {s}
+                    <button type="button" onClick={() => setSkills(skills.filter((x) => x !== s))} className="text-cream/60 hover:text-cream">
+                      x
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
             <input
               type="text"
-              value={form.skills}
-              onChange={(e) =>
-                setForm((f: any) => ({ ...f, skills: e.target.value }))
-              }
-              placeholder="e.g. Brand strategy, fundraising, retail distribution..."
+              value={skillInput}
+              onChange={(e) => setSkillInput(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === ",") && skillInput.trim()) {
+                  e.preventDefault();
+                  const val = skillInput.trim().replace(/,$/, "");
+                  if (val && !skills.includes(val)) setSkills([...skills, val]);
+                  setSkillInput("");
+                }
+              }}
+              placeholder="Add more..."
               className={inputClass}
             />
+            <p className="text-[12px] text-ink-400 mt-2">Press Enter or comma to add. Click suggestions below:</p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {SKILL_SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  disabled={skills.includes(s)}
+                  onClick={() => !skills.includes(s) && setSkills([...skills, s])}
+                  className={`px-3.5 py-1.5 text-[13px] border rounded-full transition-colors ${
+                    skills.includes(s)
+                      ? "bg-ink-100 text-ink-300 border-ink-100 line-through cursor-default"
+                      : "bg-white text-ink-500 border-ink-200 hover:border-forest-400"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Interests */}
+          <div>
+            <p className="block text-[11px] uppercase tracking-[0.2em] text-ink-500 font-mono mb-3">
+              Interests <span className={requiredClass}>(required)</span>
+            </p>
+            {interests.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {interests.map((s) => (
+                  <span key={s} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-forest-900 text-cream text-[13px] rounded-full">
+                    {s}
+                    <button type="button" onClick={() => setInterests(interests.filter((x) => x !== s))} className="text-cream/60 hover:text-cream">
+                      x
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <input
+              type="text"
+              value={interestInput}
+              onChange={(e) => setInterestInput(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === ",") && interestInput.trim()) {
+                  e.preventDefault();
+                  const val = interestInput.trim().replace(/,$/, "");
+                  if (val && !interests.includes(val)) setInterests([...interests, val]);
+                  setInterestInput("");
+                }
+              }}
+              placeholder="Add more..."
+              className={inputClass}
+            />
+            <p className="text-[12px] text-ink-400 mt-2">Press Enter or comma to add. Click suggestions below:</p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {INTEREST_SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  disabled={interests.includes(s)}
+                  onClick={() => !interests.includes(s) && setInterests([...interests, s])}
+                  className={`px-3.5 py-1.5 text-[13px] border rounded-full transition-colors ${
+                    interests.includes(s)
+                      ? "bg-ink-100 text-ink-300 border-ink-100 line-through cursor-default"
+                      : "bg-white text-ink-500 border-ink-200 hover:border-forest-400"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Years of experience */}
@@ -398,9 +596,12 @@ export default function JoinPage() {
               />
             </div>
             <div>
-              <p className={labelClass}>Instagram</p>
+              <p className={labelClass}>
+                Instagram <span className={requiredClass}>(required)</span>
+              </p>
               <input
                 type="text"
+                required
                 value={form.instagram}
                 onChange={(e) =>
                   setForm((f: any) => ({ ...f, instagram: e.target.value }))
@@ -527,7 +728,12 @@ export default function JoinPage() {
                 required
                 value={form.referralSource}
                 onChange={(e) =>
-                  setForm((f: any) => ({ ...f, referralSource: e.target.value }))
+                  setForm((f: any) => ({
+                    ...f,
+                    referralSource: e.target.value,
+                    referredByName: e.target.value !== "Existing Myca member" ? "" : f.referredByName,
+                    referredByEmail: e.target.value !== "Existing Myca member" ? "" : f.referredByEmail,
+                  }))
                 }
                 className={`${inputClass} appearance-none cursor-pointer pr-10`}
               >
@@ -540,56 +746,113 @@ export default function JoinPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
               </svg>
             </div>
+
+            {/* Member search - shown when "Existing Myca member" is selected */}
+            {form.referralSource === "Existing Myca member" && (
+              <div className="relative mt-3">
+                <p className="text-[13px] text-ink-500 mb-1.5">
+                  Which member referred you? <span className={requiredClass}>(required)</span>
+                </p>
+                <input
+                  type="text"
+                  required
+                  value={referralQuery}
+                  onChange={(e) => {
+                    setReferralQuery(e.target.value);
+                    setShowReferralDropdown(true);
+                    if (!e.target.value) {
+                      setForm((f: any) => ({
+                        ...f,
+                        referredByName: "",
+                        referredByEmail: "",
+                      }));
+                    }
+                  }}
+                  onFocus={() => referralQuery.length >= 2 && setShowReferralDropdown(true)}
+                  placeholder="Search by name or company..."
+                  className={inputClass}
+                />
+                {form.referredByName && (
+                  <div className="absolute right-4 top-1/2 translate-y-1">
+                    <svg className="w-4 h-4 text-forest-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+
+                {showReferralDropdown && referralResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-ink-200 shadow-lg z-20 max-h-48 overflow-y-auto rounded-xl">
+                    {referralResults.map((m) => (
+                      <button
+                        key={m.email}
+                        type="button"
+                        onClick={() => selectReferral(m)}
+                        className="w-full text-left px-4 py-3 hover:bg-forest-50 transition-colors border-b border-ink-50 last:border-0"
+                      >
+                        <p className="text-[14px] text-ink-900 font-serif">
+                          {m.name}
+                        </p>
+                        <p className="text-[12px] text-ink-400">{m.company}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Referred by (member search) */}
+          {/* Superpower */}
           <div>
-            <p className={labelClass}>Were you referred by a current member?</p>
-            <div className="relative">
-              <input
-                type="text"
-                value={referralQuery}
-                onChange={(e) => {
-                  setReferralQuery(e.target.value);
-                  setShowReferralDropdown(true);
-                  if (!e.target.value) {
-                    setForm((f: any) => ({
-                      ...f,
-                      referredByName: "",
-                      referredByEmail: "",
-                    }));
-                  }
-                }}
-                onFocus={() => referralQuery.length >= 2 && setShowReferralDropdown(true)}
-                placeholder="Search by name or company..."
-                className={inputClass}
-              />
-              {form.referredByName && (
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <svg className="w-4 h-4 text-forest-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              )}
+            <p className={labelClass}>
+              What&apos;s your professional superpower?{" "}
+              <span className={requiredClass}>(required)</span>
+            </p>
+            <input
+              type="text"
+              required
+              value={form.superpower}
+              onChange={(e) =>
+                setForm((f: any) => ({ ...f, superpower: e.target.value }))
+              }
+              placeholder="The one thing you're known for..."
+              className={inputClass}
+            />
+          </div>
 
-              {showReferralDropdown && referralResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-ink-200 shadow-lg z-20 max-h-48 overflow-y-auto">
-                  {referralResults.map((m) => (
-                    <button
-                      key={m.email}
-                      type="button"
-                      onClick={() => selectReferral(m)}
-                      className="w-full text-left px-4 py-3 hover:bg-forest-50 transition-colors border-b border-ink-50 last:border-0"
-                    >
-                      <p className="text-[14px] text-ink-900 font-serif">
-                        {m.name}
-                      </p>
-                      <p className="text-[12px] text-ink-400">{m.company}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+          {/* Offers */}
+          <div>
+            <p className={labelClass}>
+              What can you offer the community?{" "}
+              <span className={requiredClass}>(required)</span>
+            </p>
+            <textarea
+              required
+              value={form.offers}
+              onChange={(e) =>
+                setForm((f: any) => ({ ...f, offers: e.target.value }))
+              }
+              placeholder="e.g. Intro to retail buyers, mentoring first-time founders, CPG pitch deck feedback..."
+              rows={3}
+              className={textareaClass}
+            />
+          </div>
+
+          {/* Asks */}
+          <div>
+            <p className={labelClass}>
+              What are you looking for right now?{" "}
+              <span className={requiredClass}>(required)</span>
+            </p>
+            <textarea
+              required
+              value={form.asks}
+              onChange={(e) =>
+                setForm((f: any) => ({ ...f, asks: e.target.value }))
+              }
+              placeholder="e.g. Co-packer recommendations, Series A intros, marketing hires..."
+              rows={3}
+              className={textareaClass}
+            />
           </div>
 
           {/* Hoping to get */}
@@ -690,7 +953,13 @@ export default function JoinPage() {
               submitting ||
               !form.location ||
               (form.location === "Other" && !form.locationOther) ||
-              !form.yearsExperience
+              !form.occupation ||
+              (form.occupation === "Other" && !form.occupationOther) ||
+              !form.yearsExperience ||
+              !photo ||
+              skills.length === 0 ||
+              interests.length === 0 ||
+              (form.referralSource === "Existing Myca member" && !form.referredByName)
             }
             className="px-8 py-3.5 text-[14px] font-medium text-cream bg-forest-900 rounded-full hover:bg-forest-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >

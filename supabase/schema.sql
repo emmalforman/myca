@@ -71,6 +71,22 @@ create table if not exists public.channel_requests (
   unique(channel, email)
 );
 
+-- Add columns to applications (added after initial schema)
+alter table public.applications add column if not exists first_name text;
+alter table public.applications add column if not exists last_name text;
+alter table public.applications add column if not exists instagram text;
+alter table public.applications add column if not exists website text;
+alter table public.applications add column if not exists industry_focus text;
+alter table public.applications add column if not exists skills text;
+alter table public.applications add column if not exists interests text;
+alter table public.applications add column if not exists years_experience text;
+alter table public.applications add column if not exists referral_source text;
+alter table public.applications add column if not exists referred_by_name text;
+alter table public.applications add column if not exists referred_by_email text;
+alter table public.applications add column if not exists superpower text;
+alter table public.applications add column if not exists asks text;
+alter table public.applications add column if not exists offers text;
+
 -- Add instagram, skills, and interests to contacts (Notion-synced member table)
 -- Skills/interests are comma-separated tags used for matching
 alter table public.contacts add column if not exists instagram text;

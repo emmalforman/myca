@@ -30,6 +30,10 @@ export async function POST(request: Request) {
     location,
     industryFocus,
     skills,
+    interests,
+    superpower,
+    asks,
+    offers,
     yearsExperience,
     comfortFood,
     referralSource,
@@ -49,7 +53,14 @@ export async function POST(request: Request) {
     !occupation ||
     !email ||
     !linkedin ||
+    !instagram ||
     !phone ||
+    !referralSource ||
+    !skills ||
+    !interests ||
+    !superpower ||
+    !asks ||
+    !offers ||
     !comfortFood ||
     !hopingToGet ||
     !excitedToContribute
@@ -85,6 +96,10 @@ export async function POST(request: Request) {
       location: Array.isArray(location) ? location : [location].filter(Boolean),
       industry_focus: industryFocus || null,
       skills: skills || null,
+      interests: interests || null,
+      superpower: superpower || null,
+      asks: asks || null,
+      offers: offers || null,
       years_experience: yearsExperience || null,
       comfort_food: comfortFood,
       referral_source: referralSource || null,
