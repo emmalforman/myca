@@ -138,10 +138,60 @@ export default function JoinPage() {
     }
   };
 
+  const isValidUrl = (str: string) => {
+    try {
+      const url = new URL(str.startsWith("http") ? str : `https://${str}`);
+      return url.protocol === "https:" || url.protocol === "http:";
+    } catch {
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+
+    // Validate required fields that aren't native inputs
+    if (!form.yearsExperience) {
+      setError("Please select your years of experience.");
+      setSubmitting(false);
+      return;
+    }
+    if (!photo) {
+      setError("Please upload a photo of yourself.");
+      setSubmitting(false);
+      return;
+    }
+
+    // Validate URLs
+    if (form.linkedin && !isValidUrl(form.linkedin)) {
+      setError("Please enter a valid URL for LinkedIn (e.g. https://linkedin.com/in/yourname).");
+      setSubmitting(false);
+      return;
+    }
+    if (form.linkedin && !form.linkedin.toLowerCase().includes("linkedin.com")) {
+      setError("Please enter a valid LinkedIn URL (e.g. https://linkedin.com/in/yourname).");
+      setSubmitting(false);
+      return;
+    }
+    if (form.instagram && !form.instagram.startsWith("@")) {
+      if (!isValidUrl(form.instagram)) {
+        setError("Please enter a valid Instagram URL (e.g. https://instagram.com/yourhandle) or @handle.");
+        setSubmitting(false);
+        return;
+      }
+      if (!form.instagram.toLowerCase().includes("instagram.com")) {
+        setError("Please enter a valid Instagram URL (e.g. https://instagram.com/yourhandle) or @handle.");
+        setSubmitting(false);
+        return;
+      }
+    }
+    if (form.website && !isValidUrl(form.website)) {
+      setError("Please enter a valid URL for your website (e.g. https://yoursite.com).");
+      setSubmitting(false);
+      return;
+    }
 
     try {
       let photoUrl: string | undefined;
@@ -372,7 +422,7 @@ export default function JoinPage() {
                 LinkedIn <span className={requiredClass}>(required)</span>
               </p>
               <input
-                type="url"
+                type="text"
                 required
                 value={form.linkedin}
                 onChange={(e) =>
@@ -400,7 +450,7 @@ export default function JoinPage() {
           <div>
             <p className={labelClass}>Website or portfolio</p>
             <input
-              type="url"
+              type="text"
               value={form.website}
               onChange={(e) =>
                 setForm((f) => ({ ...f, website: e.target.value }))
@@ -671,12 +721,7 @@ export default function JoinPage() {
 
           <button
             type="submit"
-            disabled={
-              submitting ||
-              !form.location ||
-              (form.location === "Other" && !form.locationOther) ||
-              !form.yearsExperience
-            }
+            disabled={submitting}
             className="px-8 py-3.5 text-[14px] font-medium text-cream bg-forest-900 rounded-full hover:bg-forest-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? "Submitting..." : "Submit Application"}
