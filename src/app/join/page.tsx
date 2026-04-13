@@ -211,13 +211,16 @@ export default function JoinPage() {
       if (photo) {
         const formData = new FormData();
         formData.append("photo", photo);
-        const uploadRes = await fetch("/api/upload", {
+        const uploadRes = await fetch("/api/apply-upload", {
           method: "POST",
           body: formData,
         });
         if (uploadRes.ok) {
           const uploadData = await uploadRes.json();
           photoUrl = uploadData.url;
+        } else {
+          const uploadErr = await uploadRes.json().catch(() => null);
+          throw new Error(uploadErr?.error || "Photo upload failed. Please try again.");
         }
       }
 
