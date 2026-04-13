@@ -96,5 +96,21 @@ export async function PATCH(request: Request) {
     }
   }
 
+  // If rejected, revoke membership
+  if (newStatus === "rejected") {
+    const { data: app } = await supabase
+      .from("applications")
+      .select("email")
+      .eq("id", id)
+      .single();
+
+    if (app?.email) {
+      await supabase
+        .from("contacts")
+        .update({ is_myca_member: false })
+        .eq("email", app.email);
+    }
+  }
+
   return NextResponse.json({ status: newStatus, id });
 }
