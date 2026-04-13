@@ -527,6 +527,26 @@ export default function AdminPage() {
                           </button>
                         </div>
                       )}
+                      {app.status === "accepted" && (
+                        <button
+                          onClick={() => {
+                            if (confirm("Remove this member? They will lose access to the directory and chat.")) {
+                              handleAction(app.id, "rejected");
+                            }
+                          }}
+                          className="py-2.5 px-4 text-[12px] uppercase tracking-wider font-medium text-rust-700 border border-rust-200 hover:bg-rust-50 transition-colors"
+                        >
+                          Remove Member
+                        </button>
+                      )}
+                      {app.status === "rejected" && (
+                        <button
+                          onClick={() => handleAction(app.id, "accepted")}
+                          className="py-2.5 px-4 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-700 hover:bg-forest-800 transition-colors"
+                        >
+                          Accept
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
