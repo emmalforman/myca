@@ -1,6 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function Footer() {
+  const pathname = usePathname();
+  // Hide footer on chat page — it's a fixed-height layout that shouldn't overflow
+  if (pathname === "/chat") return null;
+
   return (
     <footer className="bg-forest-950 text-forest-400">
       <div className="max-w-6xl mx-auto px-6 lg:px-8 py-16">

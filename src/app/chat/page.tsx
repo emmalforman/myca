@@ -150,7 +150,7 @@ function ChatApp() {
     if (channel === BOT_CHANNEL) {
       setLoading(false);
       setTimeout(scrollToBottom, 100);
-      setTimeout(() => inputRef.current?.focus(), 150);
+      setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 150);
       return;
     }
 
@@ -167,7 +167,7 @@ function ChatApp() {
         setMessages(data || []);
         setLoading(false);
         setTimeout(scrollToBottom, 100);
-        setTimeout(() => inputRef.current?.focus(), 150);
+        setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 150);
       });
 
     // Subscribe to new messages
@@ -220,7 +220,7 @@ function ChatApp() {
     } else {
       setInput("");
       if (inputRef.current) inputRef.current.style.height = "auto";
-      inputRef.current?.focus();
+      inputRef.current?.focus({ preventScroll: true });
     }
   };
 
@@ -278,7 +278,7 @@ function ChatApp() {
 
     setBotLoading(false);
     setTimeout(scrollToBottom, 100);
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
   };
 
   const formatTime = (dateStr: string) => {
