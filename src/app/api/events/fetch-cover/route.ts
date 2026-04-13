@@ -1,31 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/auth";
 
-// Only allow fetching from known event platforms
-const ALLOWED_HOSTS = [
-  "lu.ma",
-  "www.lu.ma",
-  "luma.com",
-  "www.luma.com",
-  "luma.co",
-  "www.luma.co",
-  "partiful.com",
-  "www.partiful.com",
-  "eventbrite.com",
-  "www.eventbrite.com",
-  "instagram.com",
-  "www.instagram.com",
-  "resy.com",
-  "www.resy.com",
+// Block internal/private hosts — allow any public HTTPS event URL
+const BLOCKED_HOST_PATTERNS = [
+  /^localhost$/,
+  /^127\./,
+  /^10\./,
+  /^192\.168\./,
+  /^172\.(1[6-9]|2\d|3[01])\./,
+  /^0\./,
+  /\.local$/,
+  /\.internal$/,
 ];
 
 function isAllowedUrl(urlString: string): boolean {
   try {
     const parsed = new URL(urlString);
     if (parsed.protocol !== "https:") return false;
-    return ALLOWED_HOSTS.some(
-      (host) => parsed.hostname === host || parsed.hostname.endsWith("." + host)
-    );
+    return !BLOCKED_HOST_PATTERNS.some((p) => p.test(parsed.hostname));
   } catch {
     return false;
   }
@@ -54,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   if (!isAllowedUrl(url)) {
     return NextResponse.json(
-      { error: "URL not allowed. Only lu.ma, partiful.com, eventbrite.com, and instagram.com are supported." },
+      { error: "URL not allowed. Please use a public HTTPS event URL." },
       { status: 400 }
     );
   }
@@ -127,7 +119,10 @@ export async function POST(request: NextRequest) {
       const jsonLdImg = Array.isArray(eventData.image)
         ? eventData.image[0]
         : eventData.image;
-      if (jsonLdImg) imageUrl = jsonLdImg;
+      if (jsonLdImg) {
+        // Upgrade http to https
+        imageUrl = jsonLdImg.replace(/^http:\/\//, "https://");
+      }
     }
 
     // Try __NEXT_DATA__ for Luma/Partiful (fallback when no JSON-LD)
@@ -262,12 +257,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Clean title — strip " · Luma" or " | Partiful" suffixes
+    // Clean title — strip platform/site name suffixes like " · Luma", " — Falu House Deli"
     let cleanTitle = eventData.name || title || null;
     if (cleanTitle) {
+      // Strip known platform suffixes
       cleanTitle = cleanTitle
-        .replace(/\s*[·|]\s*(Luma|Partiful)\s*$/i, "")
+        .replace(/\s*[·|]\s*(Luma|Partiful|Eventbrite)\s*$/i, "")
         .trim();
+      // Strip " — Site Name" if the suffix is shorter than the event name
+      const emDashMatch = cleanTitle.match(/^(.+?)\s*—\s+(.+)$/);
+      if (emDashMatch && emDashMatch[2].length < emDashMatch[1].length) {
+        cleanTitle = emDashMatch[1].trim();
+      }
     }
 
     return NextResponse.json({
