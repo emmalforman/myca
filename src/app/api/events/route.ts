@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, isAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
+
 function getSupabaseAdmin() {
   const { createClient } = require("@supabase/supabase-js");
   return createClient(
