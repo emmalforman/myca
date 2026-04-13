@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   const rl = checkRateLimit({ name: "bot", max: 20, windowSeconds: 3600 }, user.email!);
   if (!rl.allowed) return rateLimitResponse(rl.resetAt);
 
-  const { message, email, history } = await request.json();
+  const { message, email, history, source } = await request.json();
 
   if (!message || !email) {
     return NextResponse.json(
@@ -171,6 +171,15 @@ export async function POST(request: Request) {
   const cleanReply = replyText
     .replace(/<member-card>\s*\{[^}]+\}\s*<\/member-card>/g, "")
     .trim();
+
+  // Log the query for analytics (fire-and-forget, don't block the response)
+  supabase.from("bot_queries").insert({
+    user_email: email,
+    query: message,
+    reply: cleanReply,
+    recommended_emails: recommendations.map((r) => r.email),
+    source: source || "chat",
+  }).then(() => {});
 
   return NextResponse.json({
     reply: cleanReply,

@@ -159,7 +159,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: "include",
-        body: JSON.stringify({ message: q, email: userEmail }),
+        body: JSON.stringify({ message: q, email: userEmail, source: "home" }),
       });
       const data = await res.json();
       if (!res.ok || data.error) {
