@@ -299,26 +299,31 @@ function ChatApp() {
     return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} ${time}`;
   };
 
-  // Render message content with clickable URLs
+  // Render message content with clickable URLs and basic markdown
   const renderContent = (text: string) => {
-    const urlRegex = /(https?:\/\/[^\s<]+)/g;
-    const parts = text.split(urlRegex);
+    // Split by URLs and bold markdown
+    const tokenRegex = /(https?:\/\/[^\s<]+|\*\*[^*]+\*\*)/g;
+    const parts = text.split(tokenRegex);
     if (parts.length === 1) return text;
-    return parts.map((part, i) =>
-      urlRegex.test(part) ? (
-        <a
-          key={i}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-forest-700 underline underline-offset-2 hover:text-forest-500 break-all"
-        >
-          {part}
-        </a>
-      ) : (
-        <span key={i}>{part}</span>
-      )
-    );
+    return parts.map((part, i) => {
+      if (/^https?:\/\//.test(part)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-forest-700 underline underline-offset-2 hover:text-forest-500 break-all"
+          >
+            {part}
+          </a>
+        );
+      }
+      if (/^\*\*[^*]+\*\*$/.test(part)) {
+        return <strong key={i} className="font-semibold text-ink-900">{part.slice(2, -2)}</strong>;
+      }
+      return <span key={i}>{part}</span>;
+    });
   };
 
   // Format date separator label
@@ -663,13 +668,15 @@ function ChatApp() {
                   <div className="mt-3 space-y-2">
                     {msg.recommendations.map((rec) => {
                       const profile = memberProfiles.get(rec.email);
-                      if (!profile) return null;
-                      const initials = (profile.firstName?.[0] || profile.name?.[0] || "") +
-                        (profile.lastName?.[0] || profile.name?.split(" ")[1]?.[0] || "");
+                      const displayName = profile?.name || rec.email.split("@")[0];
+                      const initials = profile
+                        ? (profile.firstName?.[0] || profile.name?.[0] || "") +
+                          (profile.lastName?.[0] || profile.name?.split(" ")[1]?.[0] || "")
+                        : (displayName[0] || "?").toUpperCase();
                       return (
                         <div key={rec.email} className="flex items-start gap-3 p-3 bg-white border border-ink-100">
                           <div className="w-11 h-11 bg-cream flex-shrink-0 overflow-hidden">
-                            {profile.photoUrl ? (
+                            {profile?.photoUrl ? (
                               <img src={profile.photoUrl} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-forest-400 font-serif text-sm">
@@ -678,32 +685,38 @@ function ChatApp() {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <button
-                              onClick={() => setSelectedMember(profile)}
-                              className="text-[14px] font-serif text-ink-900 hover:text-forest-700 transition-colors"
-                            >
-                              {profile.name}
-                            </button>
+                            {profile ? (
+                              <button
+                                onClick={() => setSelectedMember(profile)}
+                                className="text-[14px] font-serif text-ink-900 hover:text-forest-700 transition-colors"
+                              >
+                                {profile.name}
+                              </button>
+                            ) : (
+                              <span className="text-[14px] font-serif text-ink-900">{displayName}</span>
+                            )}
                             <p className="text-[12px] text-ink-400 truncate">
-                              {profile.role}{profile.company ? `, ${profile.company}` : ""}
+                              {profile?.role ? `${profile.role}${profile.company ? `, ${profile.company}` : ""}` : rec.email}
                             </p>
                             <p className="text-[12px] text-forest-700 mt-1">{rec.reason}</p>
                           </div>
                           <div className="flex gap-1.5 flex-shrink-0">
-                            <button
-                              onClick={() => setSelectedMember(profile)}
-                              className="px-3 py-1.5 text-[11px] uppercase tracking-wider text-ink-500 border border-ink-200 hover:border-ink-400 transition-colors"
-                            >
-                              View
-                            </button>
+                            {profile && (
+                              <button
+                                onClick={() => setSelectedMember(profile)}
+                                className="px-3 py-1.5 text-[11px] uppercase tracking-wider text-ink-500 border border-ink-200 hover:border-ink-400 transition-colors"
+                              >
+                                View
+                              </button>
+                            )}
                             <button
                               onClick={() => {
-                                const dmId = `dm:${[user!.email, profile.email].sort().join(":")}`;
+                                const email = profile?.email || rec.email;
+                                const dmId = `dm:${[user!.email, email].sort().join(":")}`;
                                 setChannel(dmId);
-                                // Add to DM list if not already there
                                 setDmChannels((prev) => {
                                   if (prev.some((d) => d.id === dmId)) return prev;
-                                  return [...prev, { id: dmId, email: profile.email, name: profile.name }];
+                                  return [...prev, { id: dmId, email, name: displayName }];
                                 });
                               }}
                               className="px-3 py-1.5 text-[11px] uppercase tracking-wider text-cream bg-forest-900 hover:bg-forest-700 transition-colors"
