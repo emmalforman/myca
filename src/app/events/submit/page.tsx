@@ -42,9 +42,10 @@ export default function SubmitEventPage() {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  async function fetchCoverImage() {
+  async function fetchEventDetails() {
     if (!form.rsvpUrl) return;
     setFetchingCover(true);
+    setError("");
     try {
       const res = await fetch("/api/events/fetch-cover", {
         method: "POST",
@@ -52,9 +53,25 @@ export default function SubmitEventPage() {
         body: JSON.stringify({ url: form.rsvpUrl }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to fetch event details");
+        setFetchingCover(false);
+        return;
+      }
       if (data.imageUrl) setCoverPreview(data.imageUrl);
+      // Auto-fill form fields (only fill empty fields so user edits aren't overwritten)
+      setForm((f) => ({
+        ...f,
+        title: f.title || data.title || "",
+        description: f.description || data.description || "",
+        date: f.date || data.date || "",
+        startTime: f.startTime || data.startTime || "",
+        endTime: f.endTime || data.endTime || "",
+        location: f.location || data.location || "",
+        host: f.host || data.host || "",
+      }));
     } catch {
-      // cover is optional
+      setError("Failed to fetch event details");
     }
     setFetchingCover(false);
   }
@@ -227,11 +244,11 @@ export default function SubmitEventPage() {
               />
               <button
                 type="button"
-                onClick={fetchCoverImage}
+                onClick={fetchEventDetails}
                 disabled={!form.rsvpUrl || fetchingCover}
-                className="px-4 py-2.5 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-800 hover:bg-forest-700 disabled:bg-ink-300 transition-colors"
+                className="px-4 py-2.5 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-800 hover:bg-forest-700 disabled:bg-ink-300 transition-colors whitespace-nowrap"
               >
-                {fetchingCover ? "..." : "Get Photo"}
+                {fetchingCover ? "Fetching..." : "Auto-fill"}
               </button>
             </div>
             {form.rsvpPlatform && (

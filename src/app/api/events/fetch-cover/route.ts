@@ -87,16 +87,108 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!imageUrl) {
-      return NextResponse.json({ error: "No cover image found" }, { status: 404 });
-    }
-
-    if (imageUrl.startsWith("/")) {
+    if (imageUrl?.startsWith("/")) {
       const urlObj = new URL(url);
       imageUrl = `${urlObj.origin}${imageUrl}`;
     }
 
-    return NextResponse.json({ imageUrl });
+    // Extract event metadata from og/meta tags and JSON-LD
+    const title =
+      extractMeta(html, 'property="og:title"') ||
+      extractMeta(html, 'name="og:title"') ||
+      extractMeta(html, 'name="twitter:title"') ||
+      null;
+
+    const description =
+      extractMeta(html, 'property="og:description"') ||
+      extractMeta(html, 'name="description"') ||
+      null;
+
+    // Try JSON-LD for structured event data
+    let eventData: any = {};
+    const jsonLdMatches = html.matchAll(
+      /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
+    );
+    for (const m of jsonLdMatches) {
+      try {
+        const parsed = JSON.parse(m[1]);
+        const items = Array.isArray(parsed) ? parsed : [parsed];
+        for (const item of items) {
+          if (item["@type"] === "Event" || item["@type"] === "SocialEvent") {
+            eventData = item;
+            break;
+          }
+        }
+      } catch {}
+    }
+
+    // Parse dates from JSON-LD
+    let date: string | null = null;
+    let startTime: string | null = null;
+    let endTime: string | null = null;
+    if (eventData.startDate) {
+      const dt = new Date(eventData.startDate);
+      if (!isNaN(dt.getTime())) {
+        date = dt.toISOString().split("T")[0];
+        startTime = dt.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+          timeZone: "America/New_York",
+        });
+      }
+    }
+    if (eventData.endDate) {
+      const dt = new Date(eventData.endDate);
+      if (!isNaN(dt.getTime())) {
+        endTime = dt.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+          timeZone: "America/New_York",
+        });
+      }
+    }
+
+    // Location from JSON-LD
+    let location: string | null = null;
+    if (eventData.location) {
+      if (typeof eventData.location === "string") {
+        location = eventData.location;
+      } else if (eventData.location.name) {
+        location = eventData.location.name;
+        if (eventData.location.address) {
+          const addr =
+            typeof eventData.location.address === "string"
+              ? eventData.location.address
+              : eventData.location.address.streetAddress || "";
+          if (addr) location += `, ${addr}`;
+        }
+      }
+    }
+
+    // Host/organizer from JSON-LD
+    let host: string | null = null;
+    if (eventData.organizer) {
+      if (typeof eventData.organizer === "string") {
+        host = eventData.organizer;
+      } else if (Array.isArray(eventData.organizer)) {
+        host = eventData.organizer.map((o: any) => o.name || o).join(", ");
+      } else {
+        host = eventData.organizer.name || null;
+      }
+    }
+
+    return NextResponse.json({
+      imageUrl: imageUrl || null,
+      title: eventData.name || title || null,
+      description: eventData.description || description || null,
+      date,
+      startTime,
+      endTime,
+      location,
+      host,
+    });
   } catch {
     return NextResponse.json(
       { error: "Failed to fetch cover image" },
