@@ -2,7 +2,7 @@
 -- Run this in your Supabase SQL editor AFTER creating the job_sources table
 
 INSERT INTO public.job_sources (company_name, platform, slug, category) VALUES
-  -- Food Startups
+  -- Food Startups / DTC Food
   ('Sweetgreen', 'greenhouse', 'sweetgreen', 'food-startup'),
   ('Hungryroot', 'greenhouse', 'hungryroot', 'food-startup'),
   ('Thrive Market', 'greenhouse', 'thrivemarket', 'food-startup'),
@@ -10,9 +10,11 @@ INSERT INTO public.job_sources (company_name, platform, slug, category) VALUES
   ('Faire', 'greenhouse', 'faire', 'food-startup'),
   ('Gopuff', 'lever', 'gopuff', 'food-startup'),
   ('Impossible Foods', 'ashby', 'impossible-foods', 'food-startup'),
-
-  -- Large Food / CPG
-  -- (Most large food cos use Workday/internal ATS — these are the ones on supported platforms)
+  ('Upside Foods', 'greenhouse', 'upside', 'food-startup'),
+  ('Olipop', 'greenhouse', 'olipop', 'food-startup'),
+  ('AG1', 'greenhouse', 'ag1', 'food-startup'),
+  ('Goldbelly', 'greenhouse', 'goldbelly', 'food-startup'),
+  ('Olo', 'lever', 'olo', 'food-startup'),
 
   -- VC Firms
   ('a16z', 'greenhouse', 'a16z', 'vc'),
@@ -21,9 +23,11 @@ INSERT INTO public.job_sources (company_name, platform, slug, category) VALUES
   ('Forerunner Ventures', 'ashby', 'forerunner', 'vc'),
   ('Index Ventures', 'lever', 'indexventures', 'vc'),
 
-  -- Community
+  -- Community / Membership
   ('Soho House', 'greenhouse', 'sohohouseco', 'community'),
   ('Chief', 'ashby', 'chief', 'community'),
+
+  -- Other
   ('Ando', 'ashby', 'ando', 'other')
 
 ON CONFLICT (platform, slug) DO NOTHING;
