@@ -63,7 +63,7 @@ function ChatApp() {
   const [botMessages, setBotMessages] = useState<BotMessage[]>([]);
   const [botLoading, setBotLoading] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const isBot = channel === BOT_CHANNEL;
@@ -194,7 +194,8 @@ function ChatApp() {
   }, [channel]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = messagesContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -600,7 +601,7 @@ function ChatApp() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-5 py-4">
           {loading && !isBot && (
             <div className="flex items-center justify-center h-full">
               <div className="w-6 h-6 border border-ink-200 border-t-ink-500 rounded-full animate-spin" />
@@ -844,7 +845,7 @@ function ChatApp() {
               </div>
             );
           })}
-          <div ref={messagesEndRef} />
+          <div />
         </div>
 
         {/* Input */}
