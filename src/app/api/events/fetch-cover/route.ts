@@ -31,6 +31,17 @@ function isAllowedUrl(urlString: string): boolean {
   }
 }
 
+function decodeHtmlEntities(str: string | null): string | null {
+  if (!str) return null;
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
+}
+
 export async function POST(request: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user) return unauthorizedResponse();
@@ -66,29 +77,14 @@ export async function POST(request: NextRequest) {
     const html = await response.text();
 
     let imageUrl =
-      extractMeta(html, 'property="og:image"') ||
-      extractMeta(html, "property='og:image'") ||
-      extractMeta(html, 'name="og:image"');
+      decodeHtmlEntities(extractMeta(html, 'property="og:image"')) ||
+      decodeHtmlEntities(extractMeta(html, "property='og:image'")) ||
+      decodeHtmlEntities(extractMeta(html, 'name="og:image"'));
 
     if (!imageUrl) {
       imageUrl =
-        extractMeta(html, 'name="twitter:image"') ||
-        extractMeta(html, 'property="twitter:image"');
-    }
-
-    // Instagram JSON-LD fallback
-    if (!imageUrl && url.includes("instagram.com")) {
-      const jsonLdMatch = html.match(
-        /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/
-      );
-      if (jsonLdMatch) {
-        try {
-          const jsonLd = JSON.parse(jsonLdMatch[1]);
-          imageUrl = jsonLd.image || jsonLd.thumbnailUrl;
-        } catch {
-          // ignore
-        }
-      }
+        decodeHtmlEntities(extractMeta(html, 'name="twitter:image"')) ||
+        decodeHtmlEntities(extractMeta(html, 'property="twitter:image"'));
     }
 
     if (imageUrl?.startsWith("/")) {
@@ -98,14 +94,14 @@ export async function POST(request: NextRequest) {
 
     // Extract event metadata from og/meta tags and JSON-LD
     const title =
-      extractMeta(html, 'property="og:title"') ||
-      extractMeta(html, 'name="og:title"') ||
-      extractMeta(html, 'name="twitter:title"') ||
+      decodeHtmlEntities(extractMeta(html, 'property="og:title"')) ||
+      decodeHtmlEntities(extractMeta(html, 'name="og:title"')) ||
+      decodeHtmlEntities(extractMeta(html, 'name="twitter:title"')) ||
       null;
 
     const description =
-      extractMeta(html, 'property="og:description"') ||
-      extractMeta(html, 'name="description"') ||
+      decodeHtmlEntities(extractMeta(html, 'property="og:description"')) ||
+      decodeHtmlEntities(extractMeta(html, 'name="description"')) ||
       null;
 
     // Try JSON-LD for structured event data
@@ -124,6 +120,14 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch {}
+    }
+
+    // Prefer JSON-LD image (actual event cover) over og:image (generated OG card)
+    if (eventData.image) {
+      const jsonLdImg = Array.isArray(eventData.image)
+        ? eventData.image[0]
+        : eventData.image;
+      if (jsonLdImg) imageUrl = jsonLdImg;
     }
 
     // Try __NEXT_DATA__ for Luma/Partiful (fallback when no JSON-LD)
