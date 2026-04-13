@@ -207,21 +207,19 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
 
       {/* Ask Myca */}
       <div className="mb-14">
-        <div className="bg-white border border-forest-100 p-5 sm:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-7 h-7 rounded-full bg-forest-900 flex items-center justify-center flex-shrink-0">
-              <span className="text-cream text-xs font-serif font-bold">M</span>
-            </div>
-            <p className="text-[13px] font-medium text-forest-900 tracking-wide">
-              Ask Myca
-            </p>
-          </div>
+        <div className="bg-forest-900 p-6 sm:p-8">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-forest-400 font-mono mb-2">
+            Your concierge
+          </p>
+          <h2 className="text-xl sm:text-2xl font-serif text-cream mb-5">
+            Ask Myca
+          </h2>
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleAsk(askInput);
             }}
-            className="flex gap-2 mb-3"
+            className="flex gap-2 mb-4"
           >
             <input
               ref={askInputRef}
@@ -230,12 +228,12 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
               onChange={(e) => setAskInput(e.target.value)}
               placeholder="Who can help me with..."
               disabled={askLoading}
-              className="flex-1 px-4 py-2.5 text-[14px] bg-forest-50 border border-forest-100 text-forest-900 placeholder:text-ink-300 focus:outline-none focus:border-forest-400 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-3 text-[14px] bg-white/10 border border-forest-600 text-cream placeholder:text-forest-400 focus:outline-none focus:border-cream/50 transition-colors disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={askLoading || !askInput.trim()}
-              className="px-4 py-2.5 bg-forest-900 text-cream text-[12px] uppercase tracking-wider font-medium hover:bg-forest-800 transition-colors disabled:opacity-40"
+              className="px-5 py-3 bg-cream text-forest-900 text-[12px] uppercase tracking-wider font-medium hover:bg-white transition-colors disabled:opacity-40"
             >
               {askLoading ? (
                 <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -256,7 +254,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
                   handleAsk(chip);
                 }}
                 disabled={askLoading}
-                className="px-3 py-1.5 text-[11px] text-ink-500 bg-forest-50 hover:bg-forest-100 border border-forest-100 transition-colors disabled:opacity-40"
+                className="px-3 py-1.5 text-[11px] text-forest-300 border border-forest-600 hover:border-forest-400 hover:text-cream transition-colors disabled:opacity-40"
               >
                 {chip}
               </button>
@@ -265,21 +263,21 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
 
           {/* Response */}
           {(askLoading || askResponse) && (
-            <div className="mt-5 pt-5 border-t border-forest-100">
+            <div className="mt-6 pt-6 border-t border-forest-700">
               {askLoading ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-forest-900 flex items-center justify-center flex-shrink-0">
-                    <span className="text-cream text-[9px] font-serif font-bold">M</span>
+                  <div className="w-5 h-5 rounded-full bg-cream flex items-center justify-center flex-shrink-0">
+                    <span className="text-forest-900 text-[9px] font-serif font-bold">M</span>
                   </div>
-                  <p className="text-[13px] text-ink-400">Thinking...</p>
+                  <p className="text-[13px] text-forest-400">Thinking...</p>
                 </div>
               ) : askResponse ? (
                 <div>
                   <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 rounded-full bg-forest-900 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-cream text-[9px] font-serif font-bold">M</span>
+                    <div className="w-5 h-5 rounded-full bg-cream flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-forest-900 text-[9px] font-serif font-bold">M</span>
                     </div>
-                    <p className="text-[13px] text-ink-700 leading-relaxed">
+                    <p className="text-[13px] text-forest-200 leading-relaxed">
                       {askResponse.reply}
                     </p>
                   </div>
@@ -289,25 +287,25 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
                         <Link
                           key={member.id}
                           href={`/directory?member=${encodeURIComponent(member.id)}`}
-                          className="flex items-center gap-3 p-3 bg-forest-50 hover:bg-forest-100 transition-colors"
+                          className="flex items-center gap-3 p-3 bg-white/10 hover:bg-white/15 transition-colors"
                         >
                           <div className="w-9 h-9 rounded-full overflow-hidden bg-cream flex-shrink-0">
                             {member.photoUrl ? (
                               <img src={member.photoUrl} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
-                                <span className="text-forest-400 font-serif text-sm">
+                                <span className="text-forest-700 font-serif text-sm">
                                   {(member.firstName?.[0] || member.name?.[0] || "")}{(member.lastName?.[0] || "")}
                                 </span>
                               </div>
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[13px] font-serif text-forest-900 truncate">
+                            <p className="text-[13px] font-serif text-cream truncate">
                               {member.name || `${member.firstName ?? ""} ${member.lastName ?? ""}`.trim()}
                             </p>
                             {member._reason && (
-                              <p className="text-[11px] text-ink-400 truncate">{member._reason}</p>
+                              <p className="text-[11px] text-forest-400 truncate">{member._reason}</p>
                             )}
                           </div>
                         </Link>
@@ -321,7 +319,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
                       setAskInput("");
                       askInputRef.current?.focus();
                     }}
-                    className="mt-3 text-[11px] text-ink-400 hover:text-forest-700 transition-colors"
+                    className="mt-3 text-[11px] text-forest-400 hover:text-cream transition-colors"
                   >
                     Ask something else
                   </button>
