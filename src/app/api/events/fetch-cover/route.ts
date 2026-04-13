@@ -256,6 +256,17 @@ export async function POST(request: NextRequest) {
         host = eventData.organizer.name || null;
       }
     }
+    // Fallback: use og:site_name as host (e.g. venue websites like Falu House)
+    if (!host) {
+      host =
+        decodeHtmlEntities(extractMeta(html, 'property="og:site_name"')) ||
+        null;
+    }
+
+    // If location is empty, try Google Places text search using the host/venue name
+    if (!location && host) {
+      location = await searchGooglePlaces(host);
+    }
 
     // Clean title — strip platform/site name suffixes like " · Luma", " — Falu House Deli"
     let cleanTitle = eventData.name || title || null;
@@ -286,6 +297,34 @@ export async function POST(request: NextRequest) {
       { error: "Failed to fetch cover image" },
       { status: 500 }
     );
+  }
+}
+
+async function searchGooglePlaces(query: string): Promise<string | null> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_CALENDAR_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const params = new URLSearchParams({
+      input: query,
+      inputtype: "textquery",
+      fields: "formatted_address,name",
+      key: apiKey,
+    });
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?${params}`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const place = data.candidates?.[0];
+    if (!place) return null;
+    // Return "Venue Name, Address"
+    const name = place.name || "";
+    const addr = place.formatted_address || "";
+    if (name && addr) return `${name}, ${addr}`;
+    return addr || name || null;
+  } catch {
+    return null;
   }
 }
 
