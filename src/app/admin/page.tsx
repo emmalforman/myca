@@ -229,16 +229,37 @@ interface EventItem {
   createdAt: string;
 }
 
+interface JobItem {
+  id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  locationType: string | null;
+  type: string | null;
+  description: string | null;
+  applyUrl: string | null;
+  applyEmail: string | null;
+  salaryRange: string | null;
+  submittedByName: string | null;
+  submittedByEmail: string | null;
+  contactName: string | null;
+  contactEmail: string | null;
+  status: string;
+  createdAt: string;
+}
+
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
-  const [tab, setTab] = useState<"applications" | "events" | "my-intros" | "member-outreach">("applications");
+  const [tab, setTab] = useState<"applications" | "events" | "jobs" | "my-intros" | "member-outreach">("applications");
   const [applications, setApplications] = useState<Application[]>([]);
   const [introductions, setIntroductions] = useState<Introduction[]>([]);
   const [pendingEvents, setPendingEvents] = useState<EventItem[]>([]);
+  const [jobs, setJobs] = useState<JobItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [appFilter, setAppFilter] = useState<"all" | "pending" | "accepted" | "rejected">("pending");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [eventFilter, setEventFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
+  const [jobFilter, setJobFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
 
   const fetchApps = async () => {
     setLoading(true);
@@ -298,6 +319,31 @@ export default function AdminPage() {
     }
   };
 
+  const fetchJobs = async () => {
+    try {
+      const res = await fetch("/api/jobs?all=true");
+      if (res.ok) {
+        const data = await res.json();
+        setJobs(data.jobs || []);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleJobAction = async (id: string, status: "approved" | "rejected") => {
+    const res = await fetch("/api/jobs", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
+    });
+    if (res.ok) {
+      setJobs((prev) =>
+        prev.map((j) => (j.id === id ? { ...j, status } : j))
+      );
+    }
+  };
+
   const fetchIntros = async () => {
     const res = await fetch("/api/introductions");
     if (res.ok) {
@@ -316,6 +362,9 @@ export default function AdminPage() {
     }
     if (authed && tab === "events" && pendingEvents.length === 0) {
       fetchEvents();
+    }
+    if (authed && tab === "jobs" && jobs.length === 0) {
+      fetchJobs();
     }
   }, [authed, tab]);
 
@@ -374,6 +423,7 @@ export default function AdminPage() {
             {[
               { id: "applications" as const, label: "Applications", count: applications.length },
               { id: "events" as const, label: "Events", count: pendingEvents.filter((e) => e.status === "pending").length },
+              { id: "jobs" as const, label: "Jobs", count: jobs.filter((j) => j.status === "pending").length },
               { id: "my-intros" as const, label: "My Intros", count: introductions.filter((i) => i.is_admin_intro).length },
               { id: "member-outreach" as const, label: "Member Outreach", count: introductions.filter((i) => !i.is_admin_intro).length },
             ].map((t) => (
@@ -751,6 +801,165 @@ export default function AdminPage() {
               {pendingEvents.filter((e) => eventFilter === "all" || e.status === eventFilter).length === 0 && (
                 <p className="text-center text-ink-400 py-12 font-serif">
                   No {eventFilter === "all" ? "" : eventFilter} events.
+                </p>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Jobs Tab */}
+        {tab === "jobs" && (
+          <>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex gap-1.5">
+                {(["pending", "approved", "rejected", "all"] as const).map((f) => {
+                  const count = jobs.filter(
+                    (j) => f === "all" || j.status === f
+                  ).length;
+                  return (
+                    <button
+                      key={f}
+                      onClick={() => setJobFilter(f)}
+                      className={`px-3.5 py-1.5 text-[11px] uppercase tracking-wider transition-colors ${
+                        jobFilter === f
+                          ? "bg-forest-900 text-cream"
+                          : "text-ink-400 border border-ink-200 hover:border-ink-400"
+                      }`}
+                    >
+                      {f} <span className="opacity-50">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={fetchJobs}
+                className="text-[11px] uppercase tracking-wider text-forest-600 hover:text-forest-900"
+              >
+                Refresh
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {jobs
+                .filter((j) => jobFilter === "all" || j.status === jobFilter)
+                .map((job) => (
+                  <div key={job.id} className="bg-white border border-ink-100">
+                    <div
+                      className="flex items-center gap-4 p-4 cursor-pointer hover:bg-ivory/50 transition-colors"
+                      onClick={() => setExpanded(expanded === job.id ? null : job.id)}
+                    >
+                      <div className="w-10 h-10 bg-cream flex-shrink-0 overflow-hidden flex items-center justify-center text-forest-400 font-mono text-[10px]">
+                        JOB
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-serif text-ink-900">{job.title}</p>
+                        <p className="text-[12px] text-ink-400 truncate">
+                          {job.company}{job.location ? ` · ${job.location}` : ""}{job.type ? ` · ${job.type}` : ""}
+                        </p>
+                      </div>
+
+                      <span
+                        className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-mono flex-shrink-0 ${
+                          job.status === "approved"
+                            ? "text-forest-700 bg-forest-50 border border-forest-200"
+                            : job.status === "rejected"
+                            ? "text-rust-700 bg-rust-50 border border-rust-200"
+                            : "text-clay-600 bg-clay-50 border border-clay-200"
+                        }`}
+                      >
+                        {job.status}
+                      </span>
+                      <svg
+                        className={`w-4 h-4 text-ink-300 transition-transform flex-shrink-0 ${
+                          expanded === job.id ? "rotate-180" : ""
+                        }`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+
+                    {expanded === job.id && (
+                      <div className="border-t border-ink-50 p-5 bg-ivory/30">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                          {[
+                            { label: "Company", value: job.company },
+                            { label: "Location", value: job.location || "—" },
+                            { label: "Type", value: job.locationType || "—" },
+                            { label: "Employment", value: job.type || "—" },
+                            { label: "Salary", value: job.salaryRange || "—" },
+                            { label: "Submitted by", value: job.submittedByName ? `${job.submittedByName} (${job.submittedByEmail})` : job.submittedByEmail || "—" },
+                            { label: "Contact", value: job.contactName ? `${job.contactName} (${job.contactEmail})` : job.contactEmail || "—" },
+                          ].map((field) => (
+                            <div key={field.label}>
+                              <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">
+                                {field.label}
+                              </p>
+                              <p className="text-[13px] text-ink-700">{field.value}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {job.description && (
+                          <div className="mb-4">
+                            <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">Description</p>
+                            <p className="text-[13px] text-ink-700 leading-relaxed">{job.description}</p>
+                          </div>
+                        )}
+                        {job.applyUrl && (
+                          <a
+                            href={job.applyUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block text-[12px] text-forest-700 underline mb-4"
+                          >
+                            View application link
+                          </a>
+                        )}
+                        <p className="text-[11px] text-ink-300 font-mono mb-4">
+                          Submitted {formatDate(job.createdAt)}
+                        </p>
+                        <div className="flex gap-3">
+                          {job.status === "pending" && (
+                            <>
+                              <button
+                                onClick={() => handleJobAction(job.id, "approved")}
+                                className="flex-1 py-2.5 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-700 hover:bg-forest-800 transition-colors"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleJobAction(job.id, "rejected")}
+                                className="flex-1 py-2.5 text-[12px] uppercase tracking-wider font-medium text-rust-700 border border-rust-200 hover:bg-rust-50 transition-colors"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          {job.status === "approved" && (
+                            <button
+                              onClick={() => handleJobAction(job.id, "rejected")}
+                              className="py-2.5 px-4 text-[12px] uppercase tracking-wider font-medium text-rust-700 border border-rust-200 hover:bg-rust-50 transition-colors"
+                            >
+                              Remove
+                            </button>
+                          )}
+                          {job.status === "rejected" && (
+                            <button
+                              onClick={() => handleJobAction(job.id, "approved")}
+                              className="py-2.5 px-4 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-700 hover:bg-forest-800 transition-colors"
+                            >
+                              Approve
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              {jobs.filter((j) => jobFilter === "all" || j.status === jobFilter).length === 0 && (
+                <p className="text-center text-ink-400 py-12 font-serif">
+                  No {jobFilter === "all" ? "" : jobFilter} jobs.
                 </p>
               )}
             </div>
