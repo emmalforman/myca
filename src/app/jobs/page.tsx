@@ -284,12 +284,22 @@ export default function JobsPage() {
                 Opportunities shared by Myca members.
               </p>
             </div>
-            <Link
-              href="/jobs/submit"
-              className="self-start sm:self-auto px-6 py-2.5 text-[13px] uppercase tracking-wide font-medium text-forest-900 bg-cream hover:bg-white transition-colors"
-            >
-              Post a Job
-            </Link>
+            <div className="flex gap-2 self-start sm:self-auto">
+              {isUserAdmin && (
+                <Link
+                  href="/jobs/sources"
+                  className="px-5 py-2.5 text-[13px] uppercase tracking-wide font-medium text-forest-300 border border-forest-600 hover:border-forest-400 transition-colors"
+                >
+                  Sources
+                </Link>
+              )}
+              <Link
+                href="/jobs/submit"
+                className="px-6 py-2.5 text-[13px] uppercase tracking-wide font-medium text-forest-900 bg-cream hover:bg-white transition-colors"
+              >
+                Post a Job
+              </Link>
+            </div>
           </div>
         </div>
       </div>

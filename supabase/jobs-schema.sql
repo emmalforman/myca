@@ -16,6 +16,8 @@ create table if not exists public.jobs (
   submitted_by_email text,
   contact_name text,
   contact_email text,
+  source text default 'member_submit',
+  source_job_id text,
   status text default 'pending' check (status in ('pending', 'approved', 'rejected')),
   created_at timestamptz default now(),
   updated_at timestamptz default now()
