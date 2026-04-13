@@ -175,17 +175,10 @@ export default function JoinPage() {
       setSubmitting(false);
       return;
     }
-    if (form.instagram && !form.instagram.startsWith("@")) {
-      if (!isValidUrl(form.instagram)) {
-        setError("Please enter a valid Instagram URL (e.g. https://instagram.com/yourhandle) or @handle.");
-        setSubmitting(false);
-        return;
-      }
-      if (!form.instagram.toLowerCase().includes("instagram.com")) {
-        setError("Please enter a valid Instagram URL (e.g. https://instagram.com/yourhandle) or @handle.");
-        setSubmitting(false);
-        return;
-      }
+    if (form.instagram && !form.instagram.match(/^@[a-zA-Z0-9._]+$/)) {
+      setError("Please enter a valid Instagram handle (e.g. @yourhandle).");
+      setSubmitting(false);
+      return;
     }
     if (form.website && !isValidUrl(form.website)) {
       setError("Please enter a valid URL for your website (e.g. https://yoursite.com).");
