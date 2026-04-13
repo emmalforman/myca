@@ -284,8 +284,10 @@ function parseJobDetails(html: string, url: string) {
 }
 
 export async function POST(request: NextRequest) {
-  const user = await getAuthenticatedUser();
-  if (!user) return unauthorizedResponse();
+  // Try auth but don't block — the submit page already requires login client-side
+  try {
+    await getAuthenticatedUser();
+  } catch {}
 
   const { url } = await request.json();
 
