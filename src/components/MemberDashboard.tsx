@@ -1,19 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Member } from "@/lib/types";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
-
-interface BotRecommendation {
-  email: string;
-  reason: string;
-}
-
-interface BotResponse {
-  reply: string;
-  recommendations: BotRecommendation[];
-}
 
 interface AskMessage {
   id: string;
@@ -106,14 +97,8 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
   const [events, setEvents] = useState<DashboardEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState("");
-
-  // Ask Myca state
   const [askInput, setAskInput] = useState("");
-  const [askLoading, setAskLoading] = useState(false);
-  const [askResponse, setAskResponse] = useState<BotResponse | null>(null);
-  const [askMembers, setAskMembers] = useState<Member[]>([]);
-  const askInputRef = useRef<HTMLInputElement>(null);
-  const [askSessionId] = useState(() => `ask-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const router = useRouter();
 
   useEffect(() => {
     // Fetch members and dashboard feed in parallel
@@ -141,50 +126,10 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
     });
   }, [userEmail]);
 
-  async function handleAsk(query: string) {
+  function goToAskMyca(query: string) {
     const q = query.trim();
-    if (!q || askLoading) return;
-    setAskLoading(true);
-    setAskResponse(null);
-    setAskMembers([]);
-    try {
-      // Get fresh access token to pass to API (cookie-based auth can be stale on home page)
-      const supabase = getSupabaseBrowser();
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-
-      const res = await fetch("/api/bot", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        credentials: "include",
-        body: JSON.stringify({ message: q, email: userEmail, source: "home", sessionId: askSessionId }),
-      });
-      const data: BotResponse & { error?: string } = await res.json();
-      if (!res.ok || data.error) {
-        setAskResponse({ reply: data.error === "Unauthorized" ? "Please sign in again to use Ask Myca." : (data.error || "Something went wrong."), recommendations: [] });
-        return;
-      }
-      setAskResponse(data);
-      // Resolve recommended member emails to full member objects
-      if (data.recommendations?.length && members.length) {
-        const matched = data.recommendations
-          .map((rec) => {
-            const m = members.find(
-              (mem) => mem.email?.toLowerCase() === rec.email.toLowerCase()
-            );
-            return m ? { ...m, _reason: rec.reason } : null;
-          })
-          .filter(Boolean) as (Member & { _reason?: string })[];
-        setAskMembers(matched);
-      }
-    } catch {
-      setAskResponse({ reply: "Something went wrong — try again in a moment.", recommendations: [] });
-    } finally {
-      setAskLoading(false);
-    }
+    if (!q) return;
+    router.push(`/chat?ask=${encodeURIComponent(q)}`);
   }
 
   const newMembers = [...members]
@@ -231,116 +176,36 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              handleAsk(askInput);
+              goToAskMyca(askInput);
             }}
             className="flex gap-2 mb-4"
           >
             <input
-              ref={askInputRef}
               type="text"
               value={askInput}
               onChange={(e) => setAskInput(e.target.value)}
               placeholder="Who can help me with..."
-              disabled={askLoading}
-              className="flex-1 px-4 py-3 text-[14px] bg-white/10 border border-forest-600 rounded-full text-cream placeholder:text-forest-400 focus:outline-none focus:border-cream/50 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-3 text-[14px] bg-white/10 border border-forest-600 rounded-full text-cream placeholder:text-forest-400 focus:outline-none focus:border-cream/50 transition-colors"
             />
             <button
               type="submit"
-              disabled={askLoading || !askInput.trim()}
+              disabled={!askInput.trim()}
               className="px-5 py-3 bg-cream text-forest-900 text-[12px] uppercase tracking-wider font-medium rounded-full hover:bg-white transition-colors disabled:opacity-40"
             >
-              {askLoading ? (
-                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : (
-                "Ask"
-              )}
+              Ask
             </button>
           </form>
           <div className="flex flex-wrap gap-2">
             {["Who knows about retail distribution?", "Intro me to someone in CPG fundraising", "Who's in NYC?"].map((chip) => (
               <button
                 key={chip}
-                onClick={() => {
-                  setAskInput(chip);
-                  handleAsk(chip);
-                }}
-                disabled={askLoading}
-                className="px-3 py-1.5 text-[11px] text-forest-300 border border-forest-600 rounded-full hover:border-forest-400 hover:text-cream transition-colors disabled:opacity-40"
+                onClick={() => goToAskMyca(chip)}
+                className="px-3 py-1.5 text-[11px] text-forest-300 border border-forest-600 rounded-full hover:border-forest-400 hover:text-cream transition-colors"
               >
                 {chip}
               </button>
             ))}
           </div>
-
-          {/* Response */}
-          {(askLoading || askResponse) && (
-            <div className="mt-6 pt-6 border-t border-forest-700">
-              {askLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-cream flex items-center justify-center flex-shrink-0">
-                    <span className="text-forest-900 text-[9px] font-serif font-bold">M</span>
-                  </div>
-                  <p className="text-[13px] text-forest-400">Thinking...</p>
-                </div>
-              ) : askResponse ? (
-                <div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 rounded-full bg-cream flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-forest-900 text-[9px] font-serif font-bold">M</span>
-                    </div>
-                    <p className="text-[13px] text-forest-200 leading-relaxed">
-                      {askResponse.reply}
-                    </p>
-                  </div>
-                  {askMembers.length > 0 && (
-                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {askMembers.map((member: any) => (
-                        <Link
-                          key={member.id}
-                          href={`/directory?member=${encodeURIComponent(member.id)}`}
-                          className="flex items-center gap-3 p-3 bg-white/10 rounded-xl hover:bg-white/15 transition-colors"
-                        >
-                          <div className="w-9 h-9 rounded-full overflow-hidden bg-cream flex-shrink-0">
-                            {member.photoUrl ? (
-                              <img src={member.photoUrl} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <span className="text-forest-700 font-serif text-sm">
-                                  {(member.firstName?.[0] || member.name?.[0] || "")}{(member.lastName?.[0] || "")}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[13px] font-serif text-cream truncate">
-                              {member.name || `${member.firstName ?? ""} ${member.lastName ?? ""}`.trim()}
-                            </p>
-                            {member._reason && (
-                              <p className="text-[11px] text-forest-400 truncate">{member._reason}</p>
-                            )}
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                  <button
-                    onClick={() => {
-                      setAskResponse(null);
-                      setAskMembers([]);
-                      setAskInput("");
-                      askInputRef.current?.focus();
-                    }}
-                    className="mt-3 text-[11px] text-forest-400 hover:text-cream transition-colors"
-                  >
-                    Ask something else
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          )}
         </div>
       </div>
 

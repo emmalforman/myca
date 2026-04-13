@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import MemberLogin from "@/components/MemberLogin";
 import MemberDrawer from "@/components/MemberDrawer";
@@ -48,7 +49,10 @@ interface BotMessage {
 const BOT_CHANNEL = "bot:myca";
 
 function ChatApp() {
-  const [channel, setChannel] = useState("general");
+  const searchParams = useSearchParams();
+  const initialAsk = searchParams.get("ask");
+  const [channel, setChannel] = useState(initialAsk ? BOT_CHANNEL : "general");
+  const [pendingAsk, setPendingAsk] = useState<string | null>(initialAsk);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [user, setUser] = useState<{ email: string; name: string } | null>(
@@ -141,6 +145,14 @@ function ChatApp() {
       );
     }
   }, [memberProfiles]);
+
+  // Auto-send question from home page ?ask= param
+  useEffect(() => {
+    if (pendingAsk && user && channel === BOT_CHANNEL) {
+      setPendingAsk(null);
+      sendBotMessage(pendingAsk);
+    }
+  }, [pendingAsk, user, channel]);
 
   // Load messages for current channel (skip for bot channel)
   useEffect(() => {
@@ -764,10 +776,18 @@ function ChatApp() {
   );
 }
 
-export default function ChatPage() {
+function ChatPageInner() {
   return (
     <MemberLogin>
       <ChatApp />
     </MemberLogin>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense>
+      <ChatPageInner />
+    </Suspense>
   );
 }
