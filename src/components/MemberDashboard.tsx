@@ -147,12 +147,25 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
     setAskResponse(null);
     setAskMembers([]);
     try {
+      // Get fresh access token to pass to API (cookie-based auth can be stale on home page)
+      const supabase = getSupabaseBrowser();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
       const res = await fetch("/api/bot", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
         body: JSON.stringify({ message: q, email: userEmail }),
       });
-      const data: BotResponse = await res.json();
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setAskResponse({ reply: data.error === "Unauthorized" ? "Please sign in again to use Ask Myca." : (data.error || "Something went wrong."), recommendations: [] });
+        return;
+      }
       setAskResponse(data);
       // Resolve recommended member emails to full member objects
       if (data.recommendations?.length && members.length) {

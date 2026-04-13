@@ -48,8 +48,27 @@ function buildMemberContext(members: any[]): string {
 
 export async function POST(request: Request) {
   // Auth check — only logged-in members can use the bot
+  // Try cookie-based auth first, fall back to Bearer token from client
   const { getAuthenticatedUser, unauthorizedResponse } = await import("@/lib/auth");
-  const user = await getAuthenticatedUser();
+  let user = await getAuthenticatedUser();
+
+  if (!user) {
+    const authHeader = request.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (url && key) {
+        const { createClient: createAnonClient } = await import("@supabase/supabase-js");
+        const supabaseAuth = createAnonClient(url, key, {
+          global: { headers: { Authorization: `Bearer ${token}` } },
+        });
+        const { data } = await supabaseAuth.auth.getUser(token);
+        user = data.user;
+      }
+    }
+  }
+
   if (!user) return unauthorizedResponse();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
