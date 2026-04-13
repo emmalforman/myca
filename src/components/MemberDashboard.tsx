@@ -207,7 +207,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
 
       {/* Ask Myca */}
       <div className="mb-14">
-        <div className="bg-forest-900 p-6 sm:p-8">
+        <div className="bg-forest-900 rounded-2xl p-6 sm:p-8">
           <p className="text-[11px] uppercase tracking-[0.3em] text-forest-400 font-mono mb-2">
             Your concierge
           </p>
@@ -228,12 +228,12 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
               onChange={(e) => setAskInput(e.target.value)}
               placeholder="Who can help me with..."
               disabled={askLoading}
-              className="flex-1 px-4 py-3 text-[14px] bg-white/10 border border-forest-600 text-cream placeholder:text-forest-400 focus:outline-none focus:border-cream/50 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-3 text-[14px] bg-white/10 border border-forest-600 rounded-full text-cream placeholder:text-forest-400 focus:outline-none focus:border-cream/50 transition-colors disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={askLoading || !askInput.trim()}
-              className="px-5 py-3 bg-cream text-forest-900 text-[12px] uppercase tracking-wider font-medium hover:bg-white transition-colors disabled:opacity-40"
+              className="px-5 py-3 bg-cream text-forest-900 text-[12px] uppercase tracking-wider font-medium rounded-full hover:bg-white transition-colors disabled:opacity-40"
             >
               {askLoading ? (
                 <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -254,7 +254,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
                   handleAsk(chip);
                 }}
                 disabled={askLoading}
-                className="px-3 py-1.5 text-[11px] text-forest-300 border border-forest-600 hover:border-forest-400 hover:text-cream transition-colors disabled:opacity-40"
+                className="px-3 py-1.5 text-[11px] text-forest-300 border border-forest-600 rounded-full hover:border-forest-400 hover:text-cream transition-colors disabled:opacity-40"
               >
                 {chip}
               </button>
@@ -287,7 +287,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
                         <Link
                           key={member.id}
                           href={`/directory?member=${encodeURIComponent(member.id)}`}
-                          className="flex items-center gap-3 p-3 bg-white/10 hover:bg-white/15 transition-colors"
+                          className="flex items-center gap-3 p-3 bg-white/10 rounded-xl hover:bg-white/15 transition-colors"
                         >
                           <div className="w-9 h-9 rounded-full overflow-hidden bg-cream flex-shrink-0">
                             {member.photoUrl ? (
