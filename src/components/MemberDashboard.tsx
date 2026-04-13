@@ -162,7 +162,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
         credentials: "include",
         body: JSON.stringify({ message: q, email: userEmail, source: "home", sessionId: askSessionId }),
       });
-      const data = await res.json();
+      const data: BotResponse & { error?: string } = await res.json();
       if (!res.ok || data.error) {
         setAskResponse({ reply: data.error === "Unauthorized" ? "Please sign in again to use Ask Myca." : (data.error || "Something went wrong."), recommendations: [] });
         return;
