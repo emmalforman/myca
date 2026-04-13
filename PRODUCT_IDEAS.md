@@ -52,9 +52,10 @@
 18. **Public-Facing Member Directory** — Preview for non-members to drive conversions
 19. **Brand Directory** — Curated brands/products members can shop; brands pay to be featured
 20. **Member Outreach Pipeline** — Track and manage outreach to prospective members, sponsors, and collaborators
+21. **Paid Intros for Non-Members** — Public can search the Myca directory but pay a fee (one-time or per-intro) to request an introduction to a member. Revenue stream + conversion funnel — after paying for an intro they'll likely just join as a member. Members control whether they accept the intro request.
 
 ## Infrastructure
-21. **Payment & Processing** — Stripe for memberships and job board
+22. **Payment & Processing** — Stripe for memberships and job board
 
 ---
 
