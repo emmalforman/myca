@@ -128,37 +128,45 @@ function IntroList({ intros, formatDate }: { intros: Introduction[]; formatDate:
 }
 
 export default function AdminPage() {
-  const [adminKey, setAdminKey] = useState("");
   const [authed, setAuthed] = useState(false);
   const [tab, setTab] = useState<"applications" | "my-intros" | "member-outreach">("applications");
   const [applications, setApplications] = useState<Application[]>([]);
   const [introductions, setIntroductions] = useState<Introduction[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [appFilter, setAppFilter] = useState<"all" | "pending" | "accepted" | "rejected">("pending");
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const fetchApps = async (key: string) => {
+  const fetchApps = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/applications?key=${encodeURIComponent(key)}`);
-      if (!res.ok) throw new Error("Unauthorized");
+      const res = await fetch("/api/applications");
+      if (res.status === 401 || res.status === 403) {
+        setAuthed(false);
+        setLoading(false);
+        return;
+      }
+      if (!res.ok) throw new Error("Failed to load");
       const data = await res.json();
       setApplications(data.applications || []);
       setAuthed(true);
     } catch {
-      alert("Invalid admin key");
+      setAuthed(false);
     } finally {
       setLoading(false);
     }
   };
 
   const fetchIntros = async () => {
-    const res = await fetch(`/api/introductions?key=${encodeURIComponent(adminKey)}`);
+    const res = await fetch("/api/introductions");
     if (res.ok) {
       const data = await res.json();
       setIntroductions(data.introductions || []);
     }
   };
+
+  useEffect(() => {
+    fetchApps();
+  }, []);
 
   useEffect(() => {
     if (authed && (tab === "my-intros" || tab === "member-outreach") && introductions.length === 0) {
@@ -167,7 +175,7 @@ export default function AdminPage() {
   }, [authed, tab]);
 
   const handleAction = async (id: string, status: "accepted" | "rejected") => {
-    const res = await fetch(`/api/applications?key=${encodeURIComponent(adminKey)}`, {
+    const res = await fetch("/api/applications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, status }),
@@ -188,7 +196,14 @@ export default function AdminPage() {
       month: "short", day: "numeric", year: "numeric",
     });
 
-  // Login screen
+  if (loading) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <div className="w-8 h-8 border border-ink-200 border-t-ink-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   if (!authed) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-6">
@@ -196,25 +211,12 @@ export default function AdminPage() {
           <p className="text-[11px] uppercase tracking-[0.3em] text-clay-500 font-mono mb-4">
             Admin
           </p>
-          <h1 className="text-3xl font-serif text-ink-900 mb-8">
-            Myca Dashboard
+          <h1 className="text-3xl font-serif text-ink-900 mb-4">
+            Access Denied
           </h1>
-          <form onSubmit={(e) => { e.preventDefault(); fetchApps(adminKey); }}>
-            <input
-              type="password"
-              value={adminKey}
-              onChange={(e) => setAdminKey(e.target.value)}
-              placeholder="Admin key"
-              autoFocus
-              className="w-full px-4 py-3 text-center text-[14px] border border-ink-200 bg-white text-ink-900 placeholder-ink-300 focus:outline-none focus:border-forest-400 mb-4"
-            />
-            <button
-              type="submit"
-              className="w-full py-3 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 transition-colors"
-            >
-              Enter
-            </button>
-          </form>
+          <p className="text-[14px] text-ink-400">
+            You don&apos;t have admin access. Sign in with an admin account.
+          </p>
         </div>
       </div>
     );
