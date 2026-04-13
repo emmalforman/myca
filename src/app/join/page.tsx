@@ -79,6 +79,7 @@ export default function JoinPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Referral search
@@ -147,10 +148,48 @@ export default function JoinPage() {
     }
   };
 
+  const validateField = (field: string, value: string) => {
+    if (field === "linkedin" && value) {
+      if (!isValidUrl(value)) {
+        return "Please enter a valid URL (e.g. https://linkedin.com/in/yourname)";
+      }
+      if (!value.toLowerCase().includes("linkedin.com")) {
+        return "Must be a LinkedIn URL (e.g. https://linkedin.com/in/yourname)";
+      }
+    }
+    if (field === "instagram" && value) {
+      if (!value.match(/^@[a-zA-Z0-9._]+$/)) {
+        return "Please enter a valid handle (e.g. @yourhandle)";
+      }
+    }
+    if (field === "website" && value) {
+      if (!isValidUrl(value)) {
+        return "Please enter a valid URL (e.g. https://yoursite.com)";
+      }
+    }
+    return "";
+  };
+
+  const handleBlur = (field: string, value: string) => {
+    const err = validateField(field, value);
+    setFieldErrors((prev) => {
+      if (err) return { ...prev, [field]: err };
+      const { [field]: _, ...rest } = prev;
+      return rest;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+
+    // Check inline field errors
+    if (Object.keys(fieldErrors).length > 0) {
+      setError("Please fix the errors above before submitting.");
+      setSubmitting(false);
+      return;
+    }
 
     // Validate required fields that aren't native inputs
     if (!form.yearsExperience) {
@@ -418,24 +457,34 @@ export default function JoinPage() {
                 type="text"
                 required
                 value={form.linkedin}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, linkedin: e.target.value }))
-                }
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, linkedin: e.target.value }));
+                  if (fieldErrors.linkedin) handleBlur("linkedin", e.target.value);
+                }}
+                onBlur={(e) => handleBlur("linkedin", e.target.value)}
                 placeholder="https://linkedin.com/in/..."
-                className={inputClass}
+                className={`${inputClass} ${fieldErrors.linkedin ? "border-rust-400" : ""}`}
               />
+              {fieldErrors.linkedin && (
+                <p className="text-[12px] text-rust-500 mt-1.5 px-1">{fieldErrors.linkedin}</p>
+              )}
             </div>
             <div>
               <p className={labelClass}>Instagram</p>
               <input
                 type="text"
                 value={form.instagram}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, instagram: e.target.value }))
-                }
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, instagram: e.target.value }));
+                  if (fieldErrors.instagram) handleBlur("instagram", e.target.value);
+                }}
+                onBlur={(e) => handleBlur("instagram", e.target.value)}
                 placeholder="@handle"
-                className={inputClass}
+                className={`${inputClass} ${fieldErrors.instagram ? "border-rust-400" : ""}`}
               />
+              {fieldErrors.instagram && (
+                <p className="text-[12px] text-rust-500 mt-1.5 px-1">{fieldErrors.instagram}</p>
+              )}
             </div>
           </div>
 
@@ -445,12 +494,17 @@ export default function JoinPage() {
             <input
               type="text"
               value={form.website}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, website: e.target.value }))
-              }
+              onChange={(e) => {
+                setForm((f) => ({ ...f, website: e.target.value }));
+                if (fieldErrors.website) handleBlur("website", e.target.value);
+              }}
+              onBlur={(e) => handleBlur("website", e.target.value)}
               placeholder="https://..."
-              className={inputClass}
+              className={`${inputClass} ${fieldErrors.website ? "border-rust-400" : ""}`}
             />
+            {fieldErrors.website && (
+              <p className="text-[12px] text-rust-500 mt-1.5 px-1">{fieldErrors.website}</p>
+            )}
           </div>
 
           {/* Email + Phone */}
