@@ -13,10 +13,20 @@ function getSupabaseAdmin() {
 }
 
 export async function GET(request: NextRequest) {
-  const user = await getAuthenticatedUser();
-  if (!user) return unauthorizedResponse();
+  let userIsAdmin = false;
+  let userEmail = "anonymous";
 
-  const rl = checkRateLimit({ name: "events-read", max: 60, windowSeconds: 60 }, user.email!);
+  // Try auth but don't block — approved events are viewable by members
+  // (the page handles blur/CTA for non-authenticated users)
+  try {
+    const user = await getAuthenticatedUser();
+    if (user?.email) {
+      userIsAdmin = isAdmin(user.email);
+      userEmail = user.email;
+    }
+  } catch {}
+
+  const rl = checkRateLimit({ name: "events-read", max: 60, windowSeconds: 60 }, userEmail);
   if (!rl.allowed) return rateLimitResponse(rl.resetAt);
 
   const { searchParams } = new URL(request.url);
@@ -35,7 +45,7 @@ export async function GET(request: NextRequest) {
     .order("start_time", { ascending: true });
 
   // Only admins can bypass the status filter
-  if (!all || !isAdmin(user.email)) {
+  if (!all || !userIsAdmin) {
     query = query.eq("status", status);
   }
   if (startDate) query = query.gte("date", startDate);
