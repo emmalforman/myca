@@ -56,6 +56,8 @@ export async function GET(request: NextRequest) {
     salaryRange: row.salary_range,
     submittedByName: row.submitted_by_name,
     submittedByEmail: row.submitted_by_email,
+    contactName: row.contact_name,
+    contactEmail: row.contact_email,
     status: row.status,
     createdAt: row.created_at,
   }));
@@ -84,6 +86,8 @@ export async function POST(request: NextRequest) {
     salary_range: body.salaryRange || null,
     submitted_by_name: body.submittedByName || null,
     submitted_by_email: body.submittedByEmail || null,
+    contact_name: body.contactName || null,
+    contact_email: body.contactEmail || null,
     status: "pending",
   };
 

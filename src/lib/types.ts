@@ -92,6 +92,8 @@ export interface Job {
   salaryRange?: string;
   submittedByName?: string;
   submittedByEmail?: string;
+  contactName?: string;
+  contactEmail?: string;
   status?: string;
   createdAt?: string;
 }

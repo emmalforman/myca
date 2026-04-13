@@ -14,6 +14,8 @@ create table if not exists public.jobs (
   salary_range text,
   submitted_by_name text,
   submitted_by_email text,
+  contact_name text,
+  contact_email text,
   status text default 'pending' check (status in ('pending', 'approved', 'rejected')),
   created_at timestamptz default now(),
   updated_at timestamptz default now()

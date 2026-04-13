@@ -20,6 +20,8 @@ export default function SubmitJobPage() {
   const [parseError, setParseError] = useState("");
   const [showManual, setShowManual] = useState(false);
 
+  const [listAsContact, setListAsContact] = useState(true);
+
   const [form, setForm] = useState({
     title: "",
     company: "",
@@ -119,6 +121,8 @@ export default function SubmitJobPage() {
           ...form,
           submittedByName: userName,
           submittedByEmail: userEmail,
+          contactName: listAsContact ? userName : null,
+          contactEmail: listAsContact ? userEmail : null,
         }),
       });
 
@@ -211,6 +215,7 @@ export default function SubmitJobPage() {
                 setParsed(false);
                 setJobUrl("");
                 setShowManual(false);
+                setListAsContact(true);
                 setForm({
                   title: "",
                   company: "",
@@ -485,6 +490,19 @@ export default function SubmitJobPage() {
               </div>
             </div>
           )}
+
+          {/* Contact opt-in */}
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={listAsContact}
+              onChange={(e) => setListAsContact(e.target.checked)}
+              className="mt-0.5 w-4 h-4 accent-forest-700"
+            />
+            <span className="text-[14px] text-ink-600">
+              List me as a contact so members can reach out about this role
+            </span>
+          </label>
 
           {error && (
             <p className="text-[13px] text-rust-600 bg-rust-50 border border-rust-200 px-4 py-2">

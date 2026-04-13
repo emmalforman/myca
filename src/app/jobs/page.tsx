@@ -502,12 +502,26 @@ export default function JobsPage() {
                       )}
                     </div>
                   </div>
-                  {job.submittedByName && !membersHere.length && (
+                  {/* Contact person */}
+                  {job.contactName && (
+                    <div className={`flex items-center gap-1.5 ${membersHere.length > 0 ? "mt-2" : "mt-3 pt-3 border-t border-ink-100"}`}>
+                      <span className="text-[12px] text-ink-500">
+                        Know someone?{" "}
+                        <a
+                          href={`mailto:${job.contactEmail}`}
+                          className="text-forest-700 hover:text-forest-900 underline underline-offset-2"
+                        >
+                          Reach out to {job.contactName.split(" ")[0]}
+                        </a>
+                      </span>
+                    </div>
+                  )}
+                  {job.submittedByName && !job.contactName && !membersHere.length && (
                     <p className="text-[11px] text-ink-300 mt-3 pt-3 border-t border-ink-100">
                       Shared by {job.submittedByName}
                     </p>
                   )}
-                  {job.submittedByName && membersHere.length > 0 && (
+                  {job.submittedByName && !job.contactName && membersHere.length > 0 && (
                     <p className="text-[11px] text-ink-300 mt-2">
                       Shared by {job.submittedByName}
                     </p>
