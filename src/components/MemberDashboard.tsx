@@ -1,9 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { Member } from "@/lib/types";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+
+interface BotRecommendation {
+  email: string;
+  reason: string;
+}
+
+interface BotResponse {
+  reply: string;
+  recommendations: BotRecommendation[];
+}
 
 interface AskMessage {
   id: string;
@@ -97,6 +107,13 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState("");
 
+  // Ask Myca state
+  const [askInput, setAskInput] = useState("");
+  const [askLoading, setAskLoading] = useState(false);
+  const [askResponse, setAskResponse] = useState<BotResponse | null>(null);
+  const [askMembers, setAskMembers] = useState<Member[]>([]);
+  const askInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     // Fetch members and dashboard feed in parallel
     // Look up name directly via browser client (same pattern as MemberLogin)
@@ -122,6 +139,39 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
       setLoading(false);
     });
   }, [userEmail]);
+
+  async function handleAsk(query: string) {
+    const q = query.trim();
+    if (!q || askLoading) return;
+    setAskLoading(true);
+    setAskResponse(null);
+    setAskMembers([]);
+    try {
+      const res = await fetch("/api/bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: q, email: userEmail }),
+      });
+      const data: BotResponse = await res.json();
+      setAskResponse(data);
+      // Resolve recommended member emails to full member objects
+      if (data.recommendations?.length && members.length) {
+        const matched = data.recommendations
+          .map((rec) => {
+            const m = members.find(
+              (mem) => mem.email?.toLowerCase() === rec.email.toLowerCase()
+            );
+            return m ? { ...m, _reason: rec.reason } : null;
+          })
+          .filter(Boolean) as (Member & { _reason?: string })[];
+        setAskMembers(matched);
+      }
+    } catch {
+      setAskResponse({ reply: "Something went wrong — try again in a moment.", recommendations: [] });
+    } finally {
+      setAskLoading(false);
+    }
+  }
 
   const newMembers = [...members]
     .filter((m) => m.createdAt)
@@ -153,6 +203,133 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
         <h1 className="text-3xl sm:text-4xl font-serif text-forest-900">
           Hey, {firstName}.
         </h1>
+      </div>
+
+      {/* Ask Myca */}
+      <div className="mb-14">
+        <div className="bg-white border border-forest-100 p-5 sm:p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-full bg-forest-900 flex items-center justify-center flex-shrink-0">
+              <span className="text-cream text-xs font-serif font-bold">M</span>
+            </div>
+            <p className="text-[13px] font-medium text-forest-900 tracking-wide">
+              Ask Myca
+            </p>
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAsk(askInput);
+            }}
+            className="flex gap-2 mb-3"
+          >
+            <input
+              ref={askInputRef}
+              type="text"
+              value={askInput}
+              onChange={(e) => setAskInput(e.target.value)}
+              placeholder="Who can help me with..."
+              disabled={askLoading}
+              className="flex-1 px-4 py-2.5 text-[14px] bg-forest-50 border border-forest-100 text-forest-900 placeholder:text-ink-300 focus:outline-none focus:border-forest-400 transition-colors disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={askLoading || !askInput.trim()}
+              className="px-4 py-2.5 bg-forest-900 text-cream text-[12px] uppercase tracking-wider font-medium hover:bg-forest-800 transition-colors disabled:opacity-40"
+            >
+              {askLoading ? (
+                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                "Ask"
+              )}
+            </button>
+          </form>
+          <div className="flex flex-wrap gap-2">
+            {["Who knows about retail distribution?", "Intro me to someone in CPG fundraising", "Who's in NYC?"].map((chip) => (
+              <button
+                key={chip}
+                onClick={() => {
+                  setAskInput(chip);
+                  handleAsk(chip);
+                }}
+                disabled={askLoading}
+                className="px-3 py-1.5 text-[11px] text-ink-500 bg-forest-50 hover:bg-forest-100 border border-forest-100 transition-colors disabled:opacity-40"
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+
+          {/* Response */}
+          {(askLoading || askResponse) && (
+            <div className="mt-5 pt-5 border-t border-forest-100">
+              {askLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-forest-900 flex items-center justify-center flex-shrink-0">
+                    <span className="text-cream text-[9px] font-serif font-bold">M</span>
+                  </div>
+                  <p className="text-[13px] text-ink-400">Thinking...</p>
+                </div>
+              ) : askResponse ? (
+                <div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-5 h-5 rounded-full bg-forest-900 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-cream text-[9px] font-serif font-bold">M</span>
+                    </div>
+                    <p className="text-[13px] text-ink-700 leading-relaxed">
+                      {askResponse.reply}
+                    </p>
+                  </div>
+                  {askMembers.length > 0 && (
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {askMembers.map((member: any) => (
+                        <Link
+                          key={member.id}
+                          href={`/directory?member=${encodeURIComponent(member.id)}`}
+                          className="flex items-center gap-3 p-3 bg-forest-50 hover:bg-forest-100 transition-colors"
+                        >
+                          <div className="w-9 h-9 rounded-full overflow-hidden bg-cream flex-shrink-0">
+                            {member.photoUrl ? (
+                              <img src={member.photoUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <span className="text-forest-400 font-serif text-sm">
+                                  {(member.firstName?.[0] || member.name?.[0] || "")}{(member.lastName?.[0] || "")}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[13px] font-serif text-forest-900 truncate">
+                              {member.name || `${member.firstName ?? ""} ${member.lastName ?? ""}`.trim()}
+                            </p>
+                            {member._reason && (
+                              <p className="text-[11px] text-ink-400 truncate">{member._reason}</p>
+                            )}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      setAskResponse(null);
+                      setAskMembers([]);
+                      setAskInput("");
+                      askInputRef.current?.focus();
+                    }}
+                    className="mt-3 text-[11px] text-ink-400 hover:text-forest-700 transition-colors"
+                  >
+                    Ask something else
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Quick Links */}
