@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, ReactNode, KeyboardEvent } from "react";
-import { useRouter } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import Link from "next/link";
 import OnboardingFlow from "./OnboardingFlow";
@@ -20,7 +19,6 @@ export default function MemberLogin({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [shouldRedirectHome, setShouldRedirectHome] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
@@ -45,9 +43,9 @@ export default function MemberLogin({
 
   useEffect(() => {
     if (state === "authenticated" && shouldRedirectHome) {
-      router.push("/");
+      window.location.href = "/";
     }
-  }, [state, shouldRedirectHome, router]);
+  }, [state, shouldRedirectHome]);
 
   const verifyMembership = async (userEmail: string) => {
     const supabase = getSupabaseBrowser();
