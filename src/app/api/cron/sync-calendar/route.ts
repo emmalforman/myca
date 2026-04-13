@@ -167,6 +167,73 @@ async function fetchCalendarEvents() {
   }));
 }
 
+// ─── Cover image fetcher ───
+
+const UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+function decodeEntities(str: string): string {
+  return str
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ");
+}
+
+function findMeta(html: string, property: string): string | null {
+  const metaTags = html.match(/<meta[^>]+>/gi) || [];
+  for (const tag of metaTags) {
+    const attrs: Record<string, string> = {};
+    let m;
+    const re = /(\w[\w-]*)=["']([^"']*?)["']/g;
+    while ((m = re.exec(tag)) !== null) attrs[m[1].toLowerCase()] = m[2];
+    const exp = property.match(/(\w[\w-]*)=["']([^"']*?)["']/);
+    if (!exp) continue;
+    if (attrs[exp[1].toLowerCase()] === exp[2] && attrs.content)
+      return decodeEntities(attrs.content);
+  }
+  return null;
+}
+
+async function fetchCoverImage(eventUrl: string): Promise<string | null> {
+  try {
+    const res = await fetch(eventUrl, { headers: { "User-Agent": UA } });
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    // JSON-LD image
+    const ldMatches = [...html.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)];
+    for (const m of ldMatches) {
+      try {
+        const parsed = JSON.parse(m[1]);
+        const items = Array.isArray(parsed) ? parsed : [parsed];
+        for (const item of items) {
+          if ((item["@type"] === "Event" || item["@type"] === "SocialEvent") && item.image) {
+            const img = Array.isArray(item.image) ? item.image[0] : item.image;
+            if (img) return img.replace(/^http:\/\//, "https://");
+          }
+        }
+      } catch {}
+    }
+
+    // __NEXT_DATA__ cover_url (Luma)
+    const ndMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if (ndMatch) {
+      try {
+        const ev = JSON.parse(ndMatch[1])?.props?.pageProps?.initialData?.data?.event;
+        if (ev?.cover_url) return ev.cover_url;
+      } catch {}
+    }
+
+    // og:image fallback
+    const ogImg = findMeta(html, 'property="og:image"') || findMeta(html, 'name="og:image"');
+    if (ogImg) {
+      if (ogImg.startsWith("/")) return `${new URL(eventUrl).origin}${ogImg}`;
+      return ogImg;
+    }
+
+    return null;
+  } catch { return null; }
+}
+
 // ─── Sync logic ───
 
 async function syncEvents() {
@@ -224,6 +291,22 @@ async function syncEvents() {
         inserted++;
         results.push(`NEW: ${e.summary}`);
       }
+    }
+  }
+
+  // Fetch cover images for events that have URLs but no cover
+  const { data: needsCovers } = await sb
+    .from("events")
+    .select("id, title, rsvp_url")
+    .is("cover_image_url", null)
+    .not("rsvp_url", "is", null)
+    .eq("source", "calendar");
+
+  for (const event of needsCovers || []) {
+    const coverUrl = await fetchCoverImage(event.rsvp_url);
+    if (coverUrl) {
+      await sb.from("events").update({ cover_image_url: coverUrl }).eq("id", event.id);
+      results.push(`COVER: ${event.title}`);
     }
   }
 
