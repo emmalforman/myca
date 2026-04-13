@@ -6,6 +6,7 @@ const ALLOWED_HOSTS = [
   "www.linkedin.com",
   "greenhouse.io",
   "boards.greenhouse.io",
+  "job-boards.greenhouse.io",
   "lever.co",
   "jobs.lever.co",
   "ashbyhq.com",
@@ -86,8 +87,8 @@ function detectPlatform(url: string): string {
 }
 
 function parseGreenhouseCompany(url: string): string | null {
-  // boards.greenhouse.io/companyname/jobs/123
-  const match = url.match(/boards\.greenhouse\.io\/([^/]+)/);
+  // boards.greenhouse.io/companyname/jobs/123 or job-boards.greenhouse.io/companyname/jobs/123
+  const match = url.match(/(?:boards|job-boards)\.greenhouse\.io\/([^/]+)/);
   if (match) {
     return match[1]
       .replace(/[-_]/g, " ")
