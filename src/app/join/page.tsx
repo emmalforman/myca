@@ -614,7 +614,7 @@ export default function JoinPage() {
 
           {/* Website */}
           <div>
-            <p className={labelClass}>Website or portfolio</p>
+            <p className={labelClass}>Website, Substack, or portfolio</p>
             <input
               type="url"
               value={form.website}
