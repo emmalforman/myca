@@ -6,7 +6,6 @@ import Link from "next/link";
 
 export default function WelcomePage() {
   const [email, setEmail] = useState<string | null>(null);
-  const [starting, setStarting] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   useEffect(() => {
@@ -16,33 +15,17 @@ export default function WelcomePage() {
     });
   }, []);
 
-  const handleStartTrial = async () => {
-    if (!email) return;
-    setStarting(true);
-
-    await fetch("/api/access", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-
-    window.location.href = "/directory";
-  };
-
   const handlePayNow = async (tier: "member" | "founding") => {
     if (!email) return;
     setCheckoutLoading(tier);
 
-    // Use yearly price as default for pay-now (best value)
-    const priceEnvKey = tier === "founding"
-      ? "NEXT_PUBLIC_STRIPE_PRICE_FOUNDING_YEARLY"
-      : "NEXT_PUBLIC_STRIPE_PRICE_MEMBER_YEARLY";
+    const priceEnvKey = `NEXT_PUBLIC_STRIPE_PRICE_${tier.toUpperCase()}_YEARLY`;
     const priceId = process.env[priceEnvKey] || priceEnvKey;
 
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ priceId, email, skipTrial: true }),
+      body: JSON.stringify({ priceId, email, skipTrial: false }),
     });
 
     const data = await res.json();
@@ -66,31 +49,30 @@ export default function WelcomePage() {
             Welcome to Myca
           </h1>
           <p className="text-[15px] text-ink-400 max-w-md mx-auto">
-            You&apos;ve been accepted into the collective. Choose how you&apos;d like to get started.
+            You&apos;ve been accepted into the collective. Browse the directory for free, or upgrade to unlock chat, events, and the full network.
           </p>
         </div>
 
         <div className="space-y-4 max-w-sm mx-auto">
-          {/* Start trial */}
-          <button
-            onClick={handleStartTrial}
-            disabled={starting || !email}
-            className="w-full p-5 text-left bg-white border border-ink-200 hover:border-forest-400 transition-colors group disabled:opacity-50"
+          {/* Browse free */}
+          <Link
+            href="/directory"
+            className="block w-full p-5 text-left bg-white border border-ink-200 hover:border-forest-400 transition-colors group"
           >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[14px] font-medium text-ink-900">
-                  Start 14-day free trial
+                  Browse the directory
                 </p>
                 <p className="text-[13px] text-ink-400 mt-0.5">
-                  Explore the directory, send intros, RSVP to events
+                  See who&apos;s in the community — free forever
                 </p>
               </div>
               <svg className="w-5 h-5 text-ink-300 group-hover:text-forest-600 transition-colors flex-shrink-0 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
               </svg>
             </div>
-          </button>
+          </Link>
 
           <div className="relative py-2">
             <div className="absolute inset-0 flex items-center">
@@ -98,12 +80,12 @@ export default function WelcomePage() {
             </div>
             <div className="relative flex justify-center">
               <span className="bg-ivory px-3 text-[11px] uppercase tracking-wider text-ink-300 font-mono">
-                or choose a plan now
+                unlock the full network
               </span>
             </div>
           </div>
 
-          {/* Pay now — Member */}
+          {/* Member */}
           <button
             onClick={() => handlePayNow("member")}
             disabled={checkoutLoading === "member" || !email}
@@ -115,7 +97,7 @@ export default function WelcomePage() {
                   Member — $240/yr
                 </p>
                 <p className="text-[13px] text-ink-400 mt-0.5">
-                  5 intros/mo, all events, full directory
+                  Chat, events, 5 intros/mo, jobs, content
                 </p>
               </div>
               <svg className="w-5 h-5 text-ink-300 group-hover:text-forest-600 transition-colors flex-shrink-0 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -124,7 +106,7 @@ export default function WelcomePage() {
             </div>
           </button>
 
-          {/* Pay now — Founding */}
+          {/* Founding */}
           <button
             onClick={() => handlePayNow("founding")}
             disabled={checkoutLoading === "founding" || !email}
@@ -136,7 +118,7 @@ export default function WelcomePage() {
                   Founding Member — $480/yr
                 </p>
                 <p className="text-[13px] text-forest-300 mt-0.5">
-                  Unlimited intros, host events, guest passes
+                  Unlimited intros, host events, post jobs
                 </p>
               </div>
               <svg className="w-5 h-5 text-forest-400 group-hover:text-cream transition-colors flex-shrink-0 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -147,7 +129,7 @@ export default function WelcomePage() {
         </div>
 
         <p className="text-[12px] text-ink-300 mt-8">
-          Questions?{" "}
+          All paid plans include a 14-day free trial.{" "}
           <Link href="/pricing" className="text-forest-600 underline">
             Compare plans
           </Link>

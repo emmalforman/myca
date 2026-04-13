@@ -48,6 +48,15 @@ export default function MemberCard({
         )}
 
         <div className="flex flex-wrap items-center gap-1.5 mt-2">
+          {member.tier && (
+            <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-mono ${
+              member.tier === "founding"
+                ? "text-forest-700 bg-forest-50 border border-forest-200"
+                : "text-clay-500 bg-clay-50 border border-clay-200"
+            }`}>
+              {member.tier === "founding" ? "Founding" : "Member"}
+            </span>
+          )}
           {member.occupationType && (
             <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink-500 border border-ink-200 font-mono">
               {member.occupationType}

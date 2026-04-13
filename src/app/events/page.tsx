@@ -24,6 +24,8 @@ function EventsApp() {
   const [email, setEmail] = useState("");
   const [contactId, setContactId] = useState("");
   const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
+  const [canAccessEvents, setCanAccessEvents] = useState<boolean | null>(null);
+  const [eventCount, setEventCount] = useState(0);
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
@@ -31,6 +33,13 @@ function EventsApp() {
       if (!session?.user?.email) return;
       const userEmail = session.user.email;
       setEmail(userEmail);
+
+      // Check access
+      const accessRes = await fetch(`/api/intros/check?email=${encodeURIComponent(userEmail)}`);
+      if (accessRes.ok) {
+        const accessData = await accessRes.json();
+        setCanAccessEvents(accessData.canAccessEvents);
+      }
 
       // Get contact_id
       const { data: contact } = await supabase
@@ -41,39 +50,52 @@ function EventsApp() {
 
       if (contact) setContactId(contact.contact_id);
 
-      // Fetch upcoming events
-      const { data: eventsData } = await supabase
+      // Always fetch event count (for free gate display)
+      const { count: totalCount } = await supabase
         .from("events")
-        .select("*")
+        .select("*", { count: "exact", head: true })
         .eq("is_published", true)
-        .gte("event_date", new Date().toISOString())
-        .order("event_date", { ascending: true });
+        .gte("event_date", new Date().toISOString());
 
-      if (eventsData && contact) {
-        // Get RSVP counts and user's RSVPs
-        const enriched = await Promise.all(
-          eventsData.map(async (evt: any) => {
-            const { count } = await supabase
-              .from("event_rsvps")
-              .select("*", { count: "exact", head: true })
-              .eq("event_id", evt.id)
-              .eq("status", "going");
+      setEventCount(totalCount || 0);
 
-            const { data: myRsvp } = await supabase
-              .from("event_rsvps")
-              .select("status")
-              .eq("event_id", evt.id)
-              .eq("contact_id", contact.contact_id)
-              .single();
+      // Only fetch full event data if user has access
+      const accessCheck = await fetch(`/api/intros/check?email=${encodeURIComponent(userEmail)}`);
+      const access = await accessCheck.json();
 
-            return {
-              ...evt,
-              rsvp_count: count || 0,
-              my_rsvp: myRsvp?.status || null,
-            };
-          })
-        );
-        setEvents(enriched);
+      if (access.canAccessEvents && contact) {
+        const { data: eventsData } = await supabase
+          .from("events")
+          .select("*")
+          .eq("is_published", true)
+          .gte("event_date", new Date().toISOString())
+          .order("event_date", { ascending: true });
+
+        if (eventsData) {
+          const enriched = await Promise.all(
+            eventsData.map(async (evt: any) => {
+              const { count } = await supabase
+                .from("event_rsvps")
+                .select("*", { count: "exact", head: true })
+                .eq("event_id", evt.id)
+                .eq("status", "going");
+
+              const { data: myRsvp } = await supabase
+                .from("event_rsvps")
+                .select("status")
+                .eq("event_id", evt.id)
+                .eq("contact_id", contact.contact_id)
+                .single();
+
+              return {
+                ...evt,
+                rsvp_count: count || 0,
+                my_rsvp: myRsvp?.status || null,
+              };
+            })
+          );
+          setEvents(enriched);
+        }
       }
       setLoading(false);
     });
@@ -98,7 +120,6 @@ function EventsApp() {
         .eq("contact_id", contactId);
     }
 
-    // Refresh that event's RSVP status
     setEvents((prev) =>
       prev.map((evt) => {
         if (evt.id !== eventId) return evt;
@@ -122,6 +143,44 @@ function EventsApp() {
       time: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
     };
   };
+
+  // Free member gate — show count only
+  if (canAccessEvents === false) {
+    return (
+      <div className="min-h-screen bg-ivory">
+        <div className="bg-forest-900">
+          <div className="max-w-3xl mx-auto px-6 lg:px-8 py-14">
+            <p className="text-[11px] uppercase tracking-[0.3em] text-forest-400 font-mono mb-3">
+              Events
+            </p>
+            <h1 className="text-3xl font-serif text-cream">Upcoming Events</h1>
+          </div>
+        </div>
+        <div className="max-w-3xl mx-auto px-6 lg:px-8 py-16">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-forest-50 flex items-center justify-center mx-auto mb-6">
+              <span className="text-3xl font-serif text-forest-600">{eventCount}</span>
+            </div>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-ink-400 font-mono mb-3">
+              Upcoming Events
+            </p>
+            <p className="text-[15px] font-serif text-ink-900 mb-2">
+              {eventCount} event{eventCount !== 1 ? "s" : ""} this month
+            </p>
+            <p className="text-[13px] text-ink-400 mb-8 max-w-sm mx-auto">
+              Members-only dinners, roundtables, and networking events across NYC, SF, LA, London, and Chicago.
+            </p>
+            <Link
+              href="/pricing"
+              className="inline-block px-8 py-3 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 transition-colors"
+            >
+              Upgrade to See Events
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-ivory">
@@ -163,7 +222,6 @@ function EventsApp() {
                   key={evt.id}
                   className="bg-white border border-ink-100 p-6 flex flex-col sm:flex-row gap-5"
                 >
-                  {/* Date block */}
                   <div className="sm:w-20 flex-shrink-0 text-center sm:text-left">
                     <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono">
                       {day}
@@ -172,7 +230,6 @@ function EventsApp() {
                     <p className="text-[12px] text-ink-400 font-mono">{time}</p>
                   </div>
 
-                  {/* Details */}
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[16px] font-serif text-ink-900 mb-1">
                       {evt.title}
@@ -198,7 +255,6 @@ function EventsApp() {
                     </div>
                   </div>
 
-                  {/* RSVP button */}
                   <div className="sm:w-32 flex-shrink-0 flex items-center">
                     {isGoing ? (
                       <button

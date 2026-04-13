@@ -24,11 +24,14 @@ interface Profile {
 interface AccessInfo {
   tier: string | null;
   subscriptionStatus: string | null;
-  isActive: boolean;
+  isPaid: boolean;
+  isFree: boolean;
+  isFounding: boolean;
   isTrialing: boolean;
   trialDaysLeft: number;
-  introsUsedThisMonth: number;
+  introsUsed: number;
   introsRemaining: number | null;
+  introsLimit: number | null;
   currentPeriodEnd: string | null;
 }
 
@@ -370,30 +373,32 @@ function ProfileEditor() {
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-[14px] font-medium text-ink-900">
-                      {access.tier === "founding" ? "Founding Member" : access.tier === "member" ? "Member" : "No Plan"}
+                      {access.isFounding ? "Founding Member" : access.tier === "member" ? "Member" : "Free"}
                     </p>
                     <p className="text-[12px] text-ink-400 mt-0.5">
                       {access.isTrialing
                         ? `Trial — ${access.trialDaysLeft} day${access.trialDaysLeft !== 1 ? "s" : ""} left`
-                        : access.isActive
+                        : access.isPaid
                         ? `Active${access.currentPeriodEnd ? ` — renews ${new Date(access.currentPeriodEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : ""}`
                         : access.subscriptionStatus === "canceled"
                         ? "Canceled"
                         : access.subscriptionStatus === "past_due"
                         ? "Payment past due"
-                        : "Inactive"}
+                        : "Upgrade to unlock chat, events & more"}
                     </p>
                   </div>
                   {access.introsRemaining !== null && (
                     <div className="text-right">
                       <p className="text-[20px] font-serif text-ink-900">{access.introsRemaining}</p>
-                      <p className="text-[10px] text-ink-400 font-mono uppercase tracking-wider">intros left</p>
+                      <p className="text-[10px] text-ink-400 font-mono uppercase tracking-wider">
+                        intros {access.isFree ? "left" : "this mo"}
+                      </p>
                     </div>
                   )}
                 </div>
 
                 <div className="flex gap-3">
-                  {(access.isActive || access.isTrialing) && access.subscriptionStatus !== "trialing" && (
+                  {access.isPaid && !access.isTrialing && (
                     <button
                       onClick={async () => {
                         setPortalLoading(true);
@@ -412,14 +417,14 @@ function ProfileEditor() {
                       {portalLoading ? "..." : "Manage Billing"}
                     </button>
                   )}
-                  {(!access.isActive && !access.isTrialing) || access.subscriptionStatus === "trialing" ? (
+                  {(access.isFree || access.isTrialing) && (
                     <a
                       href="/pricing"
                       className="px-4 py-2 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 transition-colors"
                     >
                       {access.isTrialing ? "Choose a Plan" : "Upgrade"}
                     </a>
-                  ) : null}
+                  )}
                 </div>
               </div>
             </div>

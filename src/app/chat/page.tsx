@@ -5,6 +5,7 @@ import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import MemberLogin from "@/components/MemberLogin";
 import MemberDrawer from "@/components/MemberDrawer";
 import OutreachModal from "@/components/OutreachModal";
+import UpgradeGate from "@/components/UpgradeGate";
 import { Member } from "@/lib/types";
 
 const CHANNELS = [
@@ -42,6 +43,7 @@ function ChatApp() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [outreachTarget, setOutreachTarget] = useState<Member | null>(null);
   const [dmChannels, setDmChannels] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [canAccessChat, setCanAccessChat] = useState<boolean | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -66,6 +68,13 @@ function ChatApp() {
     const supabase = getSupabaseBrowser();
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user?.email) {
+        // Check subscription access
+        const accessRes = await fetch(`/api/intros/check?email=${encodeURIComponent(session.user.email)}`);
+        if (accessRes.ok) {
+          const accessData = await accessRes.json();
+          setCanAccessChat(accessData.canAccessChat);
+        }
+
         const { data } = await supabase
           .from("contacts")
           .select("name")
@@ -198,6 +207,15 @@ function ChatApp() {
     ? dmRecipient?.name || "Direct Message"
     : currentChannel?.label;
   const channelDisplayEmoji = isDM ? "✉️" : currentChannel?.emoji;
+
+  if (canAccessChat === false) {
+    return (
+      <UpgradeGate
+        title="Members-only chat"
+        description="Community channels and DMs are available to paid members. Upgrade to join the conversation."
+      />
+    );
+  }
 
   return (
     <div className="h-[calc(100vh-57px)] flex bg-ivory">

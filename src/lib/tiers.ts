@@ -13,6 +13,21 @@ export interface TierConfig {
   highlighted?: boolean;
 }
 
+// What free (accepted, unpaid) members get
+export const FREE_FEATURES = [
+  "Browse the full member directory",
+  "2 intro requests (total)",
+];
+
+// What free members see as locked
+export const FREE_LOCKED = [
+  "Community chat channels & DMs",
+  "Events calendar & RSVP",
+  "Job board",
+  "Substack content",
+  "Partner perks & deals",
+];
+
 export const TIERS: TierConfig[] = [
   {
     slug: "member",
@@ -26,8 +41,11 @@ export const TIERS: TierConfig[] = [
     features: [
       "Full member directory",
       "5 intro requests per month",
-      "Attend all members-only events",
-      "Community channels & DMs",
+      "Community chat channels & DMs",
+      "Events calendar & RSVP",
+      "Job board access",
+      "Substack content",
+      "Partner perks & deals",
     ],
   },
   {
@@ -42,10 +60,14 @@ export const TIERS: TierConfig[] = [
     features: [
       "Full member directory",
       "Unlimited intro requests",
-      "Attend all members-only events",
-      "Early RSVP + 2 guest passes per year",
+      "Community chat channels & DMs",
+      "Events calendar & RSVP + early access",
+      "Job board access + post listings",
+      "Substack content",
+      "Partner perks & deals",
       "Host & propose events",
-      "Community channels & DMs",
+      "2 guest passes per year",
+      "Priority in directory search",
     ],
     highlighted: true,
   },

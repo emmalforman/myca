@@ -26,6 +26,7 @@ export default function OutreachModal({
   const [sending, setSending] = useState(false);
   const [canSendIntro, setCanSendIntro] = useState(true);
   const [introsRemaining, setIntrosRemaining] = useState<number | null>(null);
+  const [isFree, setIsFree] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export default function OutreachModal({
           const access = await res.json();
           setCanSendIntro(access.canSendIntro);
           setIntrosRemaining(access.introsRemaining);
+          setIsFree(access.isFree);
         }
         setCheckingAccess(false);
       }
@@ -166,11 +168,12 @@ export default function OutreachModal({
                 </svg>
               </div>
               <p className="font-serif text-lg text-ink-900 mb-1">
-                Intro limit reached
+                {isFree ? "Free intros used" : "Intro limit reached"}
               </p>
               <p className="text-[13px] text-ink-400 mb-5">
-                You&apos;ve used all your intro requests this month.
-                Upgrade to Founding for unlimited intros.
+                {isFree
+                  ? "You've used your 2 free intro requests. Upgrade to Member for 5 intros per month."
+                  : "You've used all your intro requests this month. Upgrade to Founding for unlimited intros."}
               </p>
               <Link
                 href="/pricing"
@@ -184,7 +187,7 @@ export default function OutreachModal({
             <>
               {introsRemaining !== null && (
                 <p className="text-[11px] text-ink-300 font-mono uppercase tracking-wider mb-3">
-                  {introsRemaining} intro{introsRemaining !== 1 ? "s" : ""} remaining this month
+                  {introsRemaining} intro{introsRemaining !== 1 ? "s" : ""} remaining{isFree ? "" : " this month"}
                 </p>
               )}
               <div className="mb-4">

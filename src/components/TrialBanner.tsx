@@ -7,6 +7,7 @@ import Link from "next/link";
 export default function TrialBanner() {
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [isTrialing, setIsTrialing] = useState(false);
+  const [isFree, setIsFree] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
@@ -21,28 +22,47 @@ export default function TrialBanner() {
       if (data.isTrialing) {
         setIsTrialing(true);
         setTrialDaysLeft(data.trialDaysLeft);
+      } else if (data.isFree) {
+        setIsFree(true);
       }
     });
   }, []);
 
-  if (!isTrialing || dismissed || trialDaysLeft === null) return null;
+  if (dismissed) return null;
+  if (!isTrialing && !isFree) return null;
 
   return (
     <div className="bg-forest-800 text-cream">
       <div className="max-w-6xl mx-auto px-6 lg:px-8 flex items-center justify-between py-2">
-        <p className="text-[12px]">
-          <span className="font-mono uppercase tracking-wider text-forest-300">
-            Trial
-          </span>
-          <span className="mx-2 text-forest-600">&middot;</span>
-          <span>
-            {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} left
-          </span>
-          <span className="mx-2 text-forest-600">&middot;</span>
-          <Link href="/pricing" className="text-forest-200 underline hover:text-cream">
-            See plans
-          </Link>
-        </p>
+        {isTrialing ? (
+          <p className="text-[12px]">
+            <span className="font-mono uppercase tracking-wider text-forest-300">
+              Trial
+            </span>
+            <span className="mx-2 text-forest-600">&middot;</span>
+            <span>
+              {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} left
+            </span>
+            <span className="mx-2 text-forest-600">&middot;</span>
+            <Link href="/pricing" className="text-forest-200 underline hover:text-cream">
+              Choose a plan
+            </Link>
+          </p>
+        ) : (
+          <p className="text-[12px]">
+            <span className="font-mono uppercase tracking-wider text-forest-300">
+              Free
+            </span>
+            <span className="mx-2 text-forest-600">&middot;</span>
+            <span>
+              Unlock chat, events, and more
+            </span>
+            <span className="mx-2 text-forest-600">&middot;</span>
+            <Link href="/pricing" className="text-forest-200 underline hover:text-cream">
+              Upgrade
+            </Link>
+          </p>
+        )}
         <button
           onClick={() => setDismissed(true)}
           className="text-forest-400 hover:text-cream transition-colors ml-4"

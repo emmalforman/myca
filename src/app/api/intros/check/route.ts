@@ -19,12 +19,19 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     tier: access.tier,
-    isActive: access.isActive,
+    isPaid: access.isPaid,
+    isFree: access.isFree,
+    isFounding: access.isFounding,
     isTrialing: access.isTrialing,
     trialDaysLeft: access.trialDaysLeft,
     canSendIntro: access.canSendIntro,
-    introsUsedThisMonth: access.introsUsedThisMonth,
+    canAccessChat: access.canAccessChat,
+    canAccessEvents: access.canAccessEvents,
+    canAccessJobs: access.canAccessJobs,
+    canPostEvents: access.canPostEvents,
+    canPostJobs: access.canPostJobs,
+    introsUsed: access.introsUsed,
+    introsLimit: access.introsLimit,
     introsRemaining: access.introsRemaining,
-    canBrowseDirectory: access.canBrowseDirectory,
   });
 }

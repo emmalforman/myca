@@ -15,14 +15,25 @@ export interface MemberAccess {
   subscriptionStatus: string | null;
   trialEndsAt: string | null;
   currentPeriodEnd: string | null;
-  isActive: boolean;
-  isTrialing: boolean;
+  isPaid: boolean;        // has active subscription (member or founding)
+  isTrialing: boolean;    // on a paid trial
+  isFree: boolean;        // accepted member with no subscription
+  isFounding: boolean;    // founding tier specifically
   trialDaysLeft: number;
-  canBrowseDirectory: boolean;
+  canBrowseDirectory: boolean;  // all accepted members
+  canAccessChat: boolean;       // paid only
+  canAccessEvents: boolean;     // paid only (free sees count only)
+  canAccessJobs: boolean;       // paid only (free sees titles only)
   canSendIntro: boolean;
-  introsUsedThisMonth: number;
-  introsRemaining: number | null; // null = unlimited
+  canPostEvents: boolean;       // founding only
+  canPostJobs: boolean;         // founding only
+  introsUsed: number;
+  introsLimit: number | null;   // null = unlimited
+  introsRemaining: number | null;
 }
+
+// Free members get 2 intros total (lifetime), not per month
+const FREE_INTRO_LIMIT = 2;
 
 export async function getMemberAccess(email: string): Promise<MemberAccess | null> {
   const supabase = getSupabaseAdmin();
@@ -41,25 +52,40 @@ export async function getMemberAccess(email: string): Promise<MemberAccess | nul
 
   const isTrialing = contact.subscription_status === "trialing" && trialEnd !== null && trialEnd > now;
   const isActive = contact.subscription_status === "active" && periodEnd !== null && periodEnd > now;
-  const hasAccess = isTrialing || isActive;
+  const isPaid = isTrialing || isActive;
+  const isFree = !isPaid;
+  const isFounding = isPaid && contact.tier === "founding";
 
   const trialDaysLeft = isTrialing && trialEnd
     ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
 
-  // Count intros sent this month
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const { count } = await supabase
-    .from("introductions")
-    .select("*", { count: "exact", head: true })
-    .eq("person_a_id", contact.contact_id)
-    .gte("created_at", monthStart);
+  // Count intros: for paid members, count this month; for free members, count all time
+  let introsUsed = 0;
+  if (isFree) {
+    // Free: count all-time intros
+    const { count } = await supabase
+      .from("introductions")
+      .select("*", { count: "exact", head: true })
+      .eq("person_a_id", contact.contact_id);
+    introsUsed = count || 0;
+  } else {
+    // Paid: count this month
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const { count } = await supabase
+      .from("introductions")
+      .select("*", { count: "exact", head: true })
+      .eq("person_a_id", contact.contact_id)
+      .gte("created_at", monthStart);
+    introsUsed = count || 0;
+  }
 
-  const introsUsedThisMonth = count || 0;
   const tierConfig = getTier(contact.tier);
-  const introsPerMonth = tierConfig?.introsPerMonth ?? 5;
-  const introsRemaining = introsPerMonth === null ? null : Math.max(0, introsPerMonth - introsUsedThisMonth);
-  const canSendIntro = hasAccess && (introsRemaining === null || introsRemaining > 0);
+  const introsLimit = isFree
+    ? FREE_INTRO_LIMIT
+    : tierConfig?.introsPerMonth ?? 5;
+  const introsRemaining = introsLimit === null ? null : Math.max(0, introsLimit - introsUsed);
+  const canSendIntro = introsRemaining === null || introsRemaining > 0;
 
   return {
     contactId: contact.contact_id,
@@ -68,12 +94,20 @@ export async function getMemberAccess(email: string): Promise<MemberAccess | nul
     subscriptionStatus: contact.subscription_status,
     trialEndsAt: contact.trial_ends_at,
     currentPeriodEnd: contact.current_period_end,
-    isActive,
+    isPaid,
     isTrialing,
+    isFree,
+    isFounding,
     trialDaysLeft,
-    canBrowseDirectory: hasAccess,
+    canBrowseDirectory: true,       // all accepted members
+    canAccessChat: isPaid,
+    canAccessEvents: isPaid,
+    canAccessJobs: isPaid,
     canSendIntro,
-    introsUsedThisMonth,
+    canPostEvents: isFounding,
+    canPostJobs: isFounding,
+    introsUsed,
+    introsLimit,
     introsRemaining,
   };
 }

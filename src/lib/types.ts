@@ -21,6 +21,7 @@ export interface Member {
   cohortTags?: string;
   warmth?: string;
   photoUrl?: string;
+  tier?: string;
 }
 
 export interface ApplicationData {
