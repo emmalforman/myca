@@ -17,6 +17,44 @@ export async function GET() {
 
   const supabase = getSupabaseAdmin();
 
+  // Look up the logged-in user's name from contacts
+  let firstName = "";
+
+  // Try exact email match first
+  let { data: meData } = await supabase
+    .from("contacts")
+    .select("first_name, name")
+    .ilike("email", user.email || "")
+    .limit(1);
+
+  // If not found, try without is_myca_member constraint (some contacts may not have it set)
+  if (!meData?.length) {
+    const { data: altData } = await supabase
+      .from("contacts")
+      .select("first_name, name, email")
+      .order("name")
+      .limit(500);
+    // Try partial email match (e.g. "emmalforman" in "emma@company.com")
+    const emailPrefix = (user.email || "").split("@")[0].toLowerCase();
+    const match = altData?.find((c: any) =>
+      c.email?.toLowerCase().includes(emailPrefix) ||
+      emailPrefix.includes(c.email?.split("@")[0]?.toLowerCase() || "___")
+    );
+    if (match) meData = [match];
+  }
+
+  if (meData?.[0]) {
+    firstName = meData[0].first_name || meData[0].name?.split(" ")[0] || "";
+  }
+
+  // Fallback: try Supabase auth user metadata
+  if (!firstName && user.user_metadata?.full_name) {
+    firstName = user.user_metadata.full_name.split(" ")[0];
+  }
+  if (!firstName && user.user_metadata?.name) {
+    firstName = user.user_metadata.name.split(" ")[0];
+  }
+
   // Fetch recent messages from jobs-asks channel
   const { data: askMessages } = await supabase
     .from("messages")
@@ -44,6 +82,7 @@ export async function GET() {
     .limit(4);
 
   return NextResponse.json({
+    firstName,
     asks: askMessages || [],
     events: events || [],
   });

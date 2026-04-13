@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getAuthenticatedUser, isAdmin, forbiddenResponse } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,22 @@ export async function GET(request: Request) {
 
   if (!email) {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
+  }
+
+  // Auth is best-effort — profile page already requires login via MemberLogin
+  let userEmail: string | null = null;
+  let userIsAdmin = false;
+  try {
+    const user = await getAuthenticatedUser();
+    if (user?.email) {
+      userEmail = user.email;
+      userIsAdmin = isAdmin(user.email);
+    }
+  } catch {}
+
+  // Non-admin users can only view their own profile (when auth works)
+  if (userEmail && email !== userEmail && !userIsAdmin) {
+    return forbiddenResponse();
   }
 
   try {
@@ -48,6 +65,21 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
   }
 
+  // Auth is best-effort for PATCH too
+  let userEmail: string | null = null;
+  let userIsAdmin = false;
+  try {
+    const user = await getAuthenticatedUser();
+    if (user?.email) {
+      userEmail = user.email;
+      userIsAdmin = isAdmin(user.email);
+    }
+  } catch {}
+
+  if (userEmail && email !== userEmail && !userIsAdmin) {
+    return forbiddenResponse();
+  }
+
   const body = await request.json();
 
   // Only allow updating these fields
@@ -76,7 +108,7 @@ export async function PATCH(request: Request) {
     .eq("email", email);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

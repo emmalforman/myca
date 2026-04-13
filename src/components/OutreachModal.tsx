@@ -44,54 +44,36 @@ export default function OutreachModal({
     if (!dmMessage.trim() || !senderEmail) return;
     setSending(true);
 
-    const supabase = getSupabaseBrowser();
-
-    // Create a DM channel ID (sorted emails for consistency)
-    const channelId = `dm:${[senderEmail, member.email].sort().join(":")}`;
-
-    // Send the message
-    await supabase.from("messages").insert({
-      channel: channelId,
-      sender_email: senderEmail,
-      sender_name: senderName || senderEmail.split("@")[0],
-      content: dmMessage.trim(),
-    });
-
-    // Register both users in the DM channel so it shows in their chat sidebar
-    await supabase
-      .from("channel_members")
-      .upsert(
-        [
-          { channel: channelId, email: senderEmail },
-          { channel: channelId, email: member.email },
-        ],
-        { onConflict: "channel,email" }
-      );
-
-    setSent(true);
-    setSending(false);
-    logOutreach();
-  };
-
-  const logOutreach = async () => {
-    if (!senderEmail || !member.id) return;
     try {
-      const supabase = getSupabaseBrowser();
-      const { data: sender } = await supabase
-        .from("contacts")
-        .select("contact_id")
-        .eq("email", senderEmail)
-        .single();
+      const res = await fetch("/api/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientEmail: member.email,
+          recipientId: member.id,
+          message: dmMessage.trim(),
+        }),
+      });
 
-      if (sender) {
-        await supabase.from("introductions").insert({
-          person_a_id: sender.contact_id,
-          person_b_id: member.id,
-          status: "outreach_sent",
-          context: "Direct message via Myca",
-        });
+      if (res.status === 429) {
+        alert("You're sending too many messages. Please slow down and try again later.");
+        setSending(false);
+        return;
       }
-    } catch {}
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to send message");
+        setSending(false);
+        return;
+      }
+
+      setSent(true);
+    } catch {
+      alert("Failed to send message. Please try again.");
+    }
+
+    setSending(false);
   };
 
   return (

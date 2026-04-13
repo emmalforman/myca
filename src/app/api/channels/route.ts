@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 // Auto-join a member to channels based on their profile
 export async function POST(request: Request) {
+  const user = await getAuthenticatedUser();
+  if (!user) return unauthorizedResponse();
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseKey) {
@@ -67,6 +71,9 @@ export async function POST(request: Request) {
 
 // GET channels for a member
 export async function GET(request: Request) {
+  const user = await getAuthenticatedUser();
+  if (!user) return unauthorizedResponse();
+
   const { searchParams } = new URL(request.url);
   const email = searchParams.get("email");
 

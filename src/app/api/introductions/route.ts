@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getAuthenticatedUser, isAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,13 +11,10 @@ function getSupabaseAdmin() {
   );
 }
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const adminKey = searchParams.get("key");
-
-  if (adminKey !== process.env.ADMIN_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function GET() {
+  const user = await getAuthenticatedUser();
+  if (!user) return unauthorizedResponse();
+  if (!isAdmin(user.email)) return forbiddenResponse();
 
   const supabase = getSupabaseAdmin();
 

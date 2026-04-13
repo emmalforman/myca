@@ -47,6 +47,11 @@ function buildMemberContext(members: any[]): string {
 }
 
 export async function POST(request: Request) {
+  // Auth check — only logged-in members can use the bot
+  const { getAuthenticatedUser, unauthorizedResponse } = await import("@/lib/auth");
+  const user = await getAuthenticatedUser();
+  if (!user) return unauthorizedResponse();
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
@@ -61,10 +66,15 @@ export async function POST(request: Request) {
   }
   if (!anthropicKey) {
     return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY not configured" },
+      { error: "API not configured" },
       { status: 500 }
     );
   }
+
+  // Rate limit: 20 bot queries per hour per user
+  const { checkRateLimit, rateLimitResponse } = await import("@/lib/rate-limit");
+  const rl = checkRateLimit({ name: "bot", max: 20, windowSeconds: 3600 }, user.email!);
+  if (!rl.allowed) return rateLimitResponse(rl.resetAt);
 
   const { message, email, history } = await request.json();
 

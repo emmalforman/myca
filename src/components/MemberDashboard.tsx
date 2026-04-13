@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Member } from "@/lib/types";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 interface AskMessage {
   id: string;
@@ -98,22 +99,26 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
 
   useEffect(() => {
     // Fetch members and dashboard feed in parallel
+    // Look up name directly via browser client (same pattern as MemberLogin)
+    const supabase = getSupabaseBrowser();
+    supabase
+      .from("contacts")
+      .select("first_name, name")
+      .eq("email", userEmail)
+      .eq("is_myca_member", true)
+      .limit(1)
+      .then(({ data: meData }) => {
+        const me = meData?.[0];
+        setFirstName(me?.first_name || me?.name?.split(" ")[0] || userEmail.split("@")[0]);
+      });
+
     Promise.all([
       fetch("/api/members").then((r) => r.json()),
       fetch("/api/dashboard").then((r) => r.json()).catch(() => ({ asks: [], events: [] })),
     ]).then(([membersData, feedData]) => {
-      const allMembers: Member[] = membersData.members || [];
-      setMembers(allMembers);
+      setMembers(membersData.members || []);
       setAsks(feedData.asks || []);
       setEvents(feedData.events || []);
-
-      const me = allMembers.find(
-        (m) => m.email?.toLowerCase() === userEmail.toLowerCase()
-      );
-      setFirstName(
-        me?.firstName || me?.name?.split(" ")[0] || userEmail.split("@")[0]
-      );
-
       setLoading(false);
     });
   }, [userEmail]);
@@ -161,7 +166,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
           </svg>
           <div>
             <p className="text-sm font-medium tracking-wide uppercase">Browse Directory</p>
-            <p className="text-[12px] text-forest-400 mt-0.5">Search {members.length} members</p>
+            <p className="text-[12px] text-forest-400 mt-0.5">Search members</p>
           </div>
         </Link>
         <Link
@@ -319,7 +324,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
         <h2 className="text-xl font-serif text-forest-900 mb-5">From Myca</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <a
-            href="https://mycacollective.substack.com"
+            href="https://substack.com/@emmalforman"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-4 p-5 bg-white border border-forest-100 hover:border-forest-300 transition-all group"

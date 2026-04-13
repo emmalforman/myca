@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { fetchMembersFromNotion } from "@/lib/notion";
+import { getAuthenticatedUser, isAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 export async function POST() {
+  const user = await getAuthenticatedUser();
+  if (!user) return unauthorizedResponse();
+  if (!isAdmin(user.email)) return forbiddenResponse();
+
   if (!process.env.NOTION_API_KEY || !process.env.NOTION_DATABASE_ID) {
     return NextResponse.json(
       { error: "Notion is not configured. Set NOTION_API_KEY and NOTION_DATABASE_ID." },

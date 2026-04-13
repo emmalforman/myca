@@ -118,35 +118,35 @@ alter table public.applications enable row level security;
 alter table public.groups enable row level security;
 alter table public.group_members enable row level security;
 
--- Public read for directory
-create policy "Members are viewable by everyone"
-  on public.members for select using (true);
+-- Members: only authenticated users can read
+create policy "Members are viewable by authenticated users"
+  on public.members for select using (auth.role() = 'authenticated');
 
--- Applications: anyone can insert, only admin can read
+-- Applications: anyone can insert (public form), only service role can read
 create policy "Anyone can submit an application"
   on public.applications for insert with check (true);
 
--- Groups: public read, anyone can manage
-create policy "Groups are viewable by everyone"
-  on public.groups for select using (true);
-create policy "Anyone can create groups"
-  on public.groups for insert with check (true);
-create policy "Anyone can delete groups"
-  on public.groups for delete using (true);
+-- Groups: only authenticated users can read and manage
+create policy "Groups are viewable by authenticated users"
+  on public.groups for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can create groups"
+  on public.groups for insert with check (auth.role() = 'authenticated');
+create policy "Authenticated users can delete groups"
+  on public.groups for delete using (auth.role() = 'authenticated');
 
-create policy "Group members are viewable by everyone"
-  on public.group_members for select using (true);
-create policy "Anyone can manage group members"
-  on public.group_members for insert with check (true);
-create policy "Anyone can remove group members"
-  on public.group_members for delete using (true);
+create policy "Group members are viewable by authenticated users"
+  on public.group_members for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can manage group members"
+  on public.group_members for insert with check (auth.role() = 'authenticated');
+create policy "Authenticated users can remove group members"
+  on public.group_members for delete using (auth.role() = 'authenticated');
 
--- Channel requests: anyone can submit, admin reads
+-- Channel requests: anyone can submit, authenticated users can view their own
 alter table public.channel_requests enable row level security;
 create policy "Anyone can request to join a channel"
   on public.channel_requests for insert with check (true);
-create policy "Members can view their own requests"
-  on public.channel_requests for select using (true);
+create policy "Authenticated users can view their own requests"
+  on public.channel_requests for select using (auth.role() = 'authenticated');
 
 -- Enable realtime
 alter publication supabase_realtime add table public.members;
