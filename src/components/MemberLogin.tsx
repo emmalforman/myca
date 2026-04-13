@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, ReactNode, KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import Link from "next/link";
 import OnboardingFlow from "./OnboardingFlow";
@@ -18,6 +19,8 @@ export default function MemberLogin({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [shouldRedirectHome, setShouldRedirectHome] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
@@ -39,6 +42,12 @@ export default function MemberLogin({
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (state === "authenticated" && shouldRedirectHome) {
+      router.push("/");
+    }
+  }, [state, shouldRedirectHome, router]);
 
   const verifyMembership = async (userEmail: string) => {
     const supabase = getSupabaseBrowser();
@@ -95,6 +104,8 @@ export default function MemberLogin({
         } else {
           setError(authError.message);
         }
+      } else {
+        setShouldRedirectHome(true);
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
@@ -121,7 +132,7 @@ export default function MemberLogin({
         email,
         password,
         options: {
-          emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/directory` : undefined,
+          emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/` : undefined,
         },
       });
 
@@ -152,8 +163,9 @@ export default function MemberLogin({
         // Email confirmation is probably required
         setError("Account created! Check your email to confirm, then come back and sign in.");
         setState("login");
+      } else {
+        setShouldRedirectHome(true);
       }
-      // If sign-in succeeded, onAuthStateChange will handle the rest
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -168,7 +180,7 @@ export default function MemberLogin({
 
     try {
       const redirectUrl = typeof window !== "undefined"
-        ? `${window.location.origin}/directory`
+        ? `${window.location.origin}/`
         : undefined;
 
       const { error: resetError } = await getSupabaseBrowser().auth.resetPasswordForEmail(email, {
@@ -215,6 +227,13 @@ export default function MemberLogin({
   }
 
   if (state === "authenticated") {
+    if (shouldRedirectHome) {
+      return (
+        <div className="min-h-[80vh] flex items-center justify-center">
+          <div className="w-8 h-8 border border-forest-200 border-t-forest-600 rounded-full animate-spin" />
+        </div>
+      );
+    }
     return <>{children}</>;
   }
 
