@@ -5,14 +5,18 @@ import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/auth";
 const ALLOWED_HOSTS = [
   "lu.ma",
   "www.lu.ma",
+  "luma.com",
+  "www.luma.com",
+  "luma.co",
+  "www.luma.co",
   "partiful.com",
   "www.partiful.com",
   "eventbrite.com",
   "www.eventbrite.com",
   "instagram.com",
   "www.instagram.com",
-  "luma.co",
-  "www.luma.co",
+  "resy.com",
+  "www.resy.com",
 ];
 
 function isAllowedUrl(urlString: string): boolean {
@@ -122,12 +126,75 @@ export async function POST(request: NextRequest) {
       } catch {}
     }
 
-    // Parse dates from JSON-LD
+    // Try __NEXT_DATA__ for Luma/Partiful (fallback when no JSON-LD)
+    if (!eventData["@type"]) {
+      const nextDataMatch = html.match(
+        /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/
+      );
+      if (nextDataMatch) {
+        try {
+          const nd = JSON.parse(nextDataMatch[1]);
+          const pp = nd?.props?.pageProps || {};
+
+          // Luma: pageProps.initialData.data
+          const lumaData = pp?.initialData?.data;
+          if (lumaData?.event) {
+            const ev = lumaData.event;
+            eventData = {
+              name: ev.name,
+              startDate: lumaData.start_at || ev.start_at,
+              endDate: ev.end_at,
+            };
+            // Luma hosts array
+            if (Array.isArray(lumaData.hosts) && lumaData.hosts.length) {
+              eventData.organizer = lumaData.hosts.map((h: any) => ({
+                name: h.name,
+              }));
+            }
+            // Luma location
+            const geo = ev.geo_address_info;
+            if (geo?.city_state) {
+              eventData.location = geo.city_state;
+            }
+            // Luma cover image
+            if (!imageUrl && ev.cover_url) {
+              imageUrl = ev.cover_url;
+            }
+          }
+
+          // Partiful: pageProps.event
+          const partifulEvent = pp?.event;
+          if (partifulEvent?.title && !eventData.name) {
+            eventData.name = partifulEvent.title;
+            eventData.startDate = partifulEvent.startDate;
+            eventData.endDate = partifulEvent.endDate || null;
+            if (partifulEvent.locationInfo?.mapsInfo) {
+              const mi = partifulEvent.locationInfo.mapsInfo;
+              eventData.location = {
+                name: mi.name,
+                address: { streetAddress: mi.addressLines?.[0] || "" },
+              };
+            }
+            if (Array.isArray(pp.hosts) && pp.hosts.length) {
+              eventData.organizer = pp.hosts.map((h: any) => ({
+                name: h.name,
+              }));
+            }
+            if (partifulEvent.description) {
+              eventData.description = partifulEvent.description;
+            }
+          }
+        } catch {}
+      }
+    }
+
+    // Parse dates
     let date: string | null = null;
     let startTime: string | null = null;
     let endTime: string | null = null;
-    if (eventData.startDate) {
-      const dt = new Date(eventData.startDate);
+    const startDateStr = eventData.startDate;
+    if (startDateStr) {
+      const dt = new Date(startDateStr);
       if (!isNaN(dt.getTime())) {
         date = dt.toISOString().split("T")[0];
         startTime = dt.toLocaleTimeString("en-US", {
@@ -138,8 +205,9 @@ export async function POST(request: NextRequest) {
         });
       }
     }
-    if (eventData.endDate) {
-      const dt = new Date(eventData.endDate);
+    const endDateStr = eventData.endDate;
+    if (endDateStr) {
+      const dt = new Date(endDateStr);
       if (!isNaN(dt.getTime())) {
         endTime = dt.toLocaleTimeString("en-US", {
           hour: "numeric",
@@ -150,7 +218,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Location from JSON-LD
+    // Location
     let location: string | null = null;
     if (eventData.location) {
       if (typeof eventData.location === "string") {
@@ -167,7 +235,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Host/organizer from JSON-LD
+    // Host/organizer
     let host: string | null = null;
     if (eventData.organizer) {
       if (typeof eventData.organizer === "string") {
@@ -179,9 +247,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Clean title — strip " · Luma" or " | Partiful" suffixes
+    let cleanTitle = eventData.name || title || null;
+    if (cleanTitle) {
+      cleanTitle = cleanTitle
+        .replace(/\s*[·|]\s*(Luma|Partiful)\s*$/i, "")
+        .trim();
+    }
+
     return NextResponse.json({
       imageUrl: imageUrl || null,
-      title: eventData.name || title || null,
+      title: cleanTitle,
       description: eventData.description || description || null,
       date,
       startTime,
