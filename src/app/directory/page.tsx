@@ -19,7 +19,18 @@ export default function DirectoryPage() {
     fetch("/api/members")
       .then((r) => r.json())
       .then((data) => {
-        if (data.members?.length) setMembers(data.members);
+        if (data.members?.length) {
+          setMembers(data.members);
+          // Open member profile if linked from dashboard (?member=id)
+          const params = new URLSearchParams(window.location.search);
+          const memberId = params.get("member");
+          if (memberId) {
+            const found = data.members.find(
+              (m: Member) => m.id === memberId
+            );
+            if (found) setPreviewMember(found);
+          }
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));

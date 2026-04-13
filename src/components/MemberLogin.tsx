@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, ReactNode, KeyboardEvent } from "react";
+import { useState, useEffect, useRef, ReactNode, KeyboardEvent } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import Link from "next/link";
 import OnboardingFlow from "./OnboardingFlow";
@@ -44,7 +44,7 @@ export default function MemberLogin({
     const supabase = getSupabaseBrowser();
     const { data } = await supabase
       .from("contacts")
-      .select("contact_id, skills, interests")
+      .select("contact_id, name, company, role, occupation_type, location, linkedin, instagram, skills, interests, superpower, photo_url")
       .eq("email", userEmail)
       .eq("is_myca_member", true)
       .limit(1);
@@ -62,10 +62,15 @@ export default function MemberLogin({
       if (!onboarded || onboarded.length === 0) {
         setState("onboarding");
       } else {
-        // Check if profile has at least 1 skill and 1 interest
-        const hasSkills = !!(data[0].skills && data[0].skills.trim());
-        const hasInterests = !!(data[0].interests && data[0].interests.trim());
-        if (!hasSkills || !hasInterests) {
+        // Check if all required profile fields are filled
+        const p = data[0];
+        const has = (v: any) => !!(v && String(v).trim());
+        const profileComplete =
+          has(p.name) && has(p.company) && has(p.role) &&
+          has(p.occupation_type) && has(p.location) && has(p.linkedin) &&
+          has(p.instagram) && has(p.skills) && has(p.interests) &&
+          has(p.superpower) && has(p.photo_url);
+        if (!profileComplete) {
           setState("profile-incomplete");
         } else {
           setState("authenticated");
@@ -463,6 +468,23 @@ function MiniTagInput({
   );
 }
 
+const OCCUPATIONS = ["Founder", "Operator", "Investor", "Creator", "Media", "Advisor", "Other"];
+
+interface ProfileFields {
+  name: string;
+  company: string;
+  role: string;
+  occupation_type: string;
+  location: string;
+  linkedin: string;
+  instagram: string;
+  substack: string;
+  superpower: string;
+  skills: string;
+  interests: string;
+  photo_url: string;
+}
+
 function ProfileCompleter({
   email,
   onComplete,
@@ -470,24 +492,91 @@ function ProfileCompleter({
   email: string;
   onComplete: () => void;
 }) {
+  const [fields, setFields] = useState<ProfileFields>({
+    name: "", company: "", role: "", occupation_type: "", location: "",
+    linkedin: "", instagram: "", substack: "", superpower: "", skills: "", interests: "", photo_url: "",
+  });
   const [skills, setSkills] = useState<string[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
-  // Load existing values
   useEffect(() => {
     getSupabaseBrowser()
       .from("contacts")
-      .select("skills, interests")
+      .select("name, company, role, occupation_type, location, linkedin, instagram, substack, superpower, skills, interests, photo_url")
       .eq("email", email)
       .single()
       .then(({ data }) => {
-        if (data?.skills) setSkills(parseTags(data.skills));
-        if (data?.interests) setInterests(parseTags(data.interests));
+        if (data) {
+          setFields({
+            name: data.name || "",
+            company: data.company || "",
+            role: data.role || "",
+            occupation_type: data.occupation_type || "",
+            location: data.location || "",
+            linkedin: data.linkedin || "",
+            instagram: data.instagram || "",
+            substack: data.substack || "",
+            superpower: data.superpower || "",
+            skills: data.skills || "",
+            interests: data.interests || "",
+            photo_url: data.photo_url || "",
+          });
+          if (data.skills) setSkills(parseTags(data.skills));
+          if (data.interests) setInterests(parseTags(data.interests));
+
+          // Capture which fields are missing at load time (frozen list)
+          const missing: string[] = [];
+          if (!data.name?.trim()) missing.push("name");
+          if (!data.company?.trim()) missing.push("company");
+          if (!data.role?.trim()) missing.push("role");
+          if (!data.occupation_type?.trim()) missing.push("occupation_type");
+          if (!data.location?.trim()) missing.push("location");
+          if (!data.linkedin?.trim()) missing.push("linkedin");
+          if (!data.instagram?.trim()) missing.push("instagram");
+          if (!data.substack?.trim()) missing.push("substack");
+          if (!data.superpower?.trim()) missing.push("superpower");
+          if (!data.skills?.trim()) missing.push("skills");
+          if (!data.interests?.trim()) missing.push("interests");
+          if (!data.photo_url?.trim()) missing.push("photo_url");
+          setMissingFields(missing);
+        }
+        setLoadingProfile(false);
       });
   }, [email]);
 
-  const canSave = skills.length >= 1 && interests.length >= 1;
+  const set = (key: keyof ProfileFields, val: string) => {
+    setFields((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const has = (v: string) => !!v.trim();
+  const isUrl = (v: string) => {
+    try { return !!v.trim() && new URL(v.trim()).protocol.startsWith("http"); }
+    catch { return false; }
+  };
+  const substackValid = !fields.substack.trim() || isUrl(fields.substack);
+  const canSave =
+    has(fields.name) && has(fields.company) && has(fields.role) &&
+    has(fields.occupation_type) && has(fields.location) && isUrl(fields.linkedin) &&
+    isUrl(fields.instagram) && skills.length >= 1 && interests.length >= 1 &&
+    has(fields.superpower) && has(fields.photo_url) && substackValid;
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoPreview(URL.createObjectURL(file));
+    const formData = new FormData();
+    formData.append("photo", file);
+    const res = await fetch("/api/upload", { method: "POST", body: formData });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.url) set("photo_url", data.url);
+    }
+  };
 
   const handleSave = async () => {
     if (!canSave) return;
@@ -497,6 +586,7 @@ function ProfileCompleter({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        ...fields,
         skills: tagsToStr(skills),
         interests: tagsToStr(interests),
       }),
@@ -506,57 +596,150 @@ function ProfileCompleter({
     onComplete();
   };
 
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen bg-ivory flex items-center justify-center">
+        <div className="w-8 h-8 border border-forest-200 border-t-forest-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const inputClass = "w-full px-4 py-3 text-[14px] border border-ink-200 bg-white text-ink-900 placeholder-ink-300 focus:outline-none focus:border-forest-400 transition-colors";
+  const labelClass = "text-[10px] uppercase tracking-[0.15em] text-ink-400 font-mono mb-2 block";
+  const req = (filled: boolean) => !filled ? <span className="ml-2 text-[9px] text-rust-500 normal-case tracking-normal">Required</span> : null;
+
   return (
-    <div className="min-h-screen bg-ivory flex items-center justify-center px-6">
+    <div className="min-h-screen bg-ivory flex items-center justify-center px-6 py-10">
       <div className="w-full max-w-lg">
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <p className="text-[11px] uppercase tracking-[0.3em] text-forest-500 font-mono mb-3">
             Complete Your Profile
           </p>
           <h1 className="text-3xl font-serif text-ink-900 mb-3">
-            Add your skills &amp; interests.
+            Fill in the gaps.
           </h1>
           <p className="text-[14px] text-ink-400">
-            This helps us connect you with the right people. Add at least one of each.
+            All fields below are required to access the community.
           </p>
         </div>
 
-        <div className="space-y-6">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-mono mb-3">
-              Skills
-              {skills.length === 0 && (
-                <span className="ml-2 text-[9px] text-rust-500 normal-case tracking-normal">
-                  Add at least 1
-                </span>
-              )}
-            </p>
-            <MiniTagInput
-              tags={skills}
-              setTags={setSkills}
-              suggestions={SKILL_SUGGESTIONS}
-              placeholder="Type a skill and press Enter..."
-              color="forest"
-            />
-          </div>
+        <div className="space-y-5">
+          {/* Photo */}
+          {missingFields.includes("photo_url") && (
+            <div>
+              <label className={labelClass}>Photo {req(has(fields.photo_url))}</label>
+              <div className="flex items-center gap-4">
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-20 h-20 bg-cream border border-ink-200 overflow-hidden cursor-pointer hover:opacity-80 flex-shrink-0"
+                >
+                  {photoPreview || fields.photo_url ? (
+                    <img src={photoPreview || fields.photo_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-ink-300 text-[11px] font-mono">Upload</div>
+                  )}
+                </div>
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="text-[12px] text-forest-700 underline">
+                  Upload photo
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+              </div>
+            </div>
+          )}
 
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-mono mb-3">
-              Interests
-              {interests.length === 0 && (
-                <span className="ml-2 text-[9px] text-rust-500 normal-case tracking-normal">
-                  Add at least 1
-                </span>
+          {missingFields.includes("name") && (
+            <div>
+              <label className={labelClass}>Full Name {req(has(fields.name))}</label>
+              <input type="text" value={fields.name} onChange={(e) => set("name", e.target.value)} placeholder="Your name" className={inputClass} />
+            </div>
+          )}
+
+          {missingFields.includes("company") && (
+            <div>
+              <label className={labelClass}>Company {req(has(fields.company))}</label>
+              <input type="text" value={fields.company} onChange={(e) => set("company", e.target.value)} placeholder="Where do you work?" className={inputClass} />
+            </div>
+          )}
+
+          {missingFields.includes("role") && (
+            <div>
+              <label className={labelClass}>Title {req(has(fields.role))}</label>
+              <input type="text" value={fields.role} onChange={(e) => set("role", e.target.value)} placeholder="Your job title" className={inputClass} />
+            </div>
+          )}
+
+          {missingFields.includes("occupation_type") && (
+            <div>
+              <label className={labelClass}>Role Type {req(has(fields.occupation_type))}</label>
+              <div className="flex flex-wrap gap-1.5">
+                {OCCUPATIONS.map((occ) => (
+                  <button key={occ} type="button" onClick={() => set("occupation_type", occ)}
+                    className={`px-3.5 py-1.5 text-[12px] tracking-wide transition-all ${
+                      fields.occupation_type === occ ? "bg-forest-900 text-cream" : "bg-white text-ink-500 border border-ink-200 hover:border-forest-400"
+                    }`}
+                  >{occ}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {missingFields.includes("location") && (
+            <div>
+              <label className={labelClass}>Location {req(has(fields.location))}</label>
+              <input type="text" value={fields.location} onChange={(e) => set("location", e.target.value)} placeholder="e.g. New York" className={inputClass} />
+            </div>
+          )}
+
+          {missingFields.includes("linkedin") && (
+            <div>
+              <label className={labelClass}>LinkedIn {req(isUrl(fields.linkedin))}</label>
+              <input type="url" value={fields.linkedin} onChange={(e) => set("linkedin", e.target.value)} placeholder="https://linkedin.com/in/..." className={inputClass} />
+              {fields.linkedin.trim() && !isUrl(fields.linkedin) && (
+                <p className="text-[11px] text-rust-500 mt-1">Enter a valid URL starting with https://</p>
               )}
-            </p>
-            <MiniTagInput
-              tags={interests}
-              setTags={setInterests}
-              suggestions={INTEREST_SUGGESTIONS}
-              placeholder="Type an interest and press Enter..."
-              color="clay"
-            />
-          </div>
+            </div>
+          )}
+
+          {missingFields.includes("instagram") && (
+            <div>
+              <label className={labelClass}>Instagram {req(isUrl(fields.instagram))}</label>
+              <input type="url" value={fields.instagram} onChange={(e) => set("instagram", e.target.value)} placeholder="https://instagram.com/yourhandle" className={inputClass} />
+              {fields.instagram.trim() && !isUrl(fields.instagram) && (
+                <p className="text-[11px] text-rust-500 mt-1">Enter a valid URL starting with https://</p>
+              )}
+            </div>
+          )}
+
+          {missingFields.includes("substack") && (
+            <div>
+              <label className={labelClass}>Newsletter <span className="text-[9px] text-ink-300 normal-case tracking-normal ml-1">Optional</span></label>
+              <input type="url" value={fields.substack} onChange={(e) => set("substack", e.target.value)} placeholder="https://yourname.substack.com" className={inputClass} />
+              {fields.substack.trim() && !isUrl(fields.substack) && (
+                <p className="text-[11px] text-rust-500 mt-1">Enter a valid URL starting with https://</p>
+              )}
+            </div>
+          )}
+
+          {missingFields.includes("superpower") && (
+            <div>
+              <label className={labelClass}>Your Superpower {req(has(fields.superpower))}</label>
+              <input type="text" value={fields.superpower} onChange={(e) => set("superpower", e.target.value)} placeholder="What are you known for?" className={inputClass} />
+            </div>
+          )}
+
+          {missingFields.includes("skills") && (
+            <div>
+              <label className={labelClass}>Skills {req(skills.length > 0)}</label>
+              <MiniTagInput tags={skills} setTags={setSkills} suggestions={SKILL_SUGGESTIONS} placeholder="Type a skill and press Enter..." color="forest" />
+            </div>
+          )}
+
+          {missingFields.includes("interests") && (
+            <div>
+              <label className={labelClass}>Interests {req(interests.length > 0)}</label>
+              <MiniTagInput tags={interests} setTags={setInterests} suggestions={INTEREST_SUGGESTIONS} placeholder="Type an interest and press Enter..." color="clay" />
+            </div>
+          )}
         </div>
 
         <button
@@ -564,7 +747,7 @@ function ProfileCompleter({
           disabled={!canSave || saving}
           className="w-full mt-8 py-3.5 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          {saving ? "Saving..." : canSave ? "Continue to Myca" : "Add at least 1 skill and 1 interest"}
+          {saving ? "Saving..." : canSave ? "Continue to Myca" : "Fill in all required fields"}
         </button>
       </div>
     </div>

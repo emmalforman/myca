@@ -73,6 +73,7 @@ export default function JoinPage() {
     referredByEmail: "",
     hopingToGet: "",
     excitedToContribute: "",
+    website_url: "",
   });
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -121,7 +122,7 @@ export default function JoinPage() {
   }, [referralQuery, allMembers]);
 
   const selectReferral = (member: MemberResult) => {
-    setForm((f) => ({
+    setForm((f: any) => ({
       ...f,
       referredByName: member.name,
       referredByEmail: member.email,
@@ -168,6 +169,7 @@ export default function JoinPage() {
             form.location === "Other" ? form.locationOther : form.location,
           ],
           photoUrl,
+          website_url: form.website_url, // honeypot
         }),
       });
 
@@ -214,6 +216,19 @@ export default function JoinPage() {
     <div className="bg-parchment min-h-screen">
       <div className="max-w-xl mx-auto px-6 py-16 sm:py-24">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Honeypot - hidden from humans, bots will fill it */}
+          <div className="absolute opacity-0 top-0 left-0 h-0 w-0 -z-10" aria-hidden="true">
+            <label htmlFor="website_url">Website</label>
+            <input
+              type="text"
+              id="website_url"
+              name="website_url"
+              tabIndex={-1}
+              autoComplete="off"
+              value={form.website_url}
+              onChange={(e) => setForm((f: any) => ({ ...f, website_url: e.target.value }))}
+            />
+          </div>
           {/* Name */}
           <div>
             <p className={labelClass}>Name</p>
@@ -227,7 +242,7 @@ export default function JoinPage() {
                   required
                   value={form.firstName}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, firstName: e.target.value }))
+                    setForm((f: any) => ({ ...f, firstName: e.target.value }))
                   }
                   className={inputClass}
                 />
@@ -241,7 +256,7 @@ export default function JoinPage() {
                   required
                   value={form.lastName}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, lastName: e.target.value }))
+                    setForm((f: any) => ({ ...f, lastName: e.target.value }))
                   }
                   className={inputClass}
                 />
@@ -260,7 +275,7 @@ export default function JoinPage() {
                 required
                 value={form.company}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, company: e.target.value }))
+                  setForm((f: any) => ({ ...f, company: e.target.value }))
                 }
                 className={inputClass}
               />
@@ -274,7 +289,7 @@ export default function JoinPage() {
                 required
                 value={form.title}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, title: e.target.value }))
+                  setForm((f: any) => ({ ...f, title: e.target.value }))
                 }
                 className={inputClass}
               />
@@ -292,7 +307,7 @@ export default function JoinPage() {
               required
               value={form.occupation}
               onChange={(e) =>
-                setForm((f) => ({ ...f, occupation: e.target.value }))
+                setForm((f: any) => ({ ...f, occupation: e.target.value }))
               }
               placeholder="Founder, investor, operator, creative..."
               className={inputClass}
@@ -309,7 +324,7 @@ export default function JoinPage() {
                 required
                 value={form.industryFocus}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, industryFocus: e.target.value }))
+                  setForm((f: any) => ({ ...f, industryFocus: e.target.value }))
                 }
                 className={`${inputClass} appearance-none cursor-pointer pr-10`}
               >
@@ -333,7 +348,7 @@ export default function JoinPage() {
               type="text"
               value={form.skills}
               onChange={(e) =>
-                setForm((f) => ({ ...f, skills: e.target.value }))
+                setForm((f: any) => ({ ...f, skills: e.target.value }))
               }
               placeholder="e.g. Brand strategy, fundraising, retail distribution..."
               className={inputClass}
@@ -351,7 +366,7 @@ export default function JoinPage() {
                   key={lvl}
                   type="button"
                   onClick={() =>
-                    setForm((f) => ({ ...f, yearsExperience: lvl }))
+                    setForm((f: any) => ({ ...f, yearsExperience: lvl }))
                   }
                   className={`px-4 py-2 text-[13px] border transition-colors rounded-full ${
                     form.yearsExperience === lvl
@@ -376,7 +391,7 @@ export default function JoinPage() {
                 required
                 value={form.linkedin}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, linkedin: e.target.value }))
+                  setForm((f: any) => ({ ...f, linkedin: e.target.value }))
                 }
                 placeholder="https://linkedin.com/in/..."
                 className={inputClass}
@@ -388,7 +403,7 @@ export default function JoinPage() {
                 type="text"
                 value={form.instagram}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, instagram: e.target.value }))
+                  setForm((f: any) => ({ ...f, instagram: e.target.value }))
                 }
                 placeholder="@handle"
                 className={inputClass}
@@ -403,7 +418,7 @@ export default function JoinPage() {
               type="url"
               value={form.website}
               onChange={(e) =>
-                setForm((f) => ({ ...f, website: e.target.value }))
+                setForm((f: any) => ({ ...f, website: e.target.value }))
               }
               placeholder="https://..."
               className={inputClass}
@@ -421,7 +436,7 @@ export default function JoinPage() {
                 required
                 value={form.email}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, email: e.target.value }))
+                  setForm((f: any) => ({ ...f, email: e.target.value }))
                 }
                 className={inputClass}
               />
@@ -435,7 +450,7 @@ export default function JoinPage() {
                 required
                 value={form.phone}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, phone: e.target.value }))
+                  setForm((f: any) => ({ ...f, phone: e.target.value }))
                 }
                 className={inputClass}
               />
@@ -453,7 +468,7 @@ export default function JoinPage() {
                 required
                 value={form.location}
                 onChange={(e) =>
-                  setForm((f) => ({
+                  setForm((f: any) => ({
                     ...f,
                     location: e.target.value,
                     locationOther: e.target.value === "Other" ? f.locationOther : "",
@@ -475,7 +490,7 @@ export default function JoinPage() {
                 type="text"
                 value={form.locationOther}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, locationOther: e.target.value }))
+                  setForm((f: any) => ({ ...f, locationOther: e.target.value }))
                 }
                 placeholder="Enter your city"
                 required
@@ -495,7 +510,7 @@ export default function JoinPage() {
               required
               value={form.comfortFood}
               onChange={(e) =>
-                setForm((f) => ({ ...f, comfortFood: e.target.value }))
+                setForm((f: any) => ({ ...f, comfortFood: e.target.value }))
               }
               className={inputClass}
             />
@@ -512,7 +527,7 @@ export default function JoinPage() {
                 required
                 value={form.referralSource}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, referralSource: e.target.value }))
+                  setForm((f: any) => ({ ...f, referralSource: e.target.value }))
                 }
                 className={`${inputClass} appearance-none cursor-pointer pr-10`}
               >
@@ -538,7 +553,7 @@ export default function JoinPage() {
                   setReferralQuery(e.target.value);
                   setShowReferralDropdown(true);
                   if (!e.target.value) {
-                    setForm((f) => ({
+                    setForm((f: any) => ({
                       ...f,
                       referredByName: "",
                       referredByEmail: "",
@@ -587,7 +602,7 @@ export default function JoinPage() {
               required
               value={form.hopingToGet}
               onChange={(e) =>
-                setForm((f) => ({ ...f, hopingToGet: e.target.value }))
+                setForm((f: any) => ({ ...f, hopingToGet: e.target.value }))
               }
               rows={4}
               className={textareaClass}
@@ -604,7 +619,7 @@ export default function JoinPage() {
               required
               value={form.excitedToContribute}
               onChange={(e) =>
-                setForm((f) => ({
+                setForm((f: any) => ({
                   ...f,
                   excitedToContribute: e.target.value,
                 }))

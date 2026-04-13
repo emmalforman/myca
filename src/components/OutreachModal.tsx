@@ -18,13 +18,7 @@ export default function OutreachModal({
     (member.firstName?.[0] ?? displayName?.[0] ?? "") +
     (member.lastName?.[0] ?? displayName?.split(" ")[1]?.[0] ?? "");
 
-  const [mode, setMode] = useState<"choose" | "email" | "dm">("choose");
-  const [subject, setSubject] = useState(
-    `Connecting via Myca — ${firstName}`
-  );
-  const [emailBody, setEmailBody] = useState(
-    `Hi ${firstName},\n\nI came across your profile in the Myca Collective and would love to connect.\n\n`
-  );
+  const [mode, setMode] = useState<"dm" | "sent">("dm");
   const [dmMessage, setDmMessage] = useState("");
   const [sent, setSent] = useState(false);
   const [senderEmail, setSenderEmail] = useState("");
@@ -46,69 +40,40 @@ export default function OutreachModal({
     });
   }, []);
 
-  const handleGmail = async () => {
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(member.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-    window.open(gmailUrl, "_blank");
-    setSent(true);
-    logOutreach();
-  };
-
   const handleDM = async () => {
     if (!dmMessage.trim() || !senderEmail) return;
     setSending(true);
 
-    const supabase = getSupabaseBrowser();
-
-    // Create a DM channel ID (sorted emails for consistency)
-    const channelId = `dm:${[senderEmail, member.email].sort().join(":")}`;
-
-    // Send the message
-    await supabase.from("messages").insert({
-      channel: channelId,
-      sender_email: senderEmail,
-      sender_name: senderName || senderEmail.split("@")[0],
-      content: dmMessage.trim(),
-    });
-
-    // Register both users in the DM channel so it shows in their chat sidebar
-    await supabase
-      .from("channel_members")
-      .upsert(
-        [
-          { channel: channelId, email: senderEmail },
-          { channel: channelId, email: member.email },
-        ],
-        { onConflict: "channel,email" }
-      );
-
-    setSent(true);
-    setSending(false);
-    logOutreach();
-  };
-
-  const logOutreach = async () => {
-    if (!senderEmail || !member.id) return;
     try {
-      const supabase = getSupabaseBrowser();
-      const { data: sender } = await supabase
-        .from("contacts")
-        .select("contact_id")
-        .eq("email", senderEmail)
-        .single();
+      const res = await fetch("/api/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientEmail: member.email,
+          recipientId: member.id,
+          message: dmMessage.trim(),
+        }),
+      });
 
-      if (sender) {
-        await supabase.from("introductions").insert({
-          person_a_id: sender.contact_id,
-          person_b_id: member.id,
-          status: "outreach_sent",
-          context: mode === "dm" ? "Direct message via Myca" : `Email: "${subject}"`,
-        });
+      if (res.status === 429) {
+        alert("You're sending too many messages. Please slow down and try again later.");
+        setSending(false);
+        return;
       }
-    } catch {}
-  };
 
-  const handleCopyEmail = () => {
-    navigator.clipboard.writeText(member.email);
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to send message");
+        setSending(false);
+        return;
+      }
+
+      setSent(true);
+    } catch {
+      alert("Failed to send message. Please try again.");
+    }
+
+    setSending(false);
   };
 
   return (
@@ -159,13 +124,9 @@ export default function OutreachModal({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="font-serif text-lg text-ink-900 mb-1">
-                {mode === "dm" ? "Message sent!" : "Gmail opened!"}
-              </p>
+              <p className="font-serif text-lg text-ink-900 mb-1">Message sent!</p>
               <p className="text-[13px] text-ink-400">
-                {mode === "dm"
-                  ? `${firstName} will see your message in their Myca inbox.`
-                  : "Your email should be ready to send."}
+                {firstName} will see your message in their Myca inbox.
               </p>
               <button
                 onClick={onClose}
@@ -174,52 +135,7 @@ export default function OutreachModal({
                 Done
               </button>
             </div>
-          ) : mode === "choose" ? (
-            /* Choose method */
-            <div className="space-y-3">
-              <button
-                onClick={() => setMode("dm")}
-                className="w-full p-4 text-left border border-ink-200 hover:border-forest-400 transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-forest-50 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-forest-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-[14px] text-ink-900 font-medium">Direct Message</p>
-                    <p className="text-[12px] text-ink-400">Message {firstName} on Myca</p>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setMode("email")}
-                className="w-full p-4 text-left border border-ink-200 hover:border-forest-400 transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-clay-50 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-clay-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-[14px] text-ink-900 font-medium">Email via Gmail</p>
-                    <p className="text-[12px] text-ink-400">Opens in Gmail with a draft</p>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={handleCopyEmail}
-                className="w-full py-2 text-[12px] text-ink-400 hover:text-ink-600 transition-colors text-center font-mono"
-              >
-                Copy email: {member.email}
-              </button>
-            </div>
-          ) : mode === "dm" ? (
-            /* Direct message */
+          ) : (
             <>
               <div className="mb-4">
                 <label className="block text-[11px] uppercase tracking-wider text-ink-400 font-mono mb-2">
@@ -234,61 +150,13 @@ export default function OutreachModal({
                   className="w-full px-4 py-3 text-[14px] border border-ink-200 focus:outline-none focus:border-forest-400 resize-none text-ink-900 placeholder-ink-300"
                 />
               </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setMode("choose")}
-                  className="flex-1 py-3 text-[12px] uppercase tracking-wider text-ink-500 border border-ink-200 hover:border-ink-400 transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleDM}
-                  disabled={!dmMessage.trim() || sending}
-                  className="flex-1 py-3 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 disabled:opacity-40 transition-colors"
-                >
-                  {sending ? "Sending..." : "Send Message"}
-                </button>
-              </div>
-            </>
-          ) : (
-            /* Email via Gmail */
-            <>
-              <div className="mb-3">
-                <label className="block text-[11px] uppercase tracking-wider text-ink-400 font-mono mb-2">
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="w-full px-4 py-2.5 text-[14px] border border-ink-200 focus:outline-none focus:border-forest-400 text-ink-900"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-[11px] uppercase tracking-wider text-ink-400 font-mono mb-2">
-                  Message
-                </label>
-                <textarea
-                  value={emailBody}
-                  onChange={(e) => setEmailBody(e.target.value)}
-                  rows={5}
-                  className="w-full px-4 py-2.5 text-[14px] border border-ink-200 focus:outline-none focus:border-forest-400 resize-none text-ink-900"
-                />
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setMode("choose")}
-                  className="flex-1 py-3 text-[12px] uppercase tracking-wider text-ink-500 border border-ink-200 hover:border-ink-400 transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleGmail}
-                  className="flex-1 py-3 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 transition-colors"
-                >
-                  Open in Gmail
-                </button>
-              </div>
+              <button
+                onClick={handleDM}
+                disabled={!dmMessage.trim() || sending}
+                className="w-full py-3 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 disabled:opacity-40 transition-colors"
+              >
+                {sending ? "Sending..." : "Send Message"}
+              </button>
             </>
           )}
         </div>

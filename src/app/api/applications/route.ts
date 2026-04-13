@@ -11,7 +11,7 @@ function getSupabaseAdmin() {
   return createClient(url, key);
 }
 
-// GET all applications
+// GET all applications — admin only
 export async function GET() {
   const user = await getAuthenticatedUser();
   if (!user) return unauthorizedResponse();
@@ -34,7 +34,7 @@ export async function GET() {
   return NextResponse.json({ applications: data });
 }
 
-// PATCH accept or reject an application
+// PATCH accept or reject an application — admin only
 export async function PATCH(request: Request) {
   const user = await getAuthenticatedUser();
   if (!user) return unauthorizedResponse();

@@ -1,11 +1,33 @@
 import { NextResponse } from "next/server";
+import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/auth";
 
 export async function POST(request: Request) {
+  const user = await getAuthenticatedUser();
+  if (!user) return unauthorizedResponse();
+
   const formData = await request.formData();
   const file = formData.get("photo") as File;
 
   if (!file) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
+  }
+
+  // Validate file type
+  const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return NextResponse.json(
+      { error: "Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed." },
+      { status: 400 }
+    );
+  }
+
+  // Validate file size (5MB max)
+  const MAX_SIZE = 5 * 1024 * 1024;
+  if (file.size > MAX_SIZE) {
+    return NextResponse.json(
+      { error: "File too large. Maximum size is 5MB." },
+      { status: 400 }
+    );
   }
 
   // Upload to Supabase Storage if configured

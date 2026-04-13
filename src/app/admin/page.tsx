@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 interface Application {
   id: string;
@@ -127,14 +128,117 @@ function IntroList({ intros, formatDate }: { intros: Introduction[]; formatDate:
   );
 }
 
+function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSubmitting(true);
+    try {
+      const { error: authError } = await getSupabaseBrowser().auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (authError) {
+        setError(authError.message);
+      } else {
+        onSuccess();
+      }
+    } catch {
+      setError("Something went wrong.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-[80vh] flex items-center justify-center px-6">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-clay-500 font-mono mb-4">
+            Admin
+          </p>
+          <h1 className="text-3xl font-serif text-ink-900 mb-3">
+            Myca Dashboard
+          </h1>
+          <p className="text-[14px] text-ink-400">
+            Sign in with your admin account.
+          </p>
+        </div>
+        <form onSubmit={handleLogin}>
+          <div className="space-y-3">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              required
+              autoFocus
+              className="w-full px-4 py-3 text-[14px] border border-ink-200 bg-white text-ink-900 placeholder-ink-300 focus:outline-none focus:border-forest-400"
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              required
+              className="w-full px-4 py-3 text-[14px] border border-ink-200 bg-white text-ink-900 placeholder-ink-300 focus:outline-none focus:border-forest-400"
+            />
+          </div>
+          {error && (
+            <p className="text-[13px] text-rust-500 mt-3">{error}</p>
+          )}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full mt-4 py-3 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-700 disabled:opacity-50 transition-colors"
+          >
+            {submitting ? "..." : "Sign In"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+interface EventItem {
+  id: string;
+  title: string;
+  host: string | null;
+  hostCompany: string | null;
+  description: string | null;
+  date: string;
+  startTime: string | null;
+  endTime: string | null;
+  location: string | null;
+  city: string | null;
+  rsvpUrl: string | null;
+  rsvpPlatform: string | null;
+  coverImageUrl: string | null;
+  source: string | null;
+  submittedByName: string | null;
+  submittedByEmail: string | null;
+  isMycaMemberEvent: boolean;
+  isFeatured: boolean;
+  status: string;
+  personalNote: string | null;
+  createdAt: string;
+}
+
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
-  const [tab, setTab] = useState<"applications" | "my-intros" | "member-outreach">("applications");
+  const [tab, setTab] = useState<"applications" | "events" | "my-intros" | "member-outreach">("applications");
   const [applications, setApplications] = useState<Application[]>([]);
   const [introductions, setIntroductions] = useState<Introduction[]>([]);
+  const [pendingEvents, setPendingEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [appFilter, setAppFilter] = useState<"all" | "pending" | "accepted" | "rejected">("pending");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [eventFilter, setEventFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
 
   const fetchApps = async () => {
     setLoading(true);
@@ -156,6 +260,44 @@ export default function AdminPage() {
     }
   };
 
+  const fetchEvents = async () => {
+    try {
+      const res = await fetch("/api/events?all=true");
+      if (res.ok) {
+        const data = await res.json();
+        setPendingEvents(data.events || []);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleEventAction = async (id: string, status: "approved" | "rejected") => {
+    const res = await fetch("/api/events", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
+    });
+    if (res.ok) {
+      setPendingEvents((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, status } : e))
+      );
+    }
+  };
+
+  const toggleMycaMember = async (id: string, current: boolean) => {
+    const res = await fetch("/api/events", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, isMycaMemberEvent: !current }),
+    });
+    if (res.ok) {
+      setPendingEvents((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, isMycaMemberEvent: !current } : e))
+      );
+    }
+  };
+
   const fetchIntros = async () => {
     const res = await fetch("/api/introductions");
     if (res.ok) {
@@ -171,6 +313,9 @@ export default function AdminPage() {
   useEffect(() => {
     if (authed && (tab === "my-intros" || tab === "member-outreach") && introductions.length === 0) {
       fetchIntros();
+    }
+    if (authed && tab === "events" && pendingEvents.length === 0) {
+      fetchEvents();
     }
   }, [authed, tab]);
 
@@ -205,21 +350,7 @@ export default function AdminPage() {
   }
 
   if (!authed) {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center px-6">
-        <div className="w-full max-w-sm text-center">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-clay-500 font-mono mb-4">
-            Admin
-          </p>
-          <h1 className="text-3xl font-serif text-ink-900 mb-4">
-            Access Denied
-          </h1>
-          <p className="text-[14px] text-ink-400">
-            You don&apos;t have admin access. Sign in with an admin account.
-          </p>
-        </div>
-      </div>
-    );
+    return <AdminLogin onSuccess={fetchApps} />;
   }
 
   return (
@@ -242,6 +373,7 @@ export default function AdminPage() {
           <div className="flex gap-0">
             {[
               { id: "applications" as const, label: "Applications", count: applications.length },
+              { id: "events" as const, label: "Events", count: pendingEvents.filter((e) => e.status === "pending").length },
               { id: "my-intros" as const, label: "My Intros", count: introductions.filter((i) => i.is_admin_intro).length },
               { id: "member-outreach" as const, label: "Member Outreach", count: introductions.filter((i) => !i.is_admin_intro).length },
             ].map((t) => (
@@ -402,6 +534,203 @@ export default function AdminPage() {
               {filteredApps.length === 0 && (
                 <p className="text-center text-ink-400 py-12 font-serif">
                   No {appFilter === "all" ? "" : appFilter} applications.
+                </p>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Events Tab */}
+        {tab === "events" && (
+          <>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex gap-1.5">
+                {(["pending", "approved", "rejected", "all"] as const).map((f) => {
+                  const count = pendingEvents.filter(
+                    (e) => f === "all" || e.status === f
+                  ).length;
+                  return (
+                    <button
+                      key={f}
+                      onClick={() => setEventFilter(f)}
+                      className={`px-3.5 py-1.5 text-[11px] uppercase tracking-wider transition-colors ${
+                        eventFilter === f
+                          ? "bg-forest-900 text-cream"
+                          : "text-ink-400 border border-ink-200 hover:border-ink-400"
+                      }`}
+                    >
+                      {f} <span className="opacity-50">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={fetchEvents}
+                className="text-[11px] uppercase tracking-wider text-forest-600 hover:text-forest-900"
+              >
+                Refresh
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {pendingEvents
+                .filter((e) => eventFilter === "all" || e.status === eventFilter)
+                .map((event) => (
+                  <div key={event.id} className="bg-white border border-ink-100">
+                    <div
+                      className="flex items-center gap-4 p-4 cursor-pointer hover:bg-ivory/50 transition-colors"
+                      onClick={() => setExpanded(expanded === event.id ? null : event.id)}
+                    >
+                      {/* Cover image thumbnail */}
+                      <div className="w-12 h-12 bg-cream flex-shrink-0 overflow-hidden">
+                        {event.coverImageUrl ? (
+                          <img src={event.coverImageUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-forest-400 font-mono text-[10px]">
+                            {event.rsvpPlatform?.toUpperCase() || "EVT"}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-serif text-ink-900">{event.title}</p>
+                        <p className="text-[12px] text-ink-400 truncate">
+                          {event.date} &middot; {event.host || "No host"} &middot; {event.city || "NYC"}
+                        </p>
+                      </div>
+
+                      {event.isMycaMemberEvent && (
+                        <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-mono text-forest-700 bg-forest-50 border border-forest-200 flex-shrink-0">
+                          Member
+                        </span>
+                      )}
+
+                      <span
+                        className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-mono flex-shrink-0 ${
+                          event.status === "approved"
+                            ? "text-forest-700 bg-forest-50 border border-forest-200"
+                            : event.status === "rejected"
+                            ? "text-rust-700 bg-rust-50 border border-rust-200"
+                            : "text-clay-600 bg-clay-50 border border-clay-200"
+                        }`}
+                      >
+                        {event.status}
+                      </span>
+
+                      <svg
+                        className={`w-4 h-4 text-ink-300 transition-transform flex-shrink-0 ${
+                          expanded === event.id ? "rotate-180" : ""
+                        }`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+
+                    {expanded === event.id && (
+                      <div className="border-t border-ink-50 p-5 bg-ivory/30">
+                        {event.coverImageUrl && (
+                          <img
+                            src={event.coverImageUrl}
+                            alt={event.title}
+                            className="w-full h-48 object-cover border border-ink-100 mb-4"
+                          />
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                          {[
+                            { label: "Host", value: `${event.host || "—"}${event.hostCompany ? ` @ ${event.hostCompany}` : ""}` },
+                            { label: "Date", value: event.date },
+                            { label: "Time", value: event.startTime ? `${event.startTime}${event.endTime ? ` – ${event.endTime}` : ""}` : "—" },
+                            { label: "Location", value: event.location || "—" },
+                            { label: "City", value: event.city || "—" },
+                            { label: "Platform", value: event.rsvpPlatform || "—" },
+                            { label: "Source", value: event.source || "manual" },
+                            { label: "Submitted by", value: event.submittedByEmail || "—" },
+                          ].map((field) => (
+                            <div key={field.label}>
+                              <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">
+                                {field.label}
+                              </p>
+                              <p className="text-[13px] text-ink-700">{field.value}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {event.description && (
+                          <div className="mb-4">
+                            <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">Description</p>
+                            <p className="text-[13px] text-ink-700 leading-relaxed">{event.description}</p>
+                          </div>
+                        )}
+
+                        {event.rsvpUrl && (
+                          <a
+                            href={event.rsvpUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block text-[12px] text-forest-700 underline mb-4"
+                          >
+                            View RSVP page
+                          </a>
+                        )}
+
+                        <p className="text-[11px] text-ink-300 font-mono mb-4">
+                          Submitted {formatDate(event.createdAt)}
+                        </p>
+
+                        <div className="flex gap-3 flex-wrap">
+                          {event.status === "pending" && (
+                            <>
+                              <button
+                                onClick={() => handleEventAction(event.id, "approved")}
+                                className="flex-1 py-2.5 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-700 hover:bg-forest-800 transition-colors"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleEventAction(event.id, "rejected")}
+                                className="flex-1 py-2.5 text-[12px] uppercase tracking-wider font-medium text-rust-700 border border-rust-200 hover:bg-rust-50 transition-colors"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          {event.status === "approved" && (
+                            <button
+                              onClick={() => handleEventAction(event.id, "rejected")}
+                              className="py-2.5 px-4 text-[12px] uppercase tracking-wider font-medium text-rust-700 border border-rust-200 hover:bg-rust-50 transition-colors"
+                            >
+                              Remove
+                            </button>
+                          )}
+                          {event.status === "rejected" && (
+                            <button
+                              onClick={() => handleEventAction(event.id, "approved")}
+                              className="py-2.5 px-4 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-700 hover:bg-forest-800 transition-colors"
+                            >
+                              Approve
+                            </button>
+                          )}
+                          <button
+                            onClick={() => toggleMycaMember(event.id, event.isMycaMemberEvent)}
+                            className={`py-2.5 px-4 text-[12px] uppercase tracking-wider font-medium border transition-colors ${
+                              event.isMycaMemberEvent
+                                ? "text-forest-700 border-forest-300 bg-forest-50 hover:bg-forest-100"
+                                : "text-ink-400 border-ink-200 hover:border-ink-400"
+                            }`}
+                          >
+                            {event.isMycaMemberEvent ? "Myca Member ✓" : "Mark as Member Event"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+              {pendingEvents.filter((e) => eventFilter === "all" || e.status === eventFilter).length === 0 && (
+                <p className="text-center text-ink-400 py-12 font-serif">
+                  No {eventFilter === "all" ? "" : eventFilter} events.
                 </p>
               )}
             </div>

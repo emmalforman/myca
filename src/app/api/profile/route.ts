@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getAuthenticatedUser, isAdmin, forbiddenResponse } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error("Supabase not configured");
+  return createClient(url, key);
 }
 
 // GET profile by email
@@ -19,18 +20,40 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
   }
 
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("contacts")
-    .select("*")
-    .eq("email", email)
-    .single();
+  // Auth is best-effort — profile page already requires login via MemberLogin
+  let userEmail: string | null = null;
+  let userIsAdmin = false;
+  try {
+    const user = await getAuthenticatedUser();
+    if (user?.email) {
+      userEmail = user.email;
+      userIsAdmin = isAdmin(user.email);
+    }
+  } catch {}
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 404 });
+  // Non-admin users can only view their own profile (when auth works)
+  if (userEmail && email !== userEmail && !userIsAdmin) {
+    return forbiddenResponse();
   }
 
-  return NextResponse.json({ profile: data });
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("contacts")
+      .select("*")
+      .eq("email", email)
+      .single();
+
+    if (error) {
+      console.error("Profile fetch error:", error.message, "email:", email);
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+
+    return NextResponse.json({ profile: data });
+  } catch (err: any) {
+    console.error("Profile API error:", err.message);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
 
 // PATCH update profile
@@ -40,6 +63,21 @@ export async function PATCH(request: Request) {
 
   if (!email) {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
+  }
+
+  // Auth is best-effort for PATCH too
+  let userEmail: string | null = null;
+  let userIsAdmin = false;
+  try {
+    const user = await getAuthenticatedUser();
+    if (user?.email) {
+      userEmail = user.email;
+      userIsAdmin = isAdmin(user.email);
+    }
+  } catch {}
+
+  if (userEmail && email !== userEmail && !userIsAdmin) {
+    return forbiddenResponse();
   }
 
   const body = await request.json();
@@ -70,7 +108,7 @@ export async function PATCH(request: Request) {
     .eq("email", email);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

@@ -25,6 +25,7 @@ export interface Member {
   cohortTags?: string;
   warmth?: string;
   photoUrl?: string;
+  createdAt?: string;
 }
 
 export interface ApplicationData {
@@ -77,6 +78,35 @@ export interface Event {
   newsletterIncluded?: boolean;
   createdAt?: string;
 }
+
+export interface Job {
+  id: string;
+  title: string;
+  company: string;
+  location?: string;
+  locationType?: string;
+  type?: string;
+  description: string;
+  applyUrl?: string;
+  applyEmail?: string;
+  salaryRange?: string;
+  submittedByName?: string;
+  submittedByEmail?: string;
+  contactName?: string;
+  contactEmail?: string;
+  status?: string;
+  createdAt?: string;
+}
+
+export const JOB_TYPES = [
+  "full-time",
+  "part-time",
+  "contract",
+  "freelance",
+  "internship",
+] as const;
+
+export const LOCATION_TYPES = ["onsite", "remote", "hybrid"] as const;
 
 export const LOCATIONS = [
   "New York",
