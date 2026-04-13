@@ -62,8 +62,9 @@ function ChatApp() {
   const [dmChannels, setDmChannels] = useState<{ id: string; name: string; email: string }[]>([]);
   const [botMessages, setBotMessages] = useState<BotMessage[]>([]);
   const [botLoading, setBotLoading] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const isBot = channel === BOT_CHANNEL;
 
@@ -144,9 +145,12 @@ function ChatApp() {
 
   // Load messages for current channel (skip for bot channel)
   useEffect(() => {
+    setSendError(null);
+
     if (channel === BOT_CHANNEL) {
       setLoading(false);
       setTimeout(scrollToBottom, 100);
+      setTimeout(() => inputRef.current?.focus(), 150);
       return;
     }
 
@@ -163,6 +167,7 @@ function ChatApp() {
         setMessages(data || []);
         setLoading(false);
         setTimeout(scrollToBottom, 100);
+        setTimeout(() => inputRef.current?.focus(), 150);
       });
 
     // Subscribe to new messages
@@ -195,6 +200,7 @@ function ChatApp() {
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !user) return;
+    setSendError(null);
 
     if (isBot) {
       return sendBotMessage(input.trim());
@@ -208,8 +214,11 @@ function ChatApp() {
       content: input.trim(),
     });
 
-    if (!error) {
+    if (error) {
+      setSendError("Message failed to send. Please try again.");
+    } else {
       setInput("");
+      if (inputRef.current) inputRef.current.style.height = "auto";
       inputRef.current?.focus();
     }
   };
@@ -224,6 +233,7 @@ function ChatApp() {
     };
     setBotMessages((prev) => [...prev, userMsg]);
     setInput("");
+    if (inputRef.current) inputRef.current.style.height = "auto";
     setBotLoading(true);
     setTimeout(scrollToBottom, 50);
 
@@ -286,6 +296,73 @@ function ChatApp() {
     if (isToday) return time;
     if (isYesterday) return `Yesterday ${time}`;
     return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} ${time}`;
+  };
+
+  // Render message content with clickable URLs
+  const renderContent = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s<]+)/g;
+    const parts = text.split(urlRegex);
+    if (parts.length === 1) return text;
+    return parts.map((part, i) =>
+      urlRegex.test(part) ? (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-forest-700 underline underline-offset-2 hover:text-forest-500 break-all"
+        >
+          {part}
+        </a>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    );
+  };
+
+  // Format date separator label
+  const formatDateLabel = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    if (isToday) return "Today";
+    if (isYesterday) return "Yesterday";
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  // Check if a date separator should be shown between two messages
+  const shouldShowDateSeparator = (
+    msg: Message,
+    prevMsg: Message | null
+  ): boolean => {
+    if (!prevMsg) return true;
+    const d1 = new Date(msg.created_at).toDateString();
+    const d2 = new Date(prevMsg.created_at).toDateString();
+    return d1 !== d2;
+  };
+
+  // Handle Enter to send, Shift+Enter for newline
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(e as unknown as React.FormEvent);
+    }
+  };
+
+  // Auto-resize textarea
+  const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    const el = e.target;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 160) + "px";
   };
 
   const currentChannel = CHANNELS.find((c) => c.id === channel);
@@ -445,6 +522,45 @@ function ChatApp() {
                   {ch.label}
                 </button>
               ))}
+
+              {/* DM channels - mobile */}
+              {dmChannels.length > 0 && (
+                <>
+                  <div className="px-4 pt-4 pb-2">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-forest-600 font-mono">
+                      Direct Messages
+                    </p>
+                  </div>
+                  {dmChannels.map((dm) => {
+                    const profile = memberProfiles.get(dm.email);
+                    return (
+                      <button
+                        key={dm.id}
+                        onClick={() => {
+                          setChannel(dm.id);
+                          setSidebarOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-[13px] flex items-center gap-2.5 transition-colors ${
+                          channel === dm.id
+                            ? "bg-forest-800 text-white"
+                            : "text-ink-400 hover:text-ink-200"
+                        }`}
+                      >
+                        <div className="w-6 h-6 bg-forest-800 overflow-hidden flex-shrink-0">
+                          {profile?.photoUrl ? (
+                            <img src={profile.photoUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] font-serif text-forest-300">
+                              {dm.name?.[0] || "?"}
+                            </div>
+                          )}
+                        </div>
+                        <span className="truncate">{dm.name}</span>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -539,7 +655,7 @@ function ChatApp() {
                   </span>
                 </div>
                 <p className="text-[14px] text-ink-700 leading-relaxed break-words whitespace-pre-wrap">
-                  {msg.content}
+                  {renderContent(msg.content)}
                 </p>
                 {/* Recommendation cards */}
                 {msg.recommendations && msg.recommendations.length > 0 && (
@@ -640,8 +756,10 @@ function ChatApp() {
 
           {!isBot && messages.map((msg, i) => {
             const isMe = msg.sender_email === user?.email;
+            const prevMsg = i > 0 ? messages[i - 1] : null;
+            const showDate = shouldShowDateSeparator(msg, prevMsg);
             const showName =
-              i === 0 || messages[i - 1].sender_email !== msg.sender_email;
+              showDate || i === 0 || messages[i - 1].sender_email !== msg.sender_email;
             const initial = msg.sender_name?.[0]?.toUpperCase() || "?";
             const memberProfile = memberProfiles.get(msg.sender_email);
             const hasPhoto = memberProfile?.photoUrl;
@@ -653,65 +771,75 @@ function ChatApp() {
             };
 
             return (
-              <div
-                key={msg.id}
-                className={`flex gap-3 ${showName ? "mt-4" : "mt-0.5"}`}
-              >
-                {showName ? (
-                  <button
-                    onClick={handleProfileClick}
-                    className={`w-8 h-8 flex-shrink-0 overflow-hidden ${
-                      !isMe ? "cursor-pointer hover:opacity-80" : ""
-                    } ${
-                      hasPhoto
-                        ? ""
-                        : `flex items-center justify-center text-[12px] font-serif font-bold ${
-                            isMe
-                              ? "bg-forest-900 text-cream"
-                              : "bg-clay-200 text-clay-700"
-                          }`
-                    }`}
-                  >
-                    {hasPhoto ? (
-                      <img
-                        src={memberProfile!.photoUrl}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      initial
-                    )}
-                  </button>
-                ) : (
-                  <div className="w-8 flex-shrink-0" />
+              <div key={msg.id}>
+                {showDate && (
+                  <div className="flex items-center gap-3 my-5">
+                    <div className="flex-1 h-px bg-ink-100" />
+                    <span className="text-[11px] text-ink-300 font-mono uppercase tracking-wider">
+                      {formatDateLabel(msg.created_at)}
+                    </span>
+                    <div className="flex-1 h-px bg-ink-100" />
+                  </div>
                 )}
-                <div className="flex-1 min-w-0">
-                  {showName && (
-                    <div className="flex items-baseline gap-2 mb-0.5">
-                      <button
-                        onClick={handleProfileClick}
-                        className={`text-[13px] font-medium ${
-                          isMe
-                            ? "text-ink-900"
-                            : "text-ink-700 hover:text-forest-700 cursor-pointer"
-                        }`}
-                      >
-                        {msg.sender_name}
-                      </button>
-                      {memberProfile?.role && (
-                        <span className="text-[10px] text-ink-300 hidden sm:inline">
-                          {memberProfile.role}
-                          {memberProfile.company ? `, ${memberProfile.company}` : ""}
-                        </span>
+                <div
+                  className={`flex gap-3 ${showName && !showDate ? "mt-4" : showDate ? "" : "mt-0.5"}`}
+                >
+                  {showName ? (
+                    <button
+                      onClick={handleProfileClick}
+                      className={`w-8 h-8 flex-shrink-0 overflow-hidden ${
+                        !isMe ? "cursor-pointer hover:opacity-80" : ""
+                      } ${
+                        hasPhoto
+                          ? ""
+                          : `flex items-center justify-center text-[12px] font-serif font-bold ${
+                              isMe
+                                ? "bg-forest-900 text-cream"
+                                : "bg-clay-200 text-clay-700"
+                            }`
+                      }`}
+                    >
+                      {hasPhoto ? (
+                        <img
+                          src={memberProfile!.photoUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        initial
                       )}
-                      <span className="text-[10px] text-ink-300 font-mono">
-                        {formatTime(msg.created_at)}
-                      </span>
-                    </div>
+                    </button>
+                  ) : (
+                    <div className="w-8 flex-shrink-0" />
                   )}
-                  <p className="text-[14px] text-ink-700 leading-relaxed break-words">
-                    {msg.content}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    {showName && (
+                      <div className="flex items-baseline gap-2 mb-0.5">
+                        <button
+                          onClick={handleProfileClick}
+                          className={`text-[13px] font-medium ${
+                            isMe
+                              ? "text-ink-900"
+                              : "text-ink-700 hover:text-forest-700 cursor-pointer"
+                          }`}
+                        >
+                          {msg.sender_name}
+                        </button>
+                        {memberProfile?.role && (
+                          <span className="text-[10px] text-ink-300 hidden sm:inline">
+                            {memberProfile.role}
+                            {memberProfile.company ? `, ${memberProfile.company}` : ""}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-ink-300 font-mono">
+                          {formatTime(msg.created_at)}
+                        </span>
+                      </div>
+                    )}
+                    <p className="text-[14px] text-ink-700 leading-relaxed break-words whitespace-pre-wrap">
+                      {renderContent(msg.content)}
+                    </p>
+                  </div>
                 </div>
               </div>
             );
@@ -721,14 +849,26 @@ function ChatApp() {
 
         {/* Input */}
         <div className="px-5 pb-5 pt-2 flex-shrink-0">
-          <form onSubmit={sendMessage} className="flex gap-2">
-            <input
+          {sendError && (
+            <div className="mb-2 px-3 py-2 text-[12px] text-red-700 bg-red-50 border border-red-200 flex items-center justify-between">
+              <span>{sendError}</span>
+              <button onClick={() => setSendError(null)} className="text-red-400 hover:text-red-600 ml-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+          <form onSubmit={sendMessage} className="flex gap-2 items-end">
+            <textarea
               ref={inputRef}
-              type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleTextareaInput}
+              onKeyDown={handleKeyDown}
               placeholder={isBot ? "Ask Myca anything..." : `Message ${currentChannel?.label || channelDisplayName}...`}
-              className="flex-1 px-4 py-3 text-[14px] bg-white border border-ink-200 text-ink-900 placeholder-ink-300 focus:outline-none focus:border-ink-400 transition-colors"
+              rows={1}
+              className="flex-1 px-4 py-3 text-[14px] bg-white border border-ink-200 text-ink-900 placeholder-ink-300 focus:outline-none focus:border-ink-400 transition-colors resize-none overflow-hidden"
+              style={{ maxHeight: 160 }}
             />
             <button
               type="submit"
@@ -738,6 +878,9 @@ function ChatApp() {
               Send
             </button>
           </form>
+          <p className="text-[10px] text-ink-300 mt-1.5 ml-1">
+            Press <kbd className="px-1 py-0.5 bg-ink-50 border border-ink-200 rounded text-[9px] font-mono">Enter</kbd> to send, <kbd className="px-1 py-0.5 bg-ink-50 border border-ink-200 rounded text-[9px] font-mono">Shift + Enter</kbd> for new line
+          </p>
         </div>
       </div>
 
