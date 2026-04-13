@@ -435,7 +435,7 @@ export default function EventsPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-5 py-2.5 text-[13px] uppercase tracking-wide font-medium text-cream bg-forest-800 hover:bg-forest-700 rounded transition-colors"
                   >
-                    RSVP
+                    {selectedEvent.rsvpPlatform === "resy" ? "Reserve" : selectedEvent.rsvpPlatform === "luma" || selectedEvent.rsvpPlatform === "partiful" ? "RSVP" : "Event Details"}
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
@@ -570,7 +570,7 @@ export default function EventsPage() {
                               rel="noopener noreferrer"
                               className="inline-block mt-3 px-4 py-1.5 text-[12px] uppercase tracking-wider font-medium text-forest-800 border border-forest-300 hover:bg-forest-50 rounded transition-colors"
                             >
-                              RSVP
+                              {event.rsvpPlatform === "resy" ? "Reserve" : event.rsvpPlatform === "luma" || event.rsvpPlatform === "partiful" ? "RSVP" : "Event Details"}
                             </a>
                           )}
                         </div>
