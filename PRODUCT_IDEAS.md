@@ -52,10 +52,14 @@
 18. **Public-Facing Member Directory** — Preview for non-members to drive conversions
 19. **Brand Directory** — Curated brands/products members can shop; brands pay to be featured
 20. **Member Outreach Pipeline** — Track and manage outreach to prospective members, sponsors, and collaborators
-21. **Paid Intros for Non-Members** — Public can search the Myca directory but pay a fee (one-time or per-intro) to request an introduction to a member. Revenue stream + conversion funnel — after paying for an intro they'll likely just join as a member. Members control whether they accept the intro request.
+21. **Job Board Teaser for Non-Members** — Show a blurred/preview list of open roles on the public site ("12 open roles from companies like Sweetgreen, Greycroft, and Soho House") with a CTA to sign in or apply. Creates FOMO and drives conversions without giving away the full content.
+22. **Member-Submitted Jobs with Link Parser** — Instead of syncing mass feeds (Instacart, Gopuff, etc. = too noisy), let members submit jobs via a link. Parser auto-extracts title, company, location, description. Keeps the board curated and relevant to the Myca network.
+
+## On Hold
+- **Paid Intros for Non-Members** — Paused. Concern: too much noise from random intro requests before member density is built. Revisit once the platform has gatekeeping/filtering and enough members to sustain it.
 
 ## Infrastructure
-22. **Payment & Processing** — Stripe for memberships and job board
+23. **Payment & Processing** — Stripe for memberships and job board
 
 ---
 
