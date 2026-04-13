@@ -4,10 +4,10 @@ import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 
 function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error("Supabase not configured");
+  return createClient(url, key);
 }
 
 // GET profile by email
@@ -19,18 +19,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
   }
 
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("contacts")
-    .select("*")
-    .eq("email", email)
-    .single();
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("contacts")
+      .select("*")
+      .eq("email", email)
+      .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 404 });
+    if (error) {
+      console.error("Profile fetch error:", error.message, "email:", email);
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+
+    return NextResponse.json({ profile: data });
+  } catch (err: any) {
+    console.error("Profile API error:", err.message);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
-
-  return NextResponse.json({ profile: data });
 }
 
 // PATCH update profile
