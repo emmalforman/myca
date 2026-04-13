@@ -245,13 +245,23 @@ function ChatApp() {
         content: m.content,
       }));
 
+      // Get fresh access token for auth
+      const supabase = getSupabaseBrowser();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
       const res = await fetch("/api/bot", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
         body: JSON.stringify({
           message: text,
           email: user.email,
           history,
+          source: "chat",
         }),
       });
 
