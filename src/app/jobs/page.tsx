@@ -40,13 +40,23 @@ function normalizeCompany(name: string): string {
     .trim();
 }
 
+interface Application {
+  id: string;
+  jobId: string;
+  memberName: string;
+  memberEmail: string;
+  clickedAt: string;
+}
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [pendingJobs, setPendingJobs] = useState<Job[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [userName, setUserName] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -59,6 +69,11 @@ export default function JobsPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSignedIn(!!session);
       setUserEmail(session?.user?.email || "");
+      setUserName(
+        session?.user?.user_metadata?.full_name ||
+          session?.user?.user_metadata?.name ||
+          ""
+      );
       setAuthLoading(false);
       if (session) {
         fetchJobs();
@@ -66,6 +81,7 @@ export default function JobsPage() {
         const email = session.user?.email || "";
         if (ADMIN_EMAILS.includes(email.toLowerCase())) {
           fetchPendingJobs();
+          fetchApplications();
         }
       } else {
         setLoading(false);
@@ -102,6 +118,35 @@ export default function JobsPage() {
     } catch {
       // fail silently
     }
+  }
+
+  async function fetchApplications() {
+    try {
+      const res = await fetch("/api/jobs/apply");
+      const data = await res.json();
+      setApplications(data.applications || []);
+    } catch {}
+  }
+
+  async function handleApplyClick(job: Job) {
+    // Log the click
+    fetch("/api/jobs/apply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jobId: job.id,
+        memberName: userName,
+        memberEmail: userEmail,
+      }),
+    }).catch(() => {});
+
+    // Open the link
+    const url = job.applyUrl || `mailto:${job.applyEmail}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  function getApplicationsForJob(jobId: string): Application[] {
+    return applications.filter((a) => a.jobId === jobId);
   }
 
   async function handleApprove(jobId: string) {
@@ -448,16 +493,12 @@ export default function JobsPage() {
                         </span>
                       )}
                       {(job.applyUrl || job.applyEmail) && (
-                        <a
-                          href={
-                            job.applyUrl || `mailto:${job.applyEmail}`
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          onClick={() => handleApplyClick(job)}
                           className="px-5 py-2 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-800 transition-colors"
                         >
                           Apply
-                        </a>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -471,6 +512,29 @@ export default function JobsPage() {
                       Shared by {job.submittedByName}
                     </p>
                   )}
+
+                  {/* Admin: show who clicked Apply */}
+                  {isUserAdmin && (() => {
+                    const applicants = getApplicationsForJob(job.id);
+                    if (applicants.length === 0) return null;
+                    return (
+                      <div className="mt-3 pt-3 border-t border-ink-100">
+                        <p className="text-[11px] uppercase tracking-[0.15em] text-forest-600 font-mono mb-1.5">
+                          Applied ({applicants.length})
+                        </p>
+                        <div className="space-y-1">
+                          {applicants.map((a) => (
+                            <p key={a.id} className="text-[12px] text-ink-500">
+                              {a.memberName}{" "}
+                              <span className="text-ink-300">
+                                ({a.memberEmail}) · {timeAgo(a.clickedAt)}
+                              </span>
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
