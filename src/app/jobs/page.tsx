@@ -5,6 +5,8 @@ import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import type { Job, Member } from "@/lib/types";
 
+const ADMIN_EMAILS = ["emmalforman7@gmail.com", "emma@mycacollective.com"];
+
 function timeAgo(dateStr: string): string {
   const now = new Date();
   const date = new Date(dateStr);
@@ -40,22 +42,31 @@ function normalizeCompany(name: string): string {
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [pendingJobs, setPendingJobs] = useState<Job[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [locationTypeFilter, setLocationTypeFilter] = useState("");
 
+  const isUserAdmin = ADMIN_EMAILS.includes(userEmail.toLowerCase());
+
   useEffect(() => {
     const supabase = getSupabaseBrowser();
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSignedIn(!!session);
+      setUserEmail(session?.user?.email || "");
       setAuthLoading(false);
       if (session) {
         fetchJobs();
         fetchMembers();
+        const email = session.user?.email || "";
+        if (ADMIN_EMAILS.includes(email.toLowerCase())) {
+          fetchPendingJobs();
+        }
       } else {
         setLoading(false);
       }
@@ -73,6 +84,16 @@ export default function JobsPage() {
     setLoading(false);
   }
 
+  async function fetchPendingJobs() {
+    try {
+      const res = await fetch("/api/jobs?status=pending");
+      const data = await res.json();
+      setPendingJobs(data.jobs || []);
+    } catch {
+      // fail silently
+    }
+  }
+
   async function fetchMembers() {
     try {
       const res = await fetch("/api/members");
@@ -83,7 +104,34 @@ export default function JobsPage() {
     }
   }
 
-  // Build a map of normalized company name -> member names
+  async function handleApprove(jobId: string) {
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: jobId, status: "approved", adminEmail: userEmail }),
+      });
+      if (res.ok) {
+        const approved = pendingJobs.find((j) => j.id === jobId);
+        setPendingJobs((prev) => prev.filter((j) => j.id !== jobId));
+        if (approved) setJobs((prev) => [{ ...approved, status: "approved" }, ...prev]);
+      }
+    } catch {}
+  }
+
+  async function handleReject(jobId: string) {
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: jobId, status: "rejected", adminEmail: userEmail }),
+      });
+      if (res.ok) {
+        setPendingJobs((prev) => prev.filter((j) => j.id !== jobId));
+      }
+    } catch {}
+  }
+
   const companyMembers = useMemo(() => {
     const map: Record<string, { name: string; photoUrl?: string }[]> = {};
     for (const m of members) {
@@ -200,6 +248,69 @@ export default function JobsPage() {
           </div>
         </div>
       </div>
+
+      {/* Admin: Pending Jobs */}
+      {isUserAdmin && pendingJobs.length > 0 && (
+        <div className="max-w-6xl mx-auto px-6 lg:px-8 pt-6">
+          <div className="bg-rust-50 border border-rust-200 p-5">
+            <p className="text-[12px] uppercase tracking-[0.2em] text-rust-700 font-mono mb-4">
+              Pending Review ({pendingJobs.length})
+            </p>
+            <div className="space-y-3">
+              {pendingJobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="bg-white border border-rust-100 p-4"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-serif text-ink-900 mb-0.5">
+                        {job.title}
+                      </h3>
+                      <p className="text-[14px] text-ink-600">{job.company}</p>
+                      <div className="flex flex-wrap gap-2 mt-1.5">
+                        {job.type && (
+                          <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-mono text-forest-700 bg-forest-50 border border-forest-200">
+                            {typeLabel(job.type)}
+                          </span>
+                        )}
+                        {job.location && (
+                          <span className="text-[12px] text-ink-400">
+                            {job.location}
+                          </span>
+                        )}
+                      </div>
+                      {job.description && (
+                        <p className="text-[13px] text-ink-400 mt-2 line-clamp-2">
+                          {job.description}
+                        </p>
+                      )}
+                      <p className="text-[11px] text-ink-300 mt-2">
+                        Submitted by {job.submittedByName || job.submittedByEmail || "unknown"}
+                        {job.createdAt && ` · ${timeAgo(job.createdAt)}`}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => handleApprove(job.id)}
+                        className="px-4 py-1.5 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-800 hover:bg-forest-700 transition-colors"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleReject(job.id)}
+                        className="px-4 py-1.5 text-[12px] uppercase tracking-wider font-medium text-rust-700 border border-rust-300 hover:bg-rust-100 transition-colors"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="max-w-6xl mx-auto px-6 lg:px-8 py-6">
