@@ -113,6 +113,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
   const [askResponse, setAskResponse] = useState<BotResponse | null>(null);
   const [askMembers, setAskMembers] = useState<Member[]>([]);
   const askInputRef = useRef<HTMLInputElement>(null);
+  const [askSessionId] = useState(() => `ask-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 
   useEffect(() => {
     // Fetch members and dashboard feed in parallel
@@ -159,7 +160,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: "include",
-        body: JSON.stringify({ message: q, email: userEmail, source: "home" }),
+        body: JSON.stringify({ message: q, email: userEmail, source: "home", sessionId: askSessionId }),
       });
       const data = await res.json();
       if (!res.ok || data.error) {

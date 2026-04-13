@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   const rl = checkRateLimit({ name: "bot", max: 20, windowSeconds: 3600 }, user.email!);
   if (!rl.allowed) return rateLimitResponse(rl.resetAt);
 
-  const { message, email, history, source } = await request.json();
+  const { message, email, history, source, sessionId } = await request.json();
 
   if (!message || !email) {
     return NextResponse.json(
@@ -104,7 +104,21 @@ export async function POST(request: Request) {
     );
   }
 
+  // Look up sender name for chat messages
+  let senderName = email.split("@")[0];
+
   const supabase = createClient(supabaseUrl, supabaseKey);
+
+  // Look up sender name
+  const { data: senderData } = await supabase
+    .from("contacts")
+    .select("name, first_name")
+    .eq("email", email)
+    .eq("is_myca_member", true)
+    .limit(1);
+  if (senderData?.[0]) {
+    senderName = senderData[0].name || senderData[0].first_name || senderName;
+  }
 
   // Load all members (exclude the asking member)
   const { data: members } = await supabase
@@ -179,7 +193,27 @@ export async function POST(request: Request) {
     reply: cleanReply,
     recommended_emails: recommendations.map((r) => r.email),
     source: source || "chat",
+    session_id: sessionId || null,
   }).then(() => {});
+
+  // Save to chat so the conversation is visible in the AI Chat channel
+  if (source === "home") {
+    // Save user's question
+    supabase.from("messages").insert({
+      channel: "ai-chat",
+      sender_email: email,
+      sender_name: senderName,
+      content: message,
+    }).then(() => {});
+
+    // Save Myca's reply
+    supabase.from("messages").insert({
+      channel: "ai-chat",
+      sender_email: "myca@mycacollective.com",
+      sender_name: "Myca",
+      content: cleanReply,
+    }).then(() => {});
+  }
 
   return NextResponse.json({
     reply: cleanReply,
