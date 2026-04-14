@@ -13,19 +13,20 @@
 8. **Intro Requests** — Curated introductions, premium value
 9. **Company Logo Wall** — Social proof on homepage
 10. **Unread Message Badges** — Notification dots on Chat nav
-11. **Required Profile Onboarding** — Force users to complete profile + metadata at first login. Improves directory quality, search, intros, and matchmaking.
+11. **Member Content Feed on Homepage** — Auto-pull latest posts from member Substacks, newsletters, podcasts, and blogs to feature on the homepage. Keeps homepage fresh, elevates member work, gives non-members a reason to keep visiting. Members link their feeds in their profile; ingested via RSS. Can highlight "Latest from the community" with post title, excerpt, author, and link out.
+12. **Required Profile Onboarding** — Force users to complete profile + metadata at first login. Improves directory quality, search, intros, and matchmaking.
     - Fields: name, photo, role/title, company, location, interests/expertise tags, what they're looking for, website, **Instagram handle**, other socials
     - Requires Supabase schema update to add new profile columns (e.g. `instagram_handle`, `socials`, `interests`, etc.)
     - Block access to app until required fields are complete
     - **Branching marketplace flow:** "Do you have a product or service?" → type (product / service / skill / event) → brand (pick existing or add new) → details. Auto-populates the brand directory and marketplace from signup.
-12. **AI Matchmaker Chatbot** — Conversational chatbot where members describe what they need ("I'm looking for a photographer in Brooklyn," "need help with packaging," "want to collab on a dinner pop-up") and the bot returns recommendations with reasoning. Feeds into Intro Requests — bot can draft the outreach message.
+13. **AI Matchmaker Chatbot** — Conversational chatbot where members describe what they need ("I'm looking for a photographer in Brooklyn," "need help with packaging," "want to collab on a dinner pop-up") and the bot returns recommendations with reasoning. Feeds into Intro Requests — bot can draft the outreach message.
     - **Search across three sources:**
       1. **Members** — profiles, skills, tags, marketplace listings
       2. **Brands / places** — brand directory, partner listings, venues
       3. **Chat history** — past messages in channels and DMs where members mentioned/recommended people, brands, or places (huge unlocked knowledge base)
     - Recommendation cards should have a **"Start chat"** CTA that opens a DM with that member directly from the UI
     - For chat-history results, show the quote + link back to the original message as context
-13. **Curated Lists → Substack Content Pipeline** — Create themed lists ("Best coffee shops in NYC," "Favorite packaging suppliers," "Go-to kitchen tools under $50") and send to members. Members vote, add picks, and leave short recs. Crowdsourced results become polished Substack posts (e.g. "Myca Members' Top 10 Coffee Shops"). Drives growth (non-members discover content → join), engagement (members love contributing), and brand value (Myca becomes the trusted rec source in food/bev).
+14. **Curated Lists → Substack Content Pipeline** — Create themed lists ("Best coffee shops in NYC," "Favorite packaging suppliers," "Go-to kitchen tools under $50") and send to members. Members vote, add picks, and leave short recs. Crowdsourced results become polished Substack posts (e.g. "Myca Members' Top 10 Coffee Shops"). Drives growth (non-members discover content → join), engagement (members love contributing), and brand value (Myca becomes the trusted rec source in food/bev).
     - **Submission format:** photo (of place/product/brand), name, blurb (1-2 sentences why they love it), auto-attributed with member name + photo
     - **Collection methods:** in-app submission form, email link, or bot prompt in chat ("Drop your favorite olive oil — photo + why you love it")
     - **Trend monitoring (online + internal):**
@@ -43,23 +44,23 @@
     - You just approve the topic and review the final draft. Could run weekly on autopilot.
 
 ## Events
-14. **Member Event Posting & RSVP** — Members host, post, and RSVP to events
-15. **Email/Outbound Integration** — Automated comms tied to events
-16. **AI Learning Sessions** — With calendar access
-17. **Member Cohorts** — Batch new members into onboarding cohorts (monthly or bi-weekly). Host a welcome Zoom/event where they meet each other. Could be grouped by city, industry, or interest. Auto-create a cohort chat channel so they stay connected. Builds instant belonging and stronger retention vs. solo signups.
+15. **Member Event Posting & RSVP** — Members host, post, and RSVP to events
+16. **Email/Outbound Integration** — Automated comms tied to events
+17. **AI Learning Sessions** — With calendar access
+18. **Member Cohorts** — Batch new members into onboarding cohorts (monthly or bi-weekly). Host a welcome Zoom/event where they meet each other. Could be grouped by city, industry, or interest. Auto-create a cohort chat channel so they stay connected. Builds instant belonging and stronger retention vs. solo signups.
 
 ## Growth
-18. **Public-Facing Member Directory** — Preview for non-members to drive conversions
-19. **Brand Directory** — Curated brands/products members can shop; brands pay to be featured
-20. **Member Outreach Pipeline** — Track and manage outreach to prospective members, sponsors, and collaborators
-21. **Job Board Teaser for Non-Members** — Show a blurred/preview list of open roles on the public site ("12 open roles from companies like Sweetgreen, Greycroft, and Soho House") with a CTA to sign in or apply. Creates FOMO and drives conversions without giving away the full content.
-22. **Member-Submitted Jobs with Link Parser** — Instead of syncing mass feeds (Instacart, Gopuff, etc. = too noisy), let members submit jobs via a link. Parser auto-extracts title, company, location, description. Keeps the board curated and relevant to the Myca network.
+19. **Public-Facing Member Directory** — Preview for non-members to drive conversions
+20. **Brand Directory** — Curated brands/products members can shop; brands pay to be featured
+21. **Member Outreach Pipeline** — Track and manage outreach to prospective members, sponsors, and collaborators
+22. **Job Board Teaser for Non-Members** — Show a blurred/preview list of open roles on the public site ("12 open roles from companies like Sweetgreen, Greycroft, and Soho House") with a CTA to sign in or apply. Creates FOMO and drives conversions without giving away the full content.
+23. **Member-Submitted Jobs with Link Parser** — Instead of syncing mass feeds (Instacart, Gopuff, etc. = too noisy), let members submit jobs via a link. Parser auto-extracts title, company, location, description. Keeps the board curated and relevant to the Myca network.
+
+## Infrastructure
+24. **Payment & Processing** — Stripe for memberships and job board
 
 ## On Hold
 - **Paid Intros for Non-Members** — Paused. Concern: too much noise from random intro requests before member density is built. Revisit once the platform has gatekeeping/filtering and enough members to sustain it.
-
-## Infrastructure
-23. **Payment & Processing** — Stripe for memberships and job board
 
 ---
 
@@ -75,6 +76,7 @@
 - Weekly digest email (retention, largely automated)
 - Unread message badges (quick win, platform feels alive)
 - Member discounts program (starts with codes/affiliate links, zero infra)
+- Member content feed on homepage (RSS-powered, low effort, keeps site alive)
 
 ### Phase 3 — Premium & Partnership Layer
 - Sponsorship/partnership page (needs member density first)
