@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 const SYSTEM_PROMPT = `You are Myca, the helpful concierge for the Myca Collective — a curated community of women in food, CPG, agriculture, and hospitality. Members come to you to find the right person to connect with.
 
-You have access to the full member directory. When a member asks a question like "who can help me with retail distribution" or "I'm looking for a co-packer in NYC", you search through member profiles and recommend the best matches.
+You help members find the right people to connect with. When a member asks a question like "who can help me with retail distribution" or "I'm looking for a co-packer in NYC", you review the pre-filtered member profiles below and recommend the best matches.
 
 RULES:
 1. Always respond conversationally and warmly — you're a trusted community concierge, not a search engine.
@@ -17,6 +17,8 @@ RULES:
 6. You can also answer general questions about the community.
 7. Keep responses concise — a brief intro sentence, then the recommendations.
 8. Never make up information. Only use what's in the member profiles.
+9. When searching, consider ALL profile fields — company names, titles, notes, offers, asks, skills, and interests can all indicate relevance. Infer industry from company names (e.g. a vodka or wine company = alcohol/beverage industry).
+10. Read through EVERY member profile carefully before answering. Do not skip profiles or stop early.
 
 When recommending members, include this exact format for EACH recommendation (the frontend will parse this):
 <member-card>
@@ -40,6 +42,8 @@ function buildMemberContext(members: any[]): string {
       if (m.offers) parts.push(`Offers: ${m.offers}`);
       if (m.asks) parts.push(`Looking for: ${m.asks}`);
       if (m.focus_areas) parts.push(`Focus: ${m.focus_areas}`);
+      if (m.notes) parts.push(`Notes: ${m.notes}`);
+      if (m.communities) parts.push(`Communities: ${m.communities}`);
       parts.push(`Email: ${m.email}`);
       return parts.join(" | ");
     })
@@ -120,14 +124,30 @@ export async function POST(request: Request) {
     senderName = senderData[0].name || senderData[0].first_name || senderName;
   }
 
-  // Load all members (exclude the asking member)
-  const { data: members } = await supabase
-    .from("contacts")
-    .select(
-      "name, email, company, role, occupation_type, location, industry_tags, focus_areas, skills, interests, superpower, offers, asks"
-    )
-    .eq("is_myca_member", true)
-    .neq("email", email);
+  const anthropic = new Anthropic({ apiKey: anthropicKey });
+
+  // Two-pass search: find relevant members instead of loading all
+  const { searchMembers } = await import("@/lib/member-search");
+
+  // Include recent user messages in search query for better context on follow-ups
+  const searchQuery =
+    history && Array.isArray(history) && history.length > 0
+      ? [
+          ...history
+            .filter((m: any) => m.role === "user")
+            .slice(-2)
+            .map((m: any) => m.content),
+          message,
+        ].join(" ")
+      : message;
+
+  const { members, totalCount } = await searchMembers(
+    supabase,
+    anthropic,
+    searchQuery,
+    email,
+    25
+  );
 
   if (!members || members.length === 0) {
     return NextResponse.json({
@@ -137,8 +157,6 @@ export async function POST(request: Request) {
   }
 
   const memberContext = buildMemberContext(members);
-
-  const anthropic = new Anthropic({ apiKey: anthropicKey });
 
   // Build conversation history
   const messages: { role: "user" | "assistant"; content: string }[] = [];
@@ -158,7 +176,7 @@ export async function POST(request: Request) {
   const response = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
-    system: `${SYSTEM_PROMPT}\n\nHere is the current member directory (${members.length} members):\n\n${memberContext}`,
+    system: `${SYSTEM_PROMPT}\n\nHere are the most relevant members for this query (${members.length} of ${totalCount} total community members):\n\n${memberContext}`,
     messages,
   });
 
