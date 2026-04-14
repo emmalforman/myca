@@ -92,6 +92,9 @@ export default function JoinPage() {
     occupationOther: "",
     linkedin: "",
     instagram: "",
+    tiktok: "",
+    twitter: "",
+    substack: "",
     website: "",
     email: "",
     phone: "",
@@ -608,35 +611,88 @@ export default function JoinPage() {
               <p className={labelClass}>
                 Instagram <span className={requiredClass}>(required)</span>
               </p>
-              <input
-                type="text"
-                required
-                pattern="@?[a-zA-Z0-9._]{1,30}"
-                title="Please enter a valid Instagram handle (e.g. @yourhandle)"
-                value={form.instagram}
-                onChange={(e) =>
-                  setForm((f: any) => ({ ...f, instagram: e.target.value }))
-                }
-                placeholder="@handle"
-                className={inputClass}
-              />
-              {form.instagram && (!/^@?[a-zA-Z0-9._]{1,30}$/.test(form.instagram) || /^(https?:|www\.)/i.test(form.instagram)) && (
-                <p className="text-[12px] text-rust-500 mt-1.5">Just the handle, not the URL (e.g. @yourhandle)</p>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-[14px] text-ink-400 pointer-events-none">@</span>
+                <input
+                  type="text"
+                  required
+                  pattern="[a-zA-Z0-9._]{1,30}"
+                  title="Please enter your Instagram username"
+                  value={form.instagram}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/^@/, "");
+                    setForm((f: any) => ({ ...f, instagram: val }));
+                  }}
+                  placeholder="handle"
+                  className={`${inputClass} pl-9`}
+                />
+              </div>
+              {form.instagram && !/^[a-zA-Z0-9._]{1,30}$/.test(form.instagram) && (
+                <p className="text-[12px] text-rust-500 mt-1.5">Letters, numbers, periods, and underscores only</p>
               )}
             </div>
           </div>
 
-          {/* Website */}
-          <div>
-            <p className={labelClass}>Website, Substack, or portfolio</p>
-            <input
-              type="url"
-              value={form.website}
-              onChange={(e) =>
-                setForm((f: any) => ({ ...f, website: e.target.value }))
-              }
-              placeholder="https://..."
-              className={inputClass}
+          {/* TikTok + Twitter */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className={labelClass}>TikTok <span className="text-ink-400 text-[13px] ml-1">(optional)</span></p>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-[14px] text-ink-400 pointer-events-none">@</span>
+                <input
+                  type="text"
+                  value={form.tiktok}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/^@/, "");
+                    setForm((f: any) => ({ ...f, tiktok: val }));
+                  }}
+                  placeholder="handle"
+                  className={`${inputClass} pl-9`}
+                />
+              </div>
+            </div>
+            <div>
+              <p className={labelClass}>Twitter / X <span className="text-ink-400 text-[13px] ml-1">(optional)</span></p>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-[14px] text-ink-400 pointer-events-none">@</span>
+                <input
+                  type="text"
+                  value={form.twitter}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/^@/, "");
+                    setForm((f: any) => ({ ...f, twitter: val }));
+                  }}
+                  placeholder="handle"
+                  className={`${inputClass} pl-9`}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Substack + Website */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className={labelClass}>Substack <span className="text-ink-400 text-[13px] ml-1">(optional)</span></p>
+              <input
+                type="url"
+                value={form.substack}
+                onChange={(e) =>
+                  setForm((f: any) => ({ ...f, substack: e.target.value }))
+                }
+                placeholder="https://yourname.substack.com"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <p className={labelClass}>Website or portfolio <span className="text-ink-400 text-[13px] ml-1">(optional)</span></p>
+              <input
+                type="url"
+                value={form.website}
+                onChange={(e) =>
+                  setForm((f: any) => ({ ...f, website: e.target.value }))
+                }
+                placeholder="https://..."
+                className={inputClass}
             />
           </div>
 
