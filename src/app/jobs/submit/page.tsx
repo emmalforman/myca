@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import MemberLogin from "@/components/MemberLogin";
 import { JOB_TYPES, LOCATION_TYPES } from "@/lib/types";
 
-export default function SubmitJobPage() {
+function SubmitJobPageInner() {
   const [signedIn, setSignedIn] = useState(false);
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
@@ -279,7 +280,7 @@ export default function SubmitJobPage() {
                   setJobUrl(e.target.value);
                   setParseError("");
                 }}
-                placeholder="LinkedIn, Greenhouse, Lever, or any job URL..."
+                placeholder="Paste any job posting URL..."
                 className="flex-1 px-4 py-2.5 bg-white border border-ink-200 text-ink-900 text-[14px] placeholder-ink-300 focus:outline-none focus:border-forest-400"
               />
               <button
@@ -331,7 +332,7 @@ export default function SubmitJobPage() {
               </div>
             )}
             <p className="text-[11px] text-ink-400 mt-2">
-              Supports LinkedIn, Greenhouse, Lever, Ashby, Wellfound, and Indeed.
+              Paste any job posting URL and we&apos;ll try to pull the details.
             </p>
           </div>
 
@@ -528,5 +529,13 @@ export default function SubmitJobPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function SubmitJobPage() {
+  return (
+    <MemberLogin>
+      <SubmitJobPageInner />
+    </MemberLogin>
   );
 }
