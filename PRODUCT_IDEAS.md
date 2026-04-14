@@ -15,8 +15,16 @@
 10. **Unread Message Badges** — Notification dots on Chat nav
 11. **Member Content Feed on Homepage** — Auto-pull latest posts from member Substacks, newsletters, podcasts, and blogs to feature on the homepage. Keeps homepage fresh, elevates member work, gives non-members a reason to keep visiting. Members link their feeds in their profile; ingested via RSS. Can highlight "Latest from the community" with post title, excerpt, author, and link out.
 12. **Required Profile Onboarding** — Force users to complete profile + metadata at first login. Improves directory quality, search, intros, and matchmaking.
-    - Fields: name, photo, role/title, company, location, interests/expertise tags, what they're looking for, website, **Instagram handle**, other socials
-    - Requires Supabase schema update to add new profile columns (e.g. `instagram_handle`, `socials`, `interests`, etc.)
+    - **Required fields:**
+      - Core: name, photo, role/title, company/business, location (city), short bio
+      - Matchmaking: interests/expertise tags, what they're looking for, what they offer
+    - **Optional links (more = better):**
+      - Website URL
+      - **Content feed URL** (RSS — Substack, podcast, blog, YouTube) — separate from website so we can auto-pull posts for the homepage feed
+      - Instagram handle
+      - LinkedIn
+      - Other socials (TikTok, Twitter, newsletter, etc.)
+    - Requires Supabase schema update to add new profile columns (`content_feed_url`, `instagram_handle`, `socials` jsonb, `interests` text[], etc.)
     - Block access to app until required fields are complete
     - **Branching marketplace flow:** "Do you have a product or service?" → type (product / service / skill / event) → brand (pick existing or add new) → details. Auto-populates the brand directory and marketplace from signup.
 13. **AI Matchmaker Chatbot** — Conversational chatbot where members describe what they need ("I'm looking for a photographer in Brooklyn," "need help with packaging," "want to collab on a dinner pop-up") and the bot returns recommendations with reasoning. Feeds into Intro Requests — bot can draft the outreach message.
