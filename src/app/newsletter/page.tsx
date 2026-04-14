@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
-import MemberLogin from "@/components/MemberLogin";
 
 interface Post {
   title: string;
@@ -283,9 +282,5 @@ function NewsletterPageInner() {
 }
 
 export default function NewsletterPage() {
-  return (
-    <MemberLogin>
-      <NewsletterPageInner />
-    </MemberLogin>
-  );
+  return <NewsletterPageInner />;
 }

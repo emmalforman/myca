@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
-import MemberLogin from "@/components/MemberLogin";
 import type { Event } from "@/lib/types";
 
 /* ─── date helpers ─── */
@@ -740,9 +739,5 @@ function EventsPageInner() {
 }
 
 export default function EventsPage() {
-  return (
-    <MemberLogin>
-      <EventsPageInner />
-    </MemberLogin>
-  );
+  return <EventsPageInner />;
 }
