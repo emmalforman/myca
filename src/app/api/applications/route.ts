@@ -101,10 +101,8 @@ export async function PATCH(request: Request) {
       console.log("Contact upsert:", { email: app.email, error: insertError?.message || "success" });
 
       if (insertError) {
-        return NextResponse.json({
-          status: newStatus,
-          warning: `Application accepted but contact creation failed: ${insertError.message}`,
-        });
+        console.error("Contact upsert failed:", insertError.message);
+        // Don't return early — still send the acceptance email
       }
 
       // Send acceptance email
