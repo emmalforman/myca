@@ -66,15 +66,11 @@ export async function PATCH(request: Request) {
 
   // If accepted, add to contacts table and send welcome email
   if (newStatus === "accepted") {
-    const debug: string[] = [];
-
-    const { data: app, error: fetchError } = await supabase
+    const { data: app } = await supabase
       .from("applications")
       .select("*")
       .eq("id", id)
       .single();
-
-    debug.push(`fetch: ${app ? app.email : "NOT FOUND"} ${fetchError?.message || ""}`);
 
     if (app) {
       const { error: insertError } = await supabase.from("contacts").upsert(
@@ -100,11 +96,12 @@ export async function PATCH(request: Request) {
         { onConflict: "email" }
       );
 
-      debug.push(`upsert: ${insertError?.message || "ok"}`);
+      if (insertError) {
+        console.error("Contact upsert failed:", insertError.message);
+      }
 
       // Send acceptance email
       try {
-        debug.push(`sending email to ${app.email}`);
         const { subject, html } = buildAcceptanceEmail(app.full_name);
         const { data: emailResult, error: emailError } = await resend.emails.send({
           from: "Emma @ Myca <hello@mycacollective.com>",
@@ -114,22 +111,19 @@ export async function PATCH(request: Request) {
         });
 
         if (emailError) {
-          debug.push(`resend error: ${JSON.stringify(emailError)}`);
+          console.error("Resend error:", emailError.message);
           await supabase
             .from("applications")
             .update({ email_status: "failed" })
             .eq("id", id);
         } else if (emailResult?.id) {
-          debug.push(`resend ok: ${emailResult.id}`);
           await supabase
             .from("applications")
             .update({ email_id: emailResult.id, email_status: "sent" })
             .eq("id", id);
-        } else {
-          debug.push(`resend unknown: ${JSON.stringify({ emailResult, emailError })}`);
         }
       } catch (emailErr: any) {
-        debug.push(`resend exception: ${emailErr.message}`);
+        console.error("Acceptance email failed:", emailErr.message);
         await supabase
           .from("applications")
           .update({ email_status: "failed" })
@@ -137,8 +131,7 @@ export async function PATCH(request: Request) {
       }
     }
 
-    console.log("ACCEPT DEBUG:", debug.join(" | "));
-    return NextResponse.json({ status: newStatus, id, debug });
+    return NextResponse.json({ status: newStatus, id });
   }
 
   // If rejected, revoke membership — but only if there's no other accepted application
