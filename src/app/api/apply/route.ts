@@ -58,9 +58,6 @@ export async function POST(request: Request) {
     !referralSource ||
     !skills ||
     !interests ||
-    !superpower ||
-    !asks ||
-    !offers ||
     !comfortFood ||
     !hopingToGet ||
     !excitedToContribute

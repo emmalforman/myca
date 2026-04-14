@@ -816,60 +816,6 @@ export default function JoinPage() {
             )}
           </div>
 
-          {/* Superpower */}
-          <div>
-            <p className={labelClass}>
-              What&apos;s your professional superpower?{" "}
-              <span className={requiredClass}>(required)</span>
-            </p>
-            <input
-              type="text"
-              required
-              value={form.superpower}
-              onChange={(e) =>
-                setForm((f: any) => ({ ...f, superpower: e.target.value }))
-              }
-              placeholder="The one thing you're known for..."
-              className={inputClass}
-            />
-          </div>
-
-          {/* Offers */}
-          <div>
-            <p className={labelClass}>
-              What can you offer the community?{" "}
-              <span className={requiredClass}>(required)</span>
-            </p>
-            <textarea
-              required
-              value={form.offers}
-              onChange={(e) =>
-                setForm((f: any) => ({ ...f, offers: e.target.value }))
-              }
-              placeholder="e.g. Intro to retail buyers, mentoring first-time founders, CPG pitch deck feedback..."
-              rows={3}
-              className={textareaClass}
-            />
-          </div>
-
-          {/* Asks */}
-          <div>
-            <p className={labelClass}>
-              What are you looking for right now?{" "}
-              <span className={requiredClass}>(required)</span>
-            </p>
-            <textarea
-              required
-              value={form.asks}
-              onChange={(e) =>
-                setForm((f: any) => ({ ...f, asks: e.target.value }))
-              }
-              placeholder="e.g. Co-packer recommendations, Series A intros, marketing hires..."
-              rows={3}
-              className={textareaClass}
-            />
-          </div>
-
           {/* Hoping to get */}
           <div>
             <p className={labelClass}>
