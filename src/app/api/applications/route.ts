@@ -66,11 +66,13 @@ export async function PATCH(request: Request) {
 
   // If accepted, add to contacts table
   if (newStatus === "accepted") {
-    const { data: app } = await supabase
+    const { data: app, error: fetchError } = await supabase
       .from("applications")
       .select("*")
       .eq("id", id)
       .single();
+
+    console.log("Acceptance flow:", { id, appFound: !!app, fetchError: fetchError?.message || null });
 
     if (app) {
       const { error: insertError } = await supabase.from("contacts").upsert(
@@ -95,6 +97,8 @@ export async function PATCH(request: Request) {
         },
         { onConflict: "email" }
       );
+
+      console.log("Contact upsert:", { email: app.email, error: insertError?.message || "success" });
 
       if (insertError) {
         return NextResponse.json({
