@@ -6,6 +6,16 @@
 3. **Job Board** — Members + companies pay to list
 4. **Brand & Skill Marketplace** — Members and brands list their products, services, and skills for the community to browse and shop. Brands pay for featured/premium listings. Members can offer consulting, catering, recipe dev, etc.
 5. **Member Discounts Program** — Exclusive discounts at Myca member businesses. v1: discount codes + affiliate links (no infra needed). v2: Stripe Connect for platform-facilitated payments with a Myca fee. Huge retention driver — "your membership pays for itself."
+6. **Non-Member Revenue Streams** — Ways outsiders (companies, brands, agencies) can pay Myca without being a member. The community is the asset — monetize access to it.
+    - **Paid public job postings** — companies pay (e.g. $200–500/role) to post to the Myca job board without a membership
+    - **Sponsored digest placements** — brands pay to be featured in the weekly member digest email
+    - **Sponsored Substack placements** — paid features in the member content pipeline
+    - **Sponsored events / activations** — brands sponsor a dinner, panel, or series ($5–10K+)
+    - **Corporate memberships** — companies buy bundles of seats for employees
+    - **Paid event tickets** — non-members pay a premium for open events (members free/discounted)
+    - **Industry insights / reports** — sell community-sourced trend reports to corporates
+    - **Consulting + co-created programming** — Myca designs/runs content series for brands
+    - **Branded recipe development / R&D** — members help brands, Myca takes platform fee
 
 ## Engagement Drivers
 6. **Weekly Digest Email** — Auto-generated: new members, popular messages, upcoming events
