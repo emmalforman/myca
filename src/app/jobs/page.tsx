@@ -193,6 +193,8 @@ function JobsPageInner() {
       applyUrl: job.applyUrl || "",
       applyEmail: job.applyEmail || "",
       salaryRange: job.salaryRange || "",
+      contactName: job.contactName || "",
+      contactEmail: job.contactEmail || "",
     });
   }
 
@@ -691,6 +693,27 @@ function JobsPageInner() {
                 <input type="email" value={editForm.applyEmail || ""} onChange={(e) => setEditForm((f) => ({ ...f, applyEmail: e.target.value }))}
                   className="w-full px-4 py-2.5 bg-white border border-ink-200 text-ink-900 text-[14px] placeholder-ink-300 focus:outline-none focus:border-forest-400" />
               </div>
+              <label className="flex items-start gap-3 cursor-pointer mt-2">
+                <input
+                  type="checkbox"
+                  checked={!!(editForm.contactName)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setEditForm((f) => ({
+                        ...f,
+                        contactName: editingJob?.submittedByName || userName,
+                        contactEmail: editingJob?.submittedByEmail || userEmail,
+                      }));
+                    } else {
+                      setEditForm((f) => ({ ...f, contactName: "", contactEmail: "" }));
+                    }
+                  }}
+                  className="mt-0.5 w-4 h-4 accent-forest-700"
+                />
+                <span className="text-[14px] text-ink-600">
+                  List contact person on this role
+                </span>
+              </label>
             </div>
             <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-ink-100">
               <button onClick={() => setEditingJob(null)}
