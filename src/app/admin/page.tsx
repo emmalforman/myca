@@ -12,6 +12,10 @@ interface Application {
   occupation: string;
   linkedin: string;
   instagram: string | null;
+  tiktok: string | null;
+  twitter: string | null;
+  substack: string | null;
+  website: string | null;
   phone: string;
   location: string[];
   industry_focus: string | null;
@@ -612,20 +616,24 @@ export default function AdminPage() {
                           { label: "Location", value: Array.isArray(app.location) ? app.location.join(", ") : app.location },
                           { label: "Industry Focus", value: app.industry_focus },
                           { label: "Years Experience", value: app.years_experience },
-                          { label: "LinkedIn", value: app.linkedin, link: true },
-                          { label: "Instagram", value: app.instagram },
+                          { label: "LinkedIn", value: app.linkedin, link: true, href: app.linkedin?.startsWith("http") ? app.linkedin : `https://linkedin.com/in/${app.linkedin}` },
+                          { label: "Instagram", value: app.instagram, link: true, href: `https://instagram.com/${app.instagram?.replace(/^@/, "")}` },
+                          { label: "TikTok", value: app.tiktok, link: true, href: `https://tiktok.com/@${app.tiktok?.replace(/^@/, "")}` },
+                          { label: "Twitter/X", value: app.twitter, link: true, href: `https://x.com/${app.twitter?.replace(/^@/, "")}` },
+                          { label: "Substack", value: app.substack, link: true, href: app.substack?.startsWith("http") ? app.substack : `https://${app.substack}.substack.com` },
+                          { label: "Website", value: app.website, link: true, href: app.website?.startsWith("http") ? app.website : `https://${app.website}` },
                           { label: "Skills", value: app.skills },
                           { label: "Interests", value: app.interests },
                           { label: "Referral", value: [app.referral_source, app.referred_by_name].filter(Boolean).join(" — ") },
                           { label: "Comfort Food", value: app.comfort_food, italic: true },
-                        ] as { label: string; value: string | null; link?: boolean; italic?: boolean }[]).filter(f => f.value).map((field) => (
+                        ] as { label: string; value: string | null; link?: boolean; href?: string; italic?: boolean }[]).filter(f => f.value).map((field) => (
                           <div key={field.label}>
                             <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">
                               {field.label}
                             </p>
                             {field.link ? (
-                              <a href={field.value!} target="_blank" rel="noopener noreferrer" className="text-[13px] text-forest-700 underline">
-                                View
+                              <a href={field.href || field.value!} target="_blank" rel="noopener noreferrer" className="text-[13px] text-forest-700 underline">
+                                {field.value}
                               </a>
                             ) : (
                               <p className={`text-[13px] text-ink-700 ${field.italic ? "italic" : ""}`}>
