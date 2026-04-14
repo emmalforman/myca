@@ -667,6 +667,7 @@ export default function JoinPage() {
                 onChange={(e) =>
                   setForm((f: any) => ({ ...f, phone: e.target.value }))
                 }
+                placeholder="+1 (555) 123-4567"
                 className={inputClass}
               />
             </div>
