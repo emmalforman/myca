@@ -693,7 +693,8 @@ export default function JoinPage() {
                 }
                 placeholder="https://..."
                 className={inputClass}
-            />
+              />
+            </div>
           </div>
 
           {/* Email + Phone */}
