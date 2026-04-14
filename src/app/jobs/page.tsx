@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import MemberLogin from "@/components/MemberLogin";
 import type { Job, Member } from "@/lib/types";
 
 const ADMIN_EMAILS = ["emmalforman7@gmail.com", "emma@mycacollective.com"];
@@ -48,7 +49,7 @@ interface Application {
   clickedAt: string;
 }
 
-export default function JobsPage() {
+function JobsPageInner() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [pendingJobs, setPendingJobs] = useState<Job[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -61,6 +62,9 @@ export default function JobsPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [locationTypeFilter, setLocationTypeFilter] = useState("");
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Job>>({});
+  const [saving, setSaving] = useState(false);
 
   const isUserAdmin = ADMIN_EMAILS.includes(userEmail.toLowerCase());
 
@@ -175,6 +179,40 @@ export default function JobsPage() {
         setPendingJobs((prev) => prev.filter((j) => j.id !== jobId));
       }
     } catch {}
+  }
+
+  function openEdit(job: Job) {
+    setEditingJob(job);
+    setEditForm({
+      title: job.title,
+      company: job.company,
+      description: job.description,
+      location: job.location || "",
+      locationType: job.locationType || "onsite",
+      type: job.type || "full-time",
+      applyUrl: job.applyUrl || "",
+      applyEmail: job.applyEmail || "",
+      salaryRange: job.salaryRange || "",
+    });
+  }
+
+  async function handleSaveEdit() {
+    if (!editingJob) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingJob.id, adminEmail: userEmail, ...editForm }),
+      });
+      if (res.ok) {
+        const updated = { ...editingJob, ...editForm };
+        setJobs((prev) => prev.map((j) => (j.id === editingJob.id ? updated : j)));
+        setPendingJobs((prev) => prev.map((j) => (j.id === editingJob.id ? updated : j)));
+        setEditingJob(null);
+      }
+    } catch {}
+    setSaving(false);
   }
 
   const companyMembers = useMemo(() => {
@@ -347,6 +385,12 @@ export default function JobsPage() {
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <button
+                        onClick={() => openEdit(job)}
+                        className="px-4 py-1.5 text-[12px] uppercase tracking-wider font-medium text-ink-500 border border-ink-300 hover:bg-ink-50 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
                         onClick={() => handleApprove(job.id)}
                         className="px-4 py-1.5 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-800 hover:bg-forest-700 transition-colors"
                       >
@@ -510,6 +554,14 @@ export default function JobsPage() {
                           Apply
                         </button>
                       )}
+                      {isUserAdmin && (
+                        <button
+                          onClick={() => openEdit(job)}
+                          className="px-4 py-1.5 text-[11px] uppercase tracking-wider font-medium text-ink-400 border border-ink-200 hover:border-ink-400 hover:text-ink-600 transition-colors"
+                        >
+                          Edit
+                        </button>
+                      )}
                     </div>
                   </div>
                   {/* Contact person */}
@@ -565,6 +617,102 @@ export default function JobsPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {editingJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingJob(null)}>
+          <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-serif text-xl text-ink-900">Edit Job</h2>
+              <button onClick={() => setEditingJob(null)} className="text-ink-400 hover:text-ink-700 text-lg">&times;</button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[12px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-1.5">Title</label>
+                <input type="text" value={editForm.title || ""} onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-white border border-ink-200 text-ink-900 text-[14px] focus:outline-none focus:border-forest-400" />
+              </div>
+              <div>
+                <label className="block text-[12px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-1.5">Company</label>
+                <input type="text" value={editForm.company || ""} onChange={(e) => setEditForm((f) => ({ ...f, company: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-white border border-ink-200 text-ink-900 text-[14px] focus:outline-none focus:border-forest-400" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[12px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-1.5">Job Type</label>
+                  <select value={editForm.type || "full-time"} onChange={(e) => setEditForm((f) => ({ ...f, type: e.target.value }))}
+                    className="w-full px-4 py-2.5 bg-white border border-ink-200 text-ink-900 text-[14px] focus:outline-none focus:border-forest-400 appearance-none cursor-pointer"
+                    style={selectStyle}>
+                    <option value="full-time">Full-Time</option>
+                    <option value="part-time">Part-Time</option>
+                    <option value="contract">Contract</option>
+                    <option value="freelance">Freelance</option>
+                    <option value="internship">Internship</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[12px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-1.5">Location Type</label>
+                  <select value={editForm.locationType || "onsite"} onChange={(e) => setEditForm((f) => ({ ...f, locationType: e.target.value }))}
+                    className="w-full px-4 py-2.5 bg-white border border-ink-200 text-ink-900 text-[14px] focus:outline-none focus:border-forest-400 appearance-none cursor-pointer"
+                    style={selectStyle}>
+                    <option value="onsite">Onsite</option>
+                    <option value="remote">Remote</option>
+                    <option value="hybrid">Hybrid</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[12px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-1.5">Location</label>
+                  <input type="text" value={editForm.location || ""} onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))}
+                    placeholder="e.g. New York, NY"
+                    className="w-full px-4 py-2.5 bg-white border border-ink-200 text-ink-900 text-[14px] placeholder-ink-300 focus:outline-none focus:border-forest-400" />
+                </div>
+                <div>
+                  <label className="block text-[12px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-1.5">Salary Range</label>
+                  <input type="text" value={editForm.salaryRange || ""} onChange={(e) => setEditForm((f) => ({ ...f, salaryRange: e.target.value }))}
+                    placeholder="e.g. $120k - $150k"
+                    className="w-full px-4 py-2.5 bg-white border border-ink-200 text-ink-900 text-[14px] placeholder-ink-300 focus:outline-none focus:border-forest-400" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[12px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-1.5">Description</label>
+                <textarea value={editForm.description || ""} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                  rows={4}
+                  className="w-full px-4 py-2.5 bg-white border border-ink-200 text-ink-900 text-[14px] focus:outline-none focus:border-forest-400 resize-none" />
+              </div>
+              <div>
+                <label className="block text-[12px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-1.5">Apply URL</label>
+                <input type="url" value={editForm.applyUrl || ""} onChange={(e) => setEditForm((f) => ({ ...f, applyUrl: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-white border border-ink-200 text-ink-900 text-[14px] focus:outline-none focus:border-forest-400" />
+              </div>
+              <div>
+                <label className="block text-[12px] uppercase tracking-[0.15em] text-ink-500 font-mono mb-1.5">Apply Email</label>
+                <input type="email" value={editForm.applyEmail || ""} onChange={(e) => setEditForm((f) => ({ ...f, applyEmail: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-white border border-ink-200 text-ink-900 text-[14px] placeholder-ink-300 focus:outline-none focus:border-forest-400" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-ink-100">
+              <button onClick={() => setEditingJob(null)}
+                className="px-5 py-2 text-[12px] uppercase tracking-wider font-medium text-ink-500 hover:text-ink-700 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleSaveEdit} disabled={saving}
+                className="px-6 py-2 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-900 hover:bg-forest-800 disabled:bg-ink-400 transition-colors">
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function JobsPage() {
+  return (
+    <MemberLogin>
+      <JobsPageInner />
+    </MemberLogin>
   );
 }

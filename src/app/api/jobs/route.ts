@@ -128,7 +128,16 @@ export async function PATCH(request: NextRequest) {
   const dbUpdates: any = {};
   if (updates.status !== undefined) dbUpdates.status = updates.status;
   if (updates.title !== undefined) dbUpdates.title = updates.title;
+  if (updates.company !== undefined) dbUpdates.company = updates.company;
   if (updates.description !== undefined) dbUpdates.description = updates.description;
+  if (updates.location !== undefined) dbUpdates.location = updates.location;
+  if (updates.locationType !== undefined) dbUpdates.location_type = updates.locationType;
+  if (updates.type !== undefined) dbUpdates.type = updates.type;
+  if (updates.applyUrl !== undefined) dbUpdates.apply_url = updates.applyUrl;
+  if (updates.applyEmail !== undefined) dbUpdates.apply_email = updates.applyEmail;
+  if (updates.salaryRange !== undefined) dbUpdates.salary_range = updates.salaryRange;
+  if (updates.contactName !== undefined) dbUpdates.contact_name = updates.contactName;
+  if (updates.contactEmail !== undefined) dbUpdates.contact_email = updates.contactEmail;
 
   const { data, error } = await supabaseAdmin
     .from("jobs")
