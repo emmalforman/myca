@@ -98,9 +98,16 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState("");
   const [askInput, setAskInput] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    // Check admin status
+    fetch("/api/auth/is-admin")
+      .then((r) => r.json())
+      .then((d) => setIsAdmin(!!d.isAdmin))
+      .catch(() => setIsAdmin(false));
+
     // Fetch members and dashboard feed in parallel
     // Look up name directly via browser client (same pattern as MemberLogin)
     const supabase = getSupabaseBrowser();
@@ -210,7 +217,7 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-14">
+      <div className={`grid grid-cols-1 ${isAdmin ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-4 mb-14`}>
         <Link
           href="/directory"
           className="group flex items-center gap-4 p-5 bg-forest-900 text-cream hover:bg-forest-800 transition-colors"
@@ -247,6 +254,21 @@ export default function MemberDashboard({ userEmail }: { userEmail: string }) {
             <p className="text-[12px] text-ink-400 mt-0.5">Upcoming gatherings</p>
           </div>
         </Link>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="group flex items-center gap-4 p-5 bg-white border border-clay-200 hover:border-clay-400 transition-colors"
+          >
+            <svg className="w-5 h-5 text-clay-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium tracking-wide uppercase text-forest-900">Admin</p>
+              <p className="text-[12px] text-ink-400 mt-0.5">Dashboard</p>
+            </div>
+          </Link>
+        )}
       </div>
 
       {/* Upcoming Events */}
