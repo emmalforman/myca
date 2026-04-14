@@ -64,15 +64,17 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
-  // If accepted, add to contacts table
+  // If accepted, add to contacts table and send welcome email
   if (newStatus === "accepted") {
+    const debug: string[] = [];
+
     const { data: app, error: fetchError } = await supabase
       .from("applications")
       .select("*")
       .eq("id", id)
       .single();
 
-    console.log("Acceptance flow:", { id, appFound: !!app, fetchError: fetchError?.message || null });
+    debug.push(`fetch: ${app ? app.email : "NOT FOUND"} ${fetchError?.message || ""}`);
 
     if (app) {
       const { error: insertError } = await supabase.from("contacts").upsert(
@@ -98,16 +100,11 @@ export async function PATCH(request: Request) {
         { onConflict: "email" }
       );
 
-      console.log("Contact upsert:", { email: app.email, error: insertError?.message || "success" });
-
-      if (insertError) {
-        console.error("Contact upsert failed:", insertError.message);
-        // Don't return early — still send the acceptance email
-      }
+      debug.push(`upsert: ${insertError?.message || "ok"}`);
 
       // Send acceptance email
-      let emailWarning: string | undefined;
       try {
+        debug.push(`sending email to ${app.email}`);
         const { subject, html } = buildAcceptanceEmail(app.full_name);
         const { data: emailResult, error: emailError } = await resend.emails.send({
           from: "Emma @ Myca <hello@mycacollective.com>",
@@ -117,32 +114,31 @@ export async function PATCH(request: Request) {
         });
 
         if (emailError) {
-          console.error("Resend error:", JSON.stringify(emailError));
-          emailWarning = `Acceptance email failed: ${emailError.message}`;
+          debug.push(`resend error: ${JSON.stringify(emailError)}`);
           await supabase
             .from("applications")
             .update({ email_status: "failed" })
             .eq("id", id);
         } else if (emailResult?.id) {
-          console.log("Acceptance email sent:", emailResult.id, "to", app.email);
+          debug.push(`resend ok: ${emailResult.id}`);
           await supabase
             .from("applications")
             .update({ email_id: emailResult.id, email_status: "sent" })
             .eq("id", id);
+        } else {
+          debug.push(`resend unknown: ${JSON.stringify({ emailResult, emailError })}`);
         }
       } catch (emailErr: any) {
-        console.error("Acceptance email exception:", emailErr.message);
-        emailWarning = `Acceptance email failed: ${emailErr.message}`;
+        debug.push(`resend exception: ${emailErr.message}`);
         await supabase
           .from("applications")
           .update({ email_status: "failed" })
           .eq("id", id);
       }
-
-      if (emailWarning) {
-        return NextResponse.json({ status: newStatus, id, warning: emailWarning });
-      }
     }
+
+    console.log("ACCEPT DEBUG:", debug.join(" | "));
+    return NextResponse.json({ status: newStatus, id, debug });
   }
 
   // If rejected, revoke membership — but only if there's no other accepted application
