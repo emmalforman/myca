@@ -273,7 +273,8 @@ export default function JoinPage() {
           </h1>
           <p className="text-[15px] text-ink-400 leading-relaxed">
             Applications are reviewed weekly. If your profile is a fit, expect
-            to hear from us soon. In the meantime, keep building.
+            to hear from us soon. Be sure to check your spam folder so you
+            don&apos;t miss our response. In the meantime, keep building.
           </p>
         </div>
       </div>
@@ -590,6 +591,8 @@ export default function JoinPage() {
               <input
                 type="url"
                 required
+                pattern="https?://(www\.)?linkedin\.com/in/.+"
+                title="Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/yourname)"
                 value={form.linkedin}
                 onChange={(e) =>
                   setForm((f: any) => ({ ...f, linkedin: e.target.value }))
@@ -597,6 +600,9 @@ export default function JoinPage() {
                 placeholder="https://linkedin.com/in/..."
                 className={inputClass}
               />
+              {form.linkedin && !/^https?:\/\/(www\.)?linkedin\.com\/in\/.+/i.test(form.linkedin) && (
+                <p className="text-[12px] text-rust-500 mt-1.5">Please enter a valid LinkedIn URL (e.g. https://linkedin.com/in/yourname)</p>
+              )}
             </div>
             <div>
               <p className={labelClass}>
@@ -605,6 +611,8 @@ export default function JoinPage() {
               <input
                 type="text"
                 required
+                pattern="@?[a-zA-Z0-9._]{1,30}"
+                title="Please enter a valid Instagram handle (e.g. @yourhandle)"
                 value={form.instagram}
                 onChange={(e) =>
                   setForm((f: any) => ({ ...f, instagram: e.target.value }))
@@ -612,6 +620,9 @@ export default function JoinPage() {
                 placeholder="@handle"
                 className={inputClass}
               />
+              {form.instagram && !/^@?[a-zA-Z0-9._]{1,30}$/.test(form.instagram) && (
+                <p className="text-[12px] text-rust-500 mt-1.5">Please enter a valid Instagram handle (e.g. @yourhandle)</p>
+              )}
             </div>
           </div>
 
