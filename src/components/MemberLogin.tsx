@@ -103,7 +103,9 @@ export default function MemberLogin({
           setError(authError.message);
         }
       } else {
-        setShouldRedirectHome(true);
+        // Login succeeded - redirect to home immediately
+        window.location.href = "/";
+        return;
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
@@ -162,7 +164,9 @@ export default function MemberLogin({
         setError("Account created! Check your email to confirm, then come back and sign in.");
         setState("login");
       } else {
-        setShouldRedirectHome(true);
+        // Signup + auto-login succeeded - redirect to home immediately
+        window.location.href = "/";
+        return;
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
