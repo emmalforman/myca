@@ -107,20 +107,29 @@ export async function PATCH(request: Request) {
       let emailWarning: string | undefined;
       try {
         const { subject, html } = buildAcceptanceEmail(app.full_name);
-        const { data: emailResult } = await resend.emails.send({
+        const { data: emailResult, error: emailError } = await resend.emails.send({
           from: "Emma @ Myca <hello@mycacollective.com>",
           to: app.email,
           subject,
           html,
         });
 
-        if (emailResult?.id) {
+        if (emailError) {
+          console.error("Resend error:", JSON.stringify(emailError));
+          emailWarning = `Acceptance email failed: ${emailError.message}`;
+          await supabase
+            .from("applications")
+            .update({ email_status: "failed" })
+            .eq("id", id);
+        } else if (emailResult?.id) {
+          console.log("Acceptance email sent:", emailResult.id, "to", app.email);
           await supabase
             .from("applications")
             .update({ email_id: emailResult.id, email_status: "sent" })
             .eq("id", id);
         }
       } catch (emailErr: any) {
+        console.error("Acceptance email exception:", emailErr.message);
         emailWarning = `Acceptance email failed: ${emailErr.message}`;
         await supabase
           .from("applications")
