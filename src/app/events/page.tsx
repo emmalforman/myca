@@ -89,7 +89,7 @@ function JoinOverlay() {
 }
 
 /* ─── component ─── */
-export default function EventsPage() {
+function EventsPageInner() {
   const today = new Date();
   const [signedIn, setSignedIn] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
@@ -736,4 +736,8 @@ export default function EventsPage() {
       </div>
     </div>
   );
+}
+
+export default function EventsPage() {
+  return <EventsPageInner />;
 }

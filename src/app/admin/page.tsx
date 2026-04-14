@@ -11,13 +11,29 @@ interface Application {
   title: string;
   occupation: string;
   linkedin: string;
+  instagram: string | null;
+  tiktok: string | null;
+  twitter: string | null;
+  substack: string | null;
+  website: string | null;
   phone: string;
   location: string[];
+  industry_focus: string | null;
+  skills: string | null;
+  interests: string | null;
+  superpower: string | null;
+  asks: string | null;
+  offers: string | null;
+  years_experience: string | null;
+  referral_source: string | null;
+  referred_by_name: string | null;
+  referred_by_email: string | null;
   comfort_food: string;
   hoping_to_get: string;
   excited_to_contribute: string;
   photo_url: string | null;
   status: string;
+  email_status: string | null;
   created_at: string;
 }
 
@@ -260,6 +276,9 @@ export default function AdminPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [eventFilter, setEventFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
   const [jobFilter, setJobFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
+  const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
+  const [editForm, setEditForm] = useState<Partial<EventItem>>({});
+  const [editSaving, setEditSaving] = useState(false);
 
   const fetchApps = async () => {
     setLoading(true);
@@ -317,6 +336,45 @@ export default function AdminPage() {
         prev.map((e) => (e.id === id ? { ...e, isMycaMemberEvent: !current } : e))
       );
     }
+  };
+
+  const openEditEvent = (event: EventItem) => {
+    setEditingEvent(event);
+    setEditForm({
+      title: event.title,
+      host: event.host || "",
+      hostCompany: event.hostCompany || "",
+      description: event.description || "",
+      date: event.date,
+      startTime: event.startTime || "",
+      endTime: event.endTime || "",
+      location: event.location || "",
+      city: event.city || "New York",
+      rsvpUrl: event.rsvpUrl || "",
+      rsvpPlatform: event.rsvpPlatform || "",
+      coverImageUrl: event.coverImageUrl || "",
+    });
+  };
+
+  const saveEditEvent = async () => {
+    if (!editingEvent) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch("/api/events", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingEvent.id, ...editForm }),
+      });
+      if (res.ok) {
+        setPendingEvents((prev) =>
+          prev.map((e) =>
+            e.id === editingEvent.id ? { ...e, ...editForm } as EventItem : e
+          )
+        );
+        setEditingEvent(null);
+      }
+    } catch {}
+    setEditSaving(false);
   };
 
   const fetchJobs = async () => {
@@ -498,17 +556,36 @@ export default function AdminPage() {
                         {app.title} at {app.company}
                       </p>
                     </div>
-                    <span
-                      className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-mono flex-shrink-0 ${
-                        app.status === "accepted"
-                          ? "text-forest-700 bg-forest-50 border border-forest-200"
-                          : app.status === "rejected"
-                          ? "text-rust-700 bg-rust-50 border border-rust-200"
-                          : "text-clay-600 bg-clay-50 border border-clay-200"
-                      }`}
-                    >
-                      {app.status}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span
+                        className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-mono ${
+                          app.status === "accepted"
+                            ? "text-forest-700 bg-forest-50 border border-forest-200"
+                            : app.status === "rejected"
+                            ? "text-rust-700 bg-rust-50 border border-rust-200"
+                            : "text-clay-600 bg-clay-50 border border-clay-200"
+                        }`}
+                      >
+                        {app.status}
+                      </span>
+                      {app.status === "accepted" && app.email_status && (
+                        <span
+                          className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-mono ${
+                            app.email_status === "opened" || app.email_status === "clicked"
+                              ? "text-forest-700 bg-forest-50 border border-forest-200"
+                              : app.email_status === "bounced" || app.email_status === "failed" || app.email_status === "complained"
+                              ? "text-rust-700 bg-rust-50 border border-rust-200"
+                              : "text-ink-400 bg-ink-50 border border-ink-200"
+                          }`}
+                        >
+                          {app.email_status === "opened" || app.email_status === "clicked"
+                            ? "Email Read"
+                            : app.email_status === "bounced" || app.email_status === "failed"
+                            ? "Email Failed"
+                            : "Email Sent"}
+                        </span>
+                      )}
+                    </div>
                     <svg
                       className={`w-4 h-4 text-ink-300 transition-transform flex-shrink-0 ${
                         expanded === app.id ? "rotate-180" : ""
@@ -521,22 +598,39 @@ export default function AdminPage() {
 
                   {expanded === app.id && (
                     <div className="border-t border-ink-50 p-5 bg-ivory/30">
+                      {/* Photo + basic info */}
+                      {app.photo_url && (
+                        <div className="mb-4">
+                          <img src={app.photo_url} alt={app.full_name} className="w-24 h-24 object-cover" />
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                        {[
+                        {([
                           { label: "Email", value: app.email },
                           { label: "Phone", value: app.phone },
                           { label: "Occupation", value: app.occupation },
                           { label: "Location", value: Array.isArray(app.location) ? app.location.join(", ") : app.location },
-                          { label: "LinkedIn", value: app.linkedin, link: true },
+                          { label: "Industry Focus", value: app.industry_focus },
+                          { label: "Years Experience", value: app.years_experience },
+                          { label: "LinkedIn", value: app.linkedin, link: true, href: app.linkedin?.startsWith("http") ? app.linkedin : `https://linkedin.com/in/${app.linkedin}` },
+                          { label: "Instagram", value: app.instagram, link: true, href: `https://instagram.com/${app.instagram?.replace(/^@/, "")}` },
+                          { label: "TikTok", value: app.tiktok, link: true, href: `https://tiktok.com/@${app.tiktok?.replace(/^@/, "")}` },
+                          { label: "Twitter/X", value: app.twitter, link: true, href: `https://x.com/${app.twitter?.replace(/^@/, "")}` },
+                          { label: "Substack", value: app.substack, link: true, href: app.substack?.startsWith("http") ? app.substack : `https://${app.substack}.substack.com` },
+                          { label: "Website", value: app.website, link: true, href: app.website?.startsWith("http") ? app.website : `https://${app.website}` },
+                          { label: "Skills", value: app.skills },
+                          { label: "Interests", value: app.interests },
+                          { label: "Referral", value: [app.referral_source, app.referred_by_name].filter(Boolean).join(" — ") },
                           { label: "Comfort Food", value: app.comfort_food, italic: true },
-                        ].map((field) => (
+                        ] as { label: string; value: string | null; link?: boolean; href?: string; italic?: boolean }[]).filter(f => f.value).map((field) => (
                           <div key={field.label}>
                             <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">
                               {field.label}
                             </p>
                             {field.link ? (
-                              <a href={field.value} target="_blank" rel="noopener noreferrer" className="text-[13px] text-forest-700 underline">
-                                View
+                              <a href={field.href || field.value!} target="_blank" rel="noopener noreferrer" className="text-[13px] text-forest-700 underline">
+                                {field.value}
                               </a>
                             ) : (
                               <p className={`text-[13px] text-ink-700 ${field.italic ? "italic" : ""}`}>
@@ -546,6 +640,26 @@ export default function AdminPage() {
                           </div>
                         ))}
                       </div>
+
+                      {/* Long-form responses */}
+                      {app.superpower && (
+                        <div className="mb-3">
+                          <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">Superpower</p>
+                          <p className="text-[13px] text-ink-700 leading-relaxed">{app.superpower}</p>
+                        </div>
+                      )}
+                      {app.asks && (
+                        <div className="mb-3">
+                          <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">Asks</p>
+                          <p className="text-[13px] text-ink-700 leading-relaxed">{app.asks}</p>
+                        </div>
+                      )}
+                      {app.offers && (
+                        <div className="mb-3">
+                          <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">Offers</p>
+                          <p className="text-[13px] text-ink-700 leading-relaxed">{app.offers}</p>
+                        </div>
+                      )}
                       {app.hoping_to_get && (
                         <div className="mb-3">
                           <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">Hoping to get</p>
@@ -783,6 +897,12 @@ export default function AdminPage() {
                             </button>
                           )}
                           <button
+                            onClick={() => openEditEvent(event)}
+                            className="py-2.5 px-4 text-[12px] uppercase tracking-wider font-medium text-ink-600 border border-ink-200 hover:border-forest-400 hover:text-forest-700 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
                             onClick={() => toggleMycaMember(event.id, event.isMycaMemberEvent)}
                             className={`py-2.5 px-4 text-[12px] uppercase tracking-wider font-medium border transition-colors ${
                               event.isMycaMemberEvent
@@ -805,6 +925,174 @@ export default function AdminPage() {
               )}
             </div>
           </>
+        )}
+
+        {/* Edit Event Modal */}
+        {editingEvent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4">
+            <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl border border-ink-100">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-ink-100 sticky top-0 bg-white z-10">
+                <h3 className="font-serif text-lg text-ink-900">Edit Event</h3>
+                <button
+                  onClick={() => setEditingEvent(null)}
+                  className="text-ink-300 hover:text-ink-600 p-1"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                {editForm.coverImageUrl && (
+                  <img src={editForm.coverImageUrl} alt="" className="w-full h-40 object-cover border border-ink-100" />
+                )}
+                <div>
+                  <label className="block text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={editForm.title || ""}
+                    onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-ink-200 text-[14px] text-ink-900 focus:outline-none focus:border-forest-400"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-1">Host</label>
+                    <input
+                      type="text"
+                      value={editForm.host || ""}
+                      onChange={(e) => setEditForm((f) => ({ ...f, host: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-ink-200 text-[14px] text-ink-900 focus:outline-none focus:border-forest-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-1">Host Company</label>
+                    <input
+                      type="text"
+                      value={editForm.hostCompany || ""}
+                      onChange={(e) => setEditForm((f) => ({ ...f, hostCompany: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-ink-200 text-[14px] text-ink-900 focus:outline-none focus:border-forest-400"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-1">Description</label>
+                  <textarea
+                    value={editForm.description || ""}
+                    onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                    rows={4}
+                    className="w-full px-3 py-2 bg-white border border-ink-200 text-[14px] text-ink-900 focus:outline-none focus:border-forest-400 resize-none"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-1">Date</label>
+                    <input
+                      type="date"
+                      value={editForm.date || ""}
+                      onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-ink-200 text-[14px] text-ink-900 focus:outline-none focus:border-forest-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-1">Start Time</label>
+                    <input
+                      type="text"
+                      value={editForm.startTime || ""}
+                      onChange={(e) => setEditForm((f) => ({ ...f, startTime: e.target.value }))}
+                      placeholder="6:30 PM"
+                      className="w-full px-3 py-2 bg-white border border-ink-200 text-[14px] text-ink-900 focus:outline-none focus:border-forest-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-1">End Time</label>
+                    <input
+                      type="text"
+                      value={editForm.endTime || ""}
+                      onChange={(e) => setEditForm((f) => ({ ...f, endTime: e.target.value }))}
+                      placeholder="8:30 PM"
+                      className="w-full px-3 py-2 bg-white border border-ink-200 text-[14px] text-ink-900 focus:outline-none focus:border-forest-400"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-1">Location</label>
+                    <input
+                      type="text"
+                      value={editForm.location || ""}
+                      onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-ink-200 text-[14px] text-ink-900 focus:outline-none focus:border-forest-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-1">City</label>
+                    <select
+                      value={editForm.city || "New York"}
+                      onChange={(e) => setEditForm((f) => ({ ...f, city: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-ink-200 text-[14px] text-ink-900 focus:outline-none focus:border-forest-400"
+                    >
+                      <option>New York</option>
+                      <option>San Francisco</option>
+                      <option>Los Angeles</option>
+                      <option>Chicago</option>
+                      <option>London</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-1">RSVP URL</label>
+                    <input
+                      type="url"
+                      value={editForm.rsvpUrl || ""}
+                      onChange={(e) => setEditForm((f) => ({ ...f, rsvpUrl: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-ink-200 text-[14px] text-ink-900 focus:outline-none focus:border-forest-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-1">Platform</label>
+                    <select
+                      value={editForm.rsvpPlatform || ""}
+                      onChange={(e) => setEditForm((f) => ({ ...f, rsvpPlatform: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-ink-200 text-[14px] text-ink-900 focus:outline-none focus:border-forest-400"
+                    >
+                      <option value="">None</option>
+                      <option value="luma">Luma</option>
+                      <option value="partiful">Partiful</option>
+                      <option value="eventbrite">Eventbrite</option>
+                      <option value="resy">Resy</option>
+                      <option value="website">Website</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-1">Cover Image URL</label>
+                  <input
+                    type="url"
+                    value={editForm.coverImageUrl || ""}
+                    onChange={(e) => setEditForm((f) => ({ ...f, coverImageUrl: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-ink-200 text-[14px] text-ink-900 focus:outline-none focus:border-forest-400"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-ink-100 sticky bottom-0 bg-white">
+                <button
+                  onClick={() => setEditingEvent(null)}
+                  className="px-5 py-2.5 text-[12px] uppercase tracking-wider font-medium text-ink-400 hover:text-ink-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveEditEvent}
+                  disabled={editSaving}
+                  className="px-6 py-2.5 text-[12px] uppercase tracking-wider font-medium text-cream bg-forest-800 hover:bg-forest-700 disabled:bg-ink-300 transition-colors"
+                >
+                  {editSaving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Jobs Tab */}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import MemberLogin from "@/components/MemberLogin";
 
 const ADMIN_EMAILS = ["emmalforman7@gmail.com", "emma@mycacollective.com"];
 
@@ -30,7 +31,7 @@ interface Source {
   lastSyncedAt: string | null;
 }
 
-export default function JobSourcesPage() {
+function JobSourcesPageInner() {
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
@@ -331,5 +332,13 @@ export default function JobSourcesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function JobSourcesPage() {
+  return (
+    <MemberLogin>
+      <JobSourcesPageInner />
+    </MemberLogin>
   );
 }

@@ -187,15 +187,31 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
 
+  const fieldMap: Record<string, string> = {
+    status: "status",
+    personalNote: "personal_note",
+    isFeatured: "is_featured",
+    isMycaMemberEvent: "is_myca_member_event",
+    newsletterIncluded: "newsletter_included",
+    coverImageUrl: "cover_image_url",
+    title: "title",
+    description: "description",
+    host: "host",
+    hostCompany: "host_company",
+    date: "date",
+    dayOfWeek: "day_of_week",
+    startTime: "start_time",
+    endTime: "end_time",
+    location: "location",
+    city: "city",
+    rsvpUrl: "rsvp_url",
+    rsvpPlatform: "rsvp_platform",
+  };
+
   const dbUpdates: any = {};
-  if (updates.status !== undefined) dbUpdates.status = updates.status;
-  if (updates.personalNote !== undefined) dbUpdates.personal_note = updates.personalNote;
-  if (updates.isFeatured !== undefined) dbUpdates.is_featured = updates.isFeatured;
-  if (updates.isMycaMemberEvent !== undefined) dbUpdates.is_myca_member_event = updates.isMycaMemberEvent;
-  if (updates.newsletterIncluded !== undefined) dbUpdates.newsletter_included = updates.newsletterIncluded;
-  if (updates.coverImageUrl !== undefined) dbUpdates.cover_image_url = updates.coverImageUrl;
-  if (updates.title !== undefined) dbUpdates.title = updates.title;
-  if (updates.description !== undefined) dbUpdates.description = updates.description;
+  for (const [key, col] of Object.entries(fieldMap)) {
+    if (updates[key] !== undefined) dbUpdates[col] = updates[key];
+  }
 
   const { data, error } = await supabaseAdmin
     .from("events")

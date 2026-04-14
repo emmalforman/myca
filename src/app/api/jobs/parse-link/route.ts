@@ -3,36 +3,10 @@ import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED_HOSTS = [
-  "linkedin.com",
-  "www.linkedin.com",
-  "greenhouse.io",
-  "boards.greenhouse.io",
-  "job-boards.greenhouse.io",
-  "lever.co",
-  "jobs.lever.co",
-  "ashbyhq.com",
-  "jobs.ashbyhq.com",
-  "wellfound.com",
-  "www.wellfound.com",
-  "angel.co",
-  "www.angel.co",
-  "indeed.com",
-  "www.indeed.com",
-  "jobs.gusto.com",
-  "apply.workable.com",
-  "rippling.com",
-  "www.rippling.com",
-];
-
-function isAllowedUrl(urlString: string): boolean {
+function isValidJobUrl(urlString: string): boolean {
   try {
     const parsed = new URL(urlString);
-    if (parsed.protocol !== "https:") return false;
-    return ALLOWED_HOSTS.some(
-      (host) =>
-        parsed.hostname === host || parsed.hostname.endsWith("." + host)
-    );
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
   } catch {
     return false;
   }
@@ -85,6 +59,7 @@ function detectPlatform(url: string): string {
   if (url.includes("workable.com")) return "workable";
   if (url.includes("gusto.com")) return "gusto";
   if (url.includes("rippling.com")) return "rippling";
+  if (url.includes("breezy.hr")) return "breezy";
   return "other";
 }
 
@@ -244,7 +219,21 @@ function parseJobDetails(html: string, url: string) {
     if (locMatch && !location) location = cleanText(locMatch[1]);
   }
 
-  // Generic fallbacks
+  // Generic fallbacks — try "Title at Company" pattern from any platform
+  if ((!title || !company) && ogTitle) {
+    const atMatch = ogTitle.match(/^(.+?)\s+at\s+(.+?)(?:\s*[\|–—-].*)?$/i);
+    if (atMatch) {
+      if (!title) title = atMatch[1].trim();
+      if (!company) company = atMatch[2].trim();
+    }
+  }
+  if ((!title || !company) && pageTitle) {
+    const atMatch = pageTitle.match(/^(.+?)\s+at\s+(.+?)(?:\s*[\|–—-].*)?$/i);
+    if (atMatch) {
+      if (!title) title = atMatch[1].trim();
+      if (!company) company = atMatch[2].trim();
+    }
+  }
   if (!title && ogTitle) {
     // Remove common suffixes like "| Company" or "- Company"
     title = ogTitle.replace(/\s*[\|–—-]\s*[^|–—-]+$/, "").trim();
@@ -295,12 +284,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "url is required" }, { status: 400 });
   }
 
-  if (!isAllowedUrl(url)) {
+  if (!isValidJobUrl(url)) {
     return NextResponse.json(
-      {
-        error:
-          "URL not supported. Try LinkedIn, Greenhouse, Lever, Ashby, Wellfound, or Indeed links.",
-      },
+      { error: "Please enter a valid URL." },
       { status: 400 }
     );
   }

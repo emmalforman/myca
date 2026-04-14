@@ -71,12 +71,38 @@ create table if not exists public.channel_requests (
   unique(channel, email)
 );
 
+-- Add columns to applications (added after initial schema)
+alter table public.applications add column if not exists first_name text;
+alter table public.applications add column if not exists last_name text;
+alter table public.applications add column if not exists instagram text;
+alter table public.applications add column if not exists website text;
+alter table public.applications add column if not exists industry_focus text;
+alter table public.applications add column if not exists skills text;
+alter table public.applications add column if not exists interests text;
+alter table public.applications add column if not exists years_experience text;
+alter table public.applications add column if not exists referral_source text;
+alter table public.applications add column if not exists referred_by_name text;
+alter table public.applications add column if not exists referred_by_email text;
+alter table public.applications add column if not exists tiktok text;
+alter table public.applications add column if not exists twitter text;
+alter table public.applications add column if not exists substack text;
+alter table public.applications add column if not exists superpower text;
+alter table public.applications add column if not exists asks text;
+alter table public.applications add column if not exists offers text;
+
+-- Email tracking for acceptance emails
+alter table public.applications add column if not exists email_id text;
+alter table public.applications add column if not exists email_status text;
+
 -- Add instagram, skills, and interests to contacts (Notion-synced member table)
 -- Skills/interests are comma-separated tags used for matching
 alter table public.contacts add column if not exists instagram text;
 alter table public.contacts add column if not exists substack text;
 alter table public.contacts add column if not exists skills text;
 alter table public.contacts add column if not exists interests text;
+
+-- Unique constraint on contacts email (required for upsert on acceptance)
+alter table public.contacts add constraint contacts_email_unique unique (email);
 
 -- Indexes
 create index if not exists idx_members_location on public.members using gin(location);
@@ -150,3 +176,37 @@ create policy "Authenticated users can view their own requests"
 
 -- Enable realtime
 alter publication supabase_realtime add table public.members;
+
+-- Full-text search on contacts table for Ask Myca bot
+alter table public.contacts add column if not exists search_text tsvector
+  generated always as (
+    to_tsvector('english',
+      coalesce(name, '') || ' ' ||
+      coalesce(company, '') || ' ' ||
+      coalesce(role, '') || ' ' ||
+      coalesce(occupation_type, '') || ' ' ||
+      coalesce(location, '') || ' ' ||
+      coalesce(industry_tags, '') || ' ' ||
+      coalesce(focus_areas, '') || ' ' ||
+      coalesce(skills, '') || ' ' ||
+      coalesce(interests, '') || ' ' ||
+      coalesce(superpower, '') || ' ' ||
+      coalesce(asks, '') || ' ' ||
+      coalesce(offers, '') || ' ' ||
+      coalesce(notes, '') || ' ' ||
+      coalesce(communities, '')
+    )
+  ) stored;
+
+create index if not exists idx_contacts_search on public.contacts using gin(search_text);
+
+-- RPC function for full-text search (used by the Ask Myca bot)
+create or replace function search_contacts(query_text text, match_limit int default 25)
+returns setof contacts as $$
+  select *
+  from contacts
+  where is_myca_member = true
+    and search_text @@ websearch_to_tsquery('english', query_text)
+  order by ts_rank(search_text, websearch_to_tsquery('english', query_text)) desc
+  limit match_limit;
+$$ language sql stable;

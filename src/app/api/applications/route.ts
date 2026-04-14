@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser, isAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { resend } from "@/lib/resend";
+import { buildAcceptanceEmail } from "@/lib/emails/acceptance";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +64,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
-  // If accepted, add to contacts table
+  // If accepted, add to contacts table and send welcome email
   if (newStatus === "accepted") {
     const { data: app } = await supabase
       .from("applications")
@@ -81,6 +83,13 @@ export async function PATCH(request: Request) {
           occupation_type: app.occupation || null,
           location: Array.isArray(app.location) ? app.location.join(", ") : app.location || null,
           linkedin: app.linkedin || null,
+          instagram: app.instagram || null,
+          skills: app.skills || null,
+          interests: app.interests || null,
+          superpower: app.superpower || null,
+          asks: app.asks || app.hoping_to_get || null,
+          offers: app.offers || app.excited_to_contribute || null,
+          industry_tags: app.industry_focus || null,
           photo_url: app.photo_url || null,
           is_myca_member: true,
         },
@@ -88,15 +97,44 @@ export async function PATCH(request: Request) {
       );
 
       if (insertError) {
-        return NextResponse.json({
-          status: newStatus,
-          warning: `Application accepted but contact creation failed: ${insertError.message}`,
+        console.error("Contact upsert failed:", insertError.message);
+      }
+
+      // Send acceptance email
+      try {
+        const { subject, html } = buildAcceptanceEmail(app.full_name);
+        const { data: emailResult, error: emailError } = await resend.emails.send({
+          from: "Emma @ Myca <hello@mycacollective.com>",
+          to: app.email,
+          subject,
+          html,
         });
+
+        if (emailError) {
+          console.error("Resend error:", emailError.message);
+          await supabase
+            .from("applications")
+            .update({ email_status: "failed" })
+            .eq("id", id);
+        } else if (emailResult?.id) {
+          await supabase
+            .from("applications")
+            .update({ email_id: emailResult.id, email_status: "sent" })
+            .eq("id", id);
+        }
+      } catch (emailErr: any) {
+        console.error("Acceptance email failed:", emailErr.message);
+        await supabase
+          .from("applications")
+          .update({ email_status: "failed" })
+          .eq("id", id);
       }
     }
+
+    return NextResponse.json({ status: newStatus, id });
   }
 
-  // If rejected, revoke membership
+  // If rejected, revoke membership — but only if there's no other accepted application
   if (newStatus === "rejected") {
     const { data: app } = await supabase
       .from("applications")
@@ -105,10 +143,20 @@ export async function PATCH(request: Request) {
       .single();
 
     if (app?.email) {
-      await supabase
-        .from("contacts")
-        .update({ is_myca_member: false })
-        .eq("email", app.email);
+      const { data: otherAccepted } = await supabase
+        .from("applications")
+        .select("id")
+        .eq("email", app.email)
+        .eq("status", "accepted")
+        .neq("id", id)
+        .limit(1);
+
+      if (!otherAccepted || otherAccepted.length === 0) {
+        await supabase
+          .from("contacts")
+          .update({ is_myca_member: false })
+          .eq("email", app.email);
+      }
     }
   }
 

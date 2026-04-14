@@ -100,6 +100,10 @@ export default function MemberLogin({
         } else {
           setError(authError.message);
         }
+      } else {
+        // Login succeeded - redirect to home immediately
+        window.location.href = "/";
+        return;
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
@@ -126,7 +130,7 @@ export default function MemberLogin({
         email,
         password,
         options: {
-          emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/directory` : undefined,
+          emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/` : undefined,
         },
       });
 
@@ -157,8 +161,11 @@ export default function MemberLogin({
         // Email confirmation is probably required
         setError("Account created! Check your email to confirm, then come back and sign in.");
         setState("login");
+      } else {
+        // Signup + auto-login succeeded - redirect to home immediately
+        window.location.href = "/";
+        return;
       }
-      // If sign-in succeeded, onAuthStateChange will handle the rest
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -173,7 +180,7 @@ export default function MemberLogin({
 
     try {
       const redirectUrl = typeof window !== "undefined"
-        ? `${window.location.origin}/directory`
+        ? `${window.location.origin}/`
         : undefined;
 
       const { error: resetError } = await getSupabaseBrowser().auth.resetPasswordForEmail(email, {

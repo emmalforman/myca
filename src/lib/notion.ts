@@ -96,6 +96,8 @@ export async function fetchMembersFromNotion(): Promise<Member[]> {
       ),
       location: locationRaw.join(", "),
       linkedin: getPlainText(p["Please add your Linkedin"]),
+      hopingToGet: getPlainText(p["What are you hoping to get out of Myca? *"] || p["What are you hoping to get out of Myca?"]),
+      excitedToContribute: getPlainText(p["What are you most excited to contribute to the Myca community? "] || p["What are you most excited to contribute to the Myca community?"]),
     };
   });
 }

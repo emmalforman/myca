@@ -12,6 +12,7 @@ const LOCATIONS = [
 ];
 
 const REFERRAL_SOURCES = [
+  "Existing Myca member",
   "A friend or colleague",
   "LinkedIn",
   "Instagram",
@@ -20,6 +21,20 @@ const REFERRAL_SOURCES = [
   "Newsletter",
   "Google Search",
   "Other",
+];
+
+const SKILL_SUGGESTIONS = [
+  "Product", "Engineering", "Design", "Marketing", "Sales",
+  "Operations", "Finance", "Fundraising", "Brand", "Content",
+  "Community", "Supply Chain", "R&D", "Culinary", "Retail",
+  "E-commerce", "Partnerships", "PR",
+];
+
+const INTEREST_SUGGESTIONS = [
+  "Plant-Based", "Sustainability", "Regenerative Ag", "Functional Foods",
+  "Fermentation", "Zero Waste", "Wellness", "Climate", "Food Justice",
+  "Hospitality", "Coffee", "Spirits", "Snacks", "Beverages",
+  "Restaurants", "Travel", "Foraging", "Female Founders", "Wine",
 ];
 
 const INDUSTRIES = [
@@ -33,6 +48,23 @@ const INDUSTRIES = [
   "Nonprofits & Policy",
   "Supply Chain & Logistics",
   "Sustainability & Climate",
+  "Other",
+];
+
+const OCCUPATIONS = [
+  "Founder / Co-Founder",
+  "Investor / VC",
+  "Operator",
+  "Executive / C-Suite",
+  "Brand Builder",
+  "Creative / Designer",
+  "Engineer / Product",
+  "Marketing / Growth",
+  "Sales / Business Development",
+  "Chef / Culinary Professional",
+  "Consultant / Advisor",
+  "Journalist / Media",
+  "Researcher / Academic",
   "Other",
 ];
 
@@ -57,30 +89,44 @@ export default function JoinPage() {
     company: "",
     title: "",
     occupation: "",
+    occupationOther: "",
     linkedin: "",
     instagram: "",
+    tiktok: "",
+    twitter: "",
+    substack: "",
     website: "",
     email: "",
     phone: "",
     location: "",
     locationOther: "",
     industryFocus: "",
-    skills: "",
     yearsExperience: "",
     comfortFood: "",
     referralSource: "",
     referredByName: "",
     referredByEmail: "",
+    superpower: "",
+    asks: "",
+    offers: "",
     hopingToGet: "",
     excitedToContribute: "",
     website_url: "",
   });
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState("");
+  const [interests, setInterests] = useState<string[]>([]);
+  const [interestInput, setInterestInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Company autocomplete
+  const [companyResults, setCompanyResults] = useState<string[]>([]);
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
 
   // Referral search
   const [referralQuery, setReferralQuery] = useState("");
@@ -104,6 +150,19 @@ export default function JoinPage() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (form.company.length < 2) {
+      setCompanyResults([]);
+      return;
+    }
+    const q = form.company.toLowerCase();
+    const uniqueCompanies = [...new Set(allMembers.map((m) => m.company).filter(Boolean))];
+    const matches = uniqueCompanies
+      .filter((c) => c.toLowerCase().includes(q) && c.toLowerCase() !== q)
+      .slice(0, 6);
+    setCompanyResults(matches);
+  }, [form.company, allMembers]);
 
   useEffect(() => {
     if (referralQuery.length < 2) {
@@ -144,18 +203,27 @@ export default function JoinPage() {
     setSubmitting(true);
     setError(null);
 
+    if (!photo) {
+      setError("Please upload a photo of yourself.");
+      setSubmitting(false);
+      return;
+    }
+
     try {
       let photoUrl: string | undefined;
       if (photo) {
         const formData = new FormData();
         formData.append("photo", photo);
-        const uploadRes = await fetch("/api/upload", {
+        const uploadRes = await fetch("/api/apply-upload", {
           method: "POST",
           body: formData,
         });
         if (uploadRes.ok) {
           const uploadData = await uploadRes.json();
           photoUrl = uploadData.url;
+        } else {
+          const uploadErr = await uploadRes.json().catch(() => null);
+          throw new Error(uploadErr?.error || "Photo upload failed. Please try again.");
         }
       }
 
@@ -165,6 +233,9 @@ export default function JoinPage() {
         body: JSON.stringify({
           name: `${form.firstName} ${form.lastName}`.trim(),
           ...form,
+          occupation: form.occupation === "Other" ? form.occupationOther : form.occupation,
+          skills: skills.join(", "),
+          interests: interests.join(", "),
           location: [
             form.location === "Other" ? form.locationOther : form.location,
           ],
@@ -205,7 +276,8 @@ export default function JoinPage() {
           </h1>
           <p className="text-[15px] text-ink-400 leading-relaxed">
             Applications are reviewed weekly. If your profile is a fit, expect
-            to hear from us soon. In the meantime, keep building.
+            to hear from us soon. Be sure to check your spam folder so you
+            don&apos;t miss our response.
           </p>
         </div>
       </div>
@@ -266,7 +338,7 @@ export default function JoinPage() {
 
           {/* Company + Title */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="relative">
               <p className={labelClass}>
                 Where do you work? <span className={requiredClass}>(required)</span>
               </p>
@@ -274,11 +346,32 @@ export default function JoinPage() {
                 type="text"
                 required
                 value={form.company}
-                onChange={(e) =>
-                  setForm((f: any) => ({ ...f, company: e.target.value }))
-                }
+                onChange={(e) => {
+                  setForm((f: any) => ({ ...f, company: e.target.value }));
+                  setShowCompanyDropdown(true);
+                }}
+                onFocus={() => form.company.length >= 2 && setShowCompanyDropdown(true)}
+                onBlur={() => setTimeout(() => setShowCompanyDropdown(false), 200)}
+                placeholder="Company name"
                 className={inputClass}
               />
+              {showCompanyDropdown && companyResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-ink-200 shadow-lg z-20 max-h-48 overflow-y-auto rounded-xl">
+                  {companyResults.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        setForm((f: any) => ({ ...f, company: c }));
+                        setShowCompanyDropdown(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-[14px] text-ink-900 hover:bg-forest-50 transition-colors border-b border-ink-50 last:border-0"
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <p className={labelClass}>
@@ -302,16 +395,40 @@ export default function JoinPage() {
               How would you describe your occupation?{" "}
               <span className={requiredClass}>(required)</span>
             </p>
-            <input
-              type="text"
-              required
-              value={form.occupation}
-              onChange={(e) =>
-                setForm((f: any) => ({ ...f, occupation: e.target.value }))
-              }
-              placeholder="Founder, investor, operator, creative..."
-              className={inputClass}
-            />
+            <div className="relative">
+              <select
+                required
+                value={form.occupation}
+                onChange={(e) =>
+                  setForm((f: any) => ({
+                    ...f,
+                    occupation: e.target.value,
+                    occupationOther: e.target.value === "Other" ? f.occupationOther : "",
+                  }))
+                }
+                className={`${inputClass} appearance-none cursor-pointer pr-10`}
+              >
+                <option value="">Select your occupation</option>
+                {OCCUPATIONS.map((occ) => (
+                  <option key={occ} value={occ}>{occ}</option>
+                ))}
+              </select>
+              <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            {form.occupation === "Other" && (
+              <input
+                type="text"
+                required
+                value={form.occupationOther}
+                onChange={(e) =>
+                  setForm((f: any) => ({ ...f, occupationOther: e.target.value }))
+                }
+                placeholder="Describe your occupation"
+                className={`${inputClass} mt-3`}
+              />
+            )}
           </div>
 
           {/* Industry Focus */}
@@ -341,18 +458,106 @@ export default function JoinPage() {
 
           {/* Skills */}
           <div>
-            <p className={labelClass}>
-              Skills & expertise
+            <p className="block text-[11px] uppercase tracking-[0.2em] text-ink-500 font-mono mb-3">
+              Skills <span className={requiredClass}>(required)</span>
             </p>
+            {skills.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {skills.map((s) => (
+                  <span key={s} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-forest-900 text-cream text-[13px] rounded-full">
+                    {s}
+                    <button type="button" onClick={() => setSkills(skills.filter((x) => x !== s))} className="text-cream/60 hover:text-cream">
+                      x
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
             <input
               type="text"
-              value={form.skills}
-              onChange={(e) =>
-                setForm((f: any) => ({ ...f, skills: e.target.value }))
-              }
-              placeholder="e.g. Brand strategy, fundraising, retail distribution..."
+              value={skillInput}
+              onChange={(e) => setSkillInput(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === ",") && skillInput.trim()) {
+                  e.preventDefault();
+                  const val = skillInput.trim().replace(/,$/, "");
+                  if (val && !skills.includes(val)) setSkills([...skills, val]);
+                  setSkillInput("");
+                }
+              }}
+              placeholder="Add more..."
               className={inputClass}
             />
+            <p className="text-[12px] text-ink-400 mt-2">Press Enter or comma to add. Click suggestions below:</p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {SKILL_SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  disabled={skills.includes(s)}
+                  onClick={() => !skills.includes(s) && setSkills([...skills, s])}
+                  className={`px-3.5 py-1.5 text-[13px] border rounded-full transition-colors ${
+                    skills.includes(s)
+                      ? "bg-ink-100 text-ink-300 border-ink-100 line-through cursor-default"
+                      : "bg-white text-ink-500 border-ink-200 hover:border-forest-400"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Interests */}
+          <div>
+            <p className="block text-[11px] uppercase tracking-[0.2em] text-ink-500 font-mono mb-3">
+              Interests <span className={requiredClass}>(required)</span>
+            </p>
+            {interests.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {interests.map((s) => (
+                  <span key={s} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-forest-900 text-cream text-[13px] rounded-full">
+                    {s}
+                    <button type="button" onClick={() => setInterests(interests.filter((x) => x !== s))} className="text-cream/60 hover:text-cream">
+                      x
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <input
+              type="text"
+              value={interestInput}
+              onChange={(e) => setInterestInput(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === ",") && interestInput.trim()) {
+                  e.preventDefault();
+                  const val = interestInput.trim().replace(/,$/, "");
+                  if (val && !interests.includes(val)) setInterests([...interests, val]);
+                  setInterestInput("");
+                }
+              }}
+              placeholder="Add more..."
+              className={inputClass}
+            />
+            <p className="text-[12px] text-ink-400 mt-2">Press Enter or comma to add. Click suggestions below:</p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {INTEREST_SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  disabled={interests.includes(s)}
+                  onClick={() => !interests.includes(s) && setInterests([...interests, s])}
+                  className={`px-3.5 py-1.5 text-[13px] border rounded-full transition-colors ${
+                    interests.includes(s)
+                      ? "bg-ink-100 text-ink-300 border-ink-100 line-through cursor-default"
+                      : "bg-white text-ink-500 border-ink-200 hover:border-forest-400"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Years of experience */}
@@ -389,6 +594,8 @@ export default function JoinPage() {
               <input
                 type="url"
                 required
+                pattern="https?://(www\.)?linkedin\.com/in/.+"
+                title="Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/yourname)"
                 value={form.linkedin}
                 onChange={(e) =>
                   setForm((f: any) => ({ ...f, linkedin: e.target.value }))
@@ -396,33 +603,98 @@ export default function JoinPage() {
                 placeholder="https://linkedin.com/in/..."
                 className={inputClass}
               />
+              {form.linkedin && !/^https?:\/\/(www\.)?linkedin\.com\/in\/.+/i.test(form.linkedin) && (
+                <p className="text-[12px] text-rust-500 mt-1.5">Please enter a valid LinkedIn URL (e.g. https://linkedin.com/in/yourname)</p>
+              )}
             </div>
             <div>
-              <p className={labelClass}>Instagram</p>
-              <input
-                type="text"
-                value={form.instagram}
-                onChange={(e) =>
-                  setForm((f: any) => ({ ...f, instagram: e.target.value }))
-                }
-                placeholder="@handle"
-                className={inputClass}
-              />
+              <p className={labelClass}>
+                Instagram <span className={requiredClass}>(required)</span>
+              </p>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-[14px] text-ink-400 pointer-events-none">@</span>
+                <input
+                  type="text"
+                  required
+                  pattern="[a-zA-Z0-9._]{1,30}"
+                  title="Please enter your Instagram username"
+                  value={form.instagram}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/^@/, "");
+                    setForm((f: any) => ({ ...f, instagram: val }));
+                  }}
+                  placeholder="handle"
+                  className={`${inputClass} pl-9`}
+                />
+              </div>
+              {form.instagram && !/^[a-zA-Z0-9._]{1,30}$/.test(form.instagram) && (
+                <p className="text-[12px] text-rust-500 mt-1.5">Letters, numbers, periods, and underscores only</p>
+              )}
             </div>
           </div>
 
-          {/* Website */}
-          <div>
-            <p className={labelClass}>Website or portfolio</p>
-            <input
-              type="url"
-              value={form.website}
-              onChange={(e) =>
-                setForm((f: any) => ({ ...f, website: e.target.value }))
-              }
-              placeholder="https://..."
-              className={inputClass}
-            />
+          {/* TikTok + Twitter */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className={labelClass}>TikTok <span className="text-ink-400 text-[13px] ml-1">(optional)</span></p>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-[14px] text-ink-400 pointer-events-none">@</span>
+                <input
+                  type="text"
+                  value={form.tiktok}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/^@/, "");
+                    setForm((f: any) => ({ ...f, tiktok: val }));
+                  }}
+                  placeholder="handle"
+                  className={`${inputClass} pl-9`}
+                />
+              </div>
+            </div>
+            <div>
+              <p className={labelClass}>Twitter / X <span className="text-ink-400 text-[13px] ml-1">(optional)</span></p>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-[14px] text-ink-400 pointer-events-none">@</span>
+                <input
+                  type="text"
+                  value={form.twitter}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/^@/, "");
+                    setForm((f: any) => ({ ...f, twitter: val }));
+                  }}
+                  placeholder="handle"
+                  className={`${inputClass} pl-9`}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Substack + Website */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className={labelClass}>Substack <span className="text-ink-400 text-[13px] ml-1">(optional)</span></p>
+              <input
+                type="url"
+                value={form.substack}
+                onChange={(e) =>
+                  setForm((f: any) => ({ ...f, substack: e.target.value }))
+                }
+                placeholder="https://yourname.substack.com"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <p className={labelClass}>Website or portfolio <span className="text-ink-400 text-[13px] ml-1">(optional)</span></p>
+              <input
+                type="url"
+                value={form.website}
+                onChange={(e) =>
+                  setForm((f: any) => ({ ...f, website: e.target.value }))
+                }
+                placeholder="https://..."
+                className={inputClass}
+              />
+            </div>
           </div>
 
           {/* Email + Phone */}
@@ -452,6 +724,7 @@ export default function JoinPage() {
                 onChange={(e) =>
                   setForm((f: any) => ({ ...f, phone: e.target.value }))
                 }
+                placeholder="+1 (555) 123-4567"
                 className={inputClass}
               />
             </div>
@@ -527,7 +800,12 @@ export default function JoinPage() {
                 required
                 value={form.referralSource}
                 onChange={(e) =>
-                  setForm((f: any) => ({ ...f, referralSource: e.target.value }))
+                  setForm((f: any) => ({
+                    ...f,
+                    referralSource: e.target.value,
+                    referredByName: e.target.value !== "Existing Myca member" ? "" : f.referredByName,
+                    referredByEmail: e.target.value !== "Existing Myca member" ? "" : f.referredByEmail,
+                  }))
                 }
                 className={`${inputClass} appearance-none cursor-pointer pr-10`}
               >
@@ -540,56 +818,59 @@ export default function JoinPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
               </svg>
             </div>
-          </div>
 
-          {/* Referred by (member search) */}
-          <div>
-            <p className={labelClass}>Were you referred by a current member?</p>
-            <div className="relative">
-              <input
-                type="text"
-                value={referralQuery}
-                onChange={(e) => {
-                  setReferralQuery(e.target.value);
-                  setShowReferralDropdown(true);
-                  if (!e.target.value) {
-                    setForm((f: any) => ({
-                      ...f,
-                      referredByName: "",
-                      referredByEmail: "",
-                    }));
-                  }
-                }}
-                onFocus={() => referralQuery.length >= 2 && setShowReferralDropdown(true)}
-                placeholder="Search by name or company..."
-                className={inputClass}
-              />
-              {form.referredByName && (
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <svg className="w-4 h-4 text-forest-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              )}
+            {/* Member search - shown when "Existing Myca member" is selected */}
+            {form.referralSource === "Existing Myca member" && (
+              <div className="relative mt-3">
+                <p className="text-[13px] text-ink-500 mb-1.5">
+                  Which member referred you? <span className={requiredClass}>(required)</span>
+                </p>
+                <input
+                  type="text"
+                  required
+                  value={referralQuery}
+                  onChange={(e) => {
+                    setReferralQuery(e.target.value);
+                    setShowReferralDropdown(true);
+                    if (!e.target.value) {
+                      setForm((f: any) => ({
+                        ...f,
+                        referredByName: "",
+                        referredByEmail: "",
+                      }));
+                    }
+                  }}
+                  onFocus={() => referralQuery.length >= 2 && setShowReferralDropdown(true)}
+                  placeholder="Search by name or company..."
+                  className={inputClass}
+                />
+                {form.referredByName && (
+                  <div className="absolute right-4 top-1/2 translate-y-1">
+                    <svg className="w-4 h-4 text-forest-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
 
-              {showReferralDropdown && referralResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-ink-200 shadow-lg z-20 max-h-48 overflow-y-auto">
-                  {referralResults.map((m) => (
-                    <button
-                      key={m.email}
-                      type="button"
-                      onClick={() => selectReferral(m)}
-                      className="w-full text-left px-4 py-3 hover:bg-forest-50 transition-colors border-b border-ink-50 last:border-0"
-                    >
-                      <p className="text-[14px] text-ink-900 font-serif">
-                        {m.name}
-                      </p>
-                      <p className="text-[12px] text-ink-400">{m.company}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                {showReferralDropdown && referralResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-ink-200 shadow-lg z-20 max-h-48 overflow-y-auto rounded-xl">
+                    {referralResults.map((m) => (
+                      <button
+                        key={m.email}
+                        type="button"
+                        onClick={() => selectReferral(m)}
+                        className="w-full text-left px-4 py-3 hover:bg-forest-50 transition-colors border-b border-ink-50 last:border-0"
+                      >
+                        <p className="text-[14px] text-ink-900 font-serif">
+                          {m.name}
+                        </p>
+                        <p className="text-[12px] text-ink-400">{m.company}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Hoping to get */}
@@ -690,7 +971,13 @@ export default function JoinPage() {
               submitting ||
               !form.location ||
               (form.location === "Other" && !form.locationOther) ||
-              !form.yearsExperience
+              !form.occupation ||
+              (form.occupation === "Other" && !form.occupationOther) ||
+              !form.yearsExperience ||
+              !photo ||
+              skills.length === 0 ||
+              interests.length === 0 ||
+              (form.referralSource === "Existing Myca member" && !form.referredByName)
             }
             className="px-8 py-3.5 text-[14px] font-medium text-cream bg-forest-900 rounded-full hover:bg-forest-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >

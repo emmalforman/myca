@@ -1,34 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/auth";
 
-// Only allow fetching from known event platforms
-const ALLOWED_HOSTS = [
-  "lu.ma",
-  "www.lu.ma",
-  "luma.com",
-  "www.luma.com",
-  "luma.co",
-  "www.luma.co",
-  "partiful.com",
-  "www.partiful.com",
-  "eventbrite.com",
-  "www.eventbrite.com",
-  "instagram.com",
-  "www.instagram.com",
-  "resy.com",
-  "www.resy.com",
+// Block internal/private hosts — allow any public HTTPS event URL
+const BLOCKED_HOST_PATTERNS = [
+  /^localhost$/,
+  /^127\./,
+  /^10\./,
+  /^192\.168\./,
+  /^172\.(1[6-9]|2\d|3[01])\./,
+  /^0\./,
+  /\.local$/,
+  /\.internal$/,
 ];
 
 function isAllowedUrl(urlString: string): boolean {
   try {
     const parsed = new URL(urlString);
     if (parsed.protocol !== "https:") return false;
-    return ALLOWED_HOSTS.some(
-      (host) => parsed.hostname === host || parsed.hostname.endsWith("." + host)
-    );
+    return !BLOCKED_HOST_PATTERNS.some((p) => p.test(parsed.hostname));
   } catch {
     return false;
   }
+}
+
+function decodeHtmlEntities(str: string | null): string | null {
+  if (!str) return null;
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
 }
 
 export async function POST(request: NextRequest) {
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   if (!isAllowedUrl(url)) {
     return NextResponse.json(
-      { error: "URL not allowed. Only lu.ma, partiful.com, eventbrite.com, and instagram.com are supported." },
+      { error: "URL not allowed. Please use a public HTTPS event URL." },
       { status: 400 }
     );
   }
@@ -66,29 +69,14 @@ export async function POST(request: NextRequest) {
     const html = await response.text();
 
     let imageUrl =
-      extractMeta(html, 'property="og:image"') ||
-      extractMeta(html, "property='og:image'") ||
-      extractMeta(html, 'name="og:image"');
+      decodeHtmlEntities(extractMeta(html, 'property="og:image"')) ||
+      decodeHtmlEntities(extractMeta(html, "property='og:image'")) ||
+      decodeHtmlEntities(extractMeta(html, 'name="og:image"'));
 
     if (!imageUrl) {
       imageUrl =
-        extractMeta(html, 'name="twitter:image"') ||
-        extractMeta(html, 'property="twitter:image"');
-    }
-
-    // Instagram JSON-LD fallback
-    if (!imageUrl && url.includes("instagram.com")) {
-      const jsonLdMatch = html.match(
-        /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/
-      );
-      if (jsonLdMatch) {
-        try {
-          const jsonLd = JSON.parse(jsonLdMatch[1]);
-          imageUrl = jsonLd.image || jsonLd.thumbnailUrl;
-        } catch {
-          // ignore
-        }
-      }
+        decodeHtmlEntities(extractMeta(html, 'name="twitter:image"')) ||
+        decodeHtmlEntities(extractMeta(html, 'property="twitter:image"'));
     }
 
     if (imageUrl?.startsWith("/")) {
@@ -98,14 +86,14 @@ export async function POST(request: NextRequest) {
 
     // Extract event metadata from og/meta tags and JSON-LD
     const title =
-      extractMeta(html, 'property="og:title"') ||
-      extractMeta(html, 'name="og:title"') ||
-      extractMeta(html, 'name="twitter:title"') ||
+      decodeHtmlEntities(extractMeta(html, 'property="og:title"')) ||
+      decodeHtmlEntities(extractMeta(html, 'name="og:title"')) ||
+      decodeHtmlEntities(extractMeta(html, 'name="twitter:title"')) ||
       null;
 
     const description =
-      extractMeta(html, 'property="og:description"') ||
-      extractMeta(html, 'name="description"') ||
+      decodeHtmlEntities(extractMeta(html, 'property="og:description"')) ||
+      decodeHtmlEntities(extractMeta(html, 'name="description"')) ||
       null;
 
     // Try JSON-LD for structured event data
@@ -124,6 +112,17 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch {}
+    }
+
+    // Prefer JSON-LD image (actual event cover) over og:image (generated OG card)
+    if (eventData.image) {
+      const jsonLdImg = Array.isArray(eventData.image)
+        ? eventData.image[0]
+        : eventData.image;
+      if (jsonLdImg) {
+        // Upgrade http to https
+        imageUrl = jsonLdImg.replace(/^http:\/\//, "https://");
+      }
     }
 
     // Try __NEXT_DATA__ for Luma/Partiful (fallback when no JSON-LD)
@@ -257,13 +256,30 @@ export async function POST(request: NextRequest) {
         host = eventData.organizer.name || null;
       }
     }
+    // Fallback: use og:site_name as host (e.g. venue websites like Falu House)
+    if (!host) {
+      host =
+        decodeHtmlEntities(extractMeta(html, 'property="og:site_name"')) ||
+        null;
+    }
 
-    // Clean title — strip " · Luma" or " | Partiful" suffixes
+    // If location is empty, try Google Places text search using the host/venue name
+    if (!location && host) {
+      location = await searchGooglePlaces(host);
+    }
+
+    // Clean title — strip platform/site name suffixes like " · Luma", " — Falu House Deli"
     let cleanTitle = eventData.name || title || null;
     if (cleanTitle) {
+      // Strip known platform suffixes
       cleanTitle = cleanTitle
-        .replace(/\s*[·|]\s*(Luma|Partiful)\s*$/i, "")
+        .replace(/\s*[·|]\s*(Luma|Partiful|Eventbrite)\s*$/i, "")
         .trim();
+      // Strip " — Site Name" if the suffix is shorter than the event name
+      const emDashMatch = cleanTitle.match(/^(.+?)\s*—\s+(.+)$/);
+      if (emDashMatch && emDashMatch[2].length < emDashMatch[1].length) {
+        cleanTitle = emDashMatch[1].trim();
+      }
     }
 
     return NextResponse.json({
@@ -281,6 +297,34 @@ export async function POST(request: NextRequest) {
       { error: "Failed to fetch cover image" },
       { status: 500 }
     );
+  }
+}
+
+async function searchGooglePlaces(query: string): Promise<string | null> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_CALENDAR_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const params = new URLSearchParams({
+      input: query,
+      inputtype: "textquery",
+      fields: "formatted_address,name",
+      key: apiKey,
+    });
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?${params}`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const place = data.candidates?.[0];
+    if (!place) return null;
+    // Return "Venue Name, Address"
+    const name = place.name || "";
+    const addr = place.formatted_address || "";
+    if (name && addr) return `${name}, ${addr}`;
+    return addr || name || null;
+  } catch {
+    return null;
   }
 }
 

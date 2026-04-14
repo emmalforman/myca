@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import MemberLogin from "@/components/MemberLogin";
 import { LOCATIONS } from "@/lib/types";
 
-export default function SubmitEventPage() {
+function SubmitEventPageInner() {
   const [signedIn, setSignedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
@@ -350,5 +351,13 @@ export default function SubmitEventPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function SubmitEventPage() {
+  return (
+    <MemberLogin>
+      <SubmitEventPageInner />
+    </MemberLogin>
   );
 }
