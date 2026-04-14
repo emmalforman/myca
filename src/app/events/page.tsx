@@ -144,9 +144,11 @@ export default function EventsPage() {
               Submit Event
             </Link>
           )}
-          <span className="text-[11px] text-ink-300 font-mono uppercase tracking-wider ml-auto">
-            {filtered.length} events
-          </span>
+          {signedIn && (
+            <span className="text-[11px] text-ink-300 font-mono uppercase tracking-wider ml-auto">
+              {filtered.length} events
+            </span>
+          )}
         </div>
 
         {/* Loading */}
