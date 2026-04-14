@@ -573,19 +573,16 @@ export default function AdminPage() {
                           className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-mono ${
                             app.email_status === "opened" || app.email_status === "clicked"
                               ? "text-forest-700 bg-forest-50 border border-forest-200"
-                              : app.email_status === "delivered"
-                              ? "text-sky-700 bg-sky-50 border border-sky-200"
                               : app.email_status === "bounced" || app.email_status === "failed" || app.email_status === "complained"
                               ? "text-rust-700 bg-rust-50 border border-rust-200"
                               : "text-ink-400 bg-ink-50 border border-ink-200"
                           }`}
-                          title={`Email ${app.email_status}`}
                         >
-                          {app.email_status === "opened" || app.email_status === "clicked" ? "✓ opened" :
-                           app.email_status === "delivered" ? "✓ delivered" :
-                           app.email_status === "bounced" ? "✗ bounced" :
-                           app.email_status === "failed" ? "✗ failed" :
-                           `email ${app.email_status}`}
+                          {app.email_status === "opened" || app.email_status === "clicked"
+                            ? "Email Read"
+                            : app.email_status === "bounced" || app.email_status === "failed"
+                            ? "Email Failed"
+                            : "Email Sent"}
                         </span>
                       )}
                     </div>
