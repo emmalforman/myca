@@ -277,7 +277,7 @@ export default function JoinPage() {
           <p className="text-[15px] text-ink-400 leading-relaxed">
             Applications are reviewed weekly. If your profile is a fit, expect
             to hear from us soon. Be sure to check your spam folder so you
-            don&apos;t miss our response. In the meantime, keep building.
+            don&apos;t miss our response.
           </p>
         </div>
       </div>

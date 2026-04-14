@@ -11,8 +11,19 @@ interface Application {
   title: string;
   occupation: string;
   linkedin: string;
+  instagram: string | null;
   phone: string;
   location: string[];
+  industry_focus: string | null;
+  skills: string | null;
+  interests: string | null;
+  superpower: string | null;
+  asks: string | null;
+  offers: string | null;
+  years_experience: string | null;
+  referral_source: string | null;
+  referred_by_name: string | null;
+  referred_by_email: string | null;
   comfort_food: string;
   hoping_to_get: string;
   excited_to_contribute: string;
@@ -586,21 +597,34 @@ export default function AdminPage() {
 
                   {expanded === app.id && (
                     <div className="border-t border-ink-50 p-5 bg-ivory/30">
+                      {/* Photo + basic info */}
+                      {app.photo_url && (
+                        <div className="mb-4">
+                          <img src={app.photo_url} alt={app.full_name} className="w-24 h-24 object-cover" />
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                        {[
+                        {([
                           { label: "Email", value: app.email },
                           { label: "Phone", value: app.phone },
                           { label: "Occupation", value: app.occupation },
                           { label: "Location", value: Array.isArray(app.location) ? app.location.join(", ") : app.location },
+                          { label: "Industry Focus", value: app.industry_focus },
+                          { label: "Years Experience", value: app.years_experience },
                           { label: "LinkedIn", value: app.linkedin, link: true },
+                          { label: "Instagram", value: app.instagram },
+                          { label: "Skills", value: app.skills },
+                          { label: "Interests", value: app.interests },
+                          { label: "Referral", value: [app.referral_source, app.referred_by_name].filter(Boolean).join(" — ") },
                           { label: "Comfort Food", value: app.comfort_food, italic: true },
-                        ].map((field) => (
+                        ] as { label: string; value: string | null; link?: boolean; italic?: boolean }[]).filter(f => f.value).map((field) => (
                           <div key={field.label}>
                             <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">
                               {field.label}
                             </p>
                             {field.link ? (
-                              <a href={field.value} target="_blank" rel="noopener noreferrer" className="text-[13px] text-forest-700 underline">
+                              <a href={field.value!} target="_blank" rel="noopener noreferrer" className="text-[13px] text-forest-700 underline">
                                 View
                               </a>
                             ) : (
@@ -611,6 +635,26 @@ export default function AdminPage() {
                           </div>
                         ))}
                       </div>
+
+                      {/* Long-form responses */}
+                      {app.superpower && (
+                        <div className="mb-3">
+                          <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">Superpower</p>
+                          <p className="text-[13px] text-ink-700 leading-relaxed">{app.superpower}</p>
+                        </div>
+                      )}
+                      {app.asks && (
+                        <div className="mb-3">
+                          <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">Asks</p>
+                          <p className="text-[13px] text-ink-700 leading-relaxed">{app.asks}</p>
+                        </div>
+                      )}
+                      {app.offers && (
+                        <div className="mb-3">
+                          <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">Offers</p>
+                          <p className="text-[13px] text-ink-700 leading-relaxed">{app.offers}</p>
+                        </div>
+                      )}
                       {app.hoping_to_get && (
                         <div className="mb-3">
                           <p className="text-[10px] uppercase tracking-wider text-ink-400 font-mono mb-0.5">Hoping to get</p>

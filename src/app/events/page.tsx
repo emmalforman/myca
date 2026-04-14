@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import MemberLogin from "@/components/MemberLogin";
 import type { Event } from "@/lib/types";
 
 /* ─── date helpers ─── */
@@ -89,7 +90,7 @@ function JoinOverlay() {
 }
 
 /* ─── component ─── */
-export default function EventsPage() {
+function EventsPageInner() {
   const today = new Date();
   const [signedIn, setSignedIn] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
@@ -735,5 +736,13 @@ export default function EventsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function EventsPage() {
+  return (
+    <MemberLogin>
+      <EventsPageInner />
+    </MemberLogin>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import MemberLogin from "@/components/MemberLogin";
 
 interface Post {
   title: string;
@@ -12,7 +13,7 @@ interface Post {
   image: string | null;
 }
 
-export default function NewsletterPage() {
+function NewsletterPageInner() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSignedIn, setIsSignedIn] = useState(false);
@@ -278,5 +279,13 @@ export default function NewsletterPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function NewsletterPage() {
+  return (
+    <MemberLogin>
+      <NewsletterPageInner />
+    </MemberLogin>
   );
 }
