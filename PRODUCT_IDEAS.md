@@ -73,9 +73,10 @@
 21. **Member Outreach Pipeline** — Track and manage outreach to prospective members, sponsors, and collaborators
 22. **Job Board Teaser for Non-Members** — Show a blurred/preview list of open roles on the public site ("12 open roles from companies like Sweetgreen, Greycroft, and Soho House") with a CTA to sign in or apply. Creates FOMO and drives conversions without giving away the full content.
 23. **Member-Submitted Jobs with Link Parser** — Instead of syncing mass feeds (Instacart, Gopuff, etc. = too noisy), let members submit jobs via a link. Parser auto-extracts title, company, location, description. Keeps the board curated and relevant to the Myca network.
+24. **Email Inbound for Jobs & Events** — Members/brands forward job listings or event invites to `jobs@myca.com` / `events@myca.com`. An AI parser (Claude) extracts title, company, location, date, description, etc., and creates a draft entry for review or auto-publishes. Zero-friction submission — no form to fill out, just forward the email you already got. Same parser could handle press announcements, partnership offers, or brand submissions.
 
 ## Infrastructure
-24. **Payment & Processing** — Stripe for memberships and job board
+25. **Payment & Processing** — Stripe for memberships and job board
 
 ## On Hold
 - **Paid Intros for Non-Members** — Paused. Concern: too much noise from random intro requests before member density is built. Revisit once the platform has gatekeeping/filtering and enough members to sustain it.
