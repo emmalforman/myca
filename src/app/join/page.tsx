@@ -620,8 +620,8 @@ export default function JoinPage() {
                 placeholder="@handle"
                 className={inputClass}
               />
-              {form.instagram && !/^@?[a-zA-Z0-9._]{1,30}$/.test(form.instagram) && (
-                <p className="text-[12px] text-rust-500 mt-1.5">Please enter a valid Instagram handle (e.g. @yourhandle)</p>
+              {form.instagram && (!/^@?[a-zA-Z0-9._]{1,30}$/.test(form.instagram) || /^(https?:|www\.)/i.test(form.instagram)) && (
+                <p className="text-[12px] text-rust-500 mt-1.5">Just the handle, not the URL (e.g. @yourhandle)</p>
               )}
             </div>
           </div>
