@@ -81,6 +81,9 @@ function SubmitJobPageInner() {
 
       if (!res.ok) {
         setParseError(data.error || "Could not parse link");
+        // Auto-open manual entry and prefill the apply URL so they don't have to retype it
+        setShowManual(true);
+        setForm((f) => ({ ...f, applyUrl: jobUrl }));
         setParsing(false);
         return;
       }

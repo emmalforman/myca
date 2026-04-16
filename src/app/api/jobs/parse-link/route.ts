@@ -305,18 +305,50 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       return NextResponse.json(
-        { error: `Failed to fetch: ${response.status}` },
+        {
+          error:
+            response.status === 403
+              ? "This site blocks automated fetches. Please enter details manually."
+              : `Couldn't fetch the page (${response.status}). Please enter details manually.`,
+        },
         { status: 400 }
       );
     }
 
     const html = await response.text();
+
+    // Detect Cloudflare / bot challenge pages
+    if (
+      html.includes("Just a moment...") ||
+      html.includes("challenge-platform") ||
+      html.includes("cf-browser-verification")
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "This site blocks automated fetches. Please enter details manually.",
+        },
+        { status: 400 }
+      );
+    }
+
     const parsed = parseJobDetails(html, url);
+
+    // If we got nothing useful, let the user know
+    if (!parsed.title && !parsed.company) {
+      return NextResponse.json(
+        {
+          error:
+            "Couldn't extract job details from this page. Please enter manually.",
+        },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json(parsed);
   } catch {
     return NextResponse.json(
-      { error: "Failed to parse job link" },
+      { error: "Failed to parse job link. Please enter details manually." },
       { status: 500 }
     );
   }
