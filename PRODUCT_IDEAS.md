@@ -5,7 +5,12 @@
 2. **Sponsorship & Partnership Page** — Brands pay $5–10K per partnership
 3. **Job Board** — Members + companies pay to list
 4. **Brand & Skill Marketplace** — Members and brands list their products, services, and skills for the community to browse and shop. Brands pay for featured/premium listings. Members can offer consulting, catering, recipe dev, etc.
-5. **Member Discounts Program** — Exclusive discounts at Myca member businesses. v1: discount codes + affiliate links (no infra needed). v2: Stripe Connect for platform-facilitated payments with a Myca fee. Huge retention driver — "your membership pays for itself."
+5. **Member Discounts Program** — Exclusive discounts for Myca members at both member-owned businesses AND Myca-partnered places (restaurants, cafes, venues, brands). Members get a perk; partners get exposure to a curated tastemaker audience.
+    - **v1 — zero infra:** discount codes + affiliate links. Partners generate a promo code, Myca distributes it via the directory, digest email, and app.
+    - **v2 — Stripe Connect:** partners connect their Stripe, discounts flow through Myca with a platform fee, fully automated.
+    - **"Myca perks" badge** — places that partner get a badge in the directory and on the homepage, creating mutual value
+    - **Examples:** 15% off at a member's restaurant, free pastry at a partnered cafe, members-only hours at a boutique market
+    - Huge retention driver — "your $50/month pays for itself in one dinner."
 6. **Non-Member Revenue Streams** — Ways outsiders (companies, brands, agencies) can pay Myca without being a member. The community is the asset — monetize access to it.
     - **Paid public job postings** — companies pay (e.g. $200–500/role) to post to the Myca job board without a membership
     - **Sponsored digest placements** — brands pay to be featured in the weekly member digest email
