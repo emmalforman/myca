@@ -71,22 +71,34 @@
 18. **Email/Outbound Integration** — Automated comms tied to events
 19. **AI Learning Sessions** — With calendar access
 20. **Member Cohorts** — Batch new members into onboarding cohorts (monthly or bi-weekly). Host a welcome Zoom/event where they meet each other. Could be grouped by city, industry, or interest. Auto-create a cohort chat channel so they stay connected. Builds instant belonging and stronger retention vs. solo signups.
+21. **Weekly Programming & Content Pipeline** — Recurring weekly Zoom programming for members with an end-to-end production pipeline.
+    - **Content types:** panels, fireside chats, workshops, AMAs, expert roundtables, member demos, brand spotlights
+    - **Pipeline:**
+      1. **Topic sourcing** — AI agent surfaces trending topics from chat, online trends, and member requests
+      2. **Speaker/panelist booking** — pull from member profiles (expertise tags), outreach list, or brand partners
+      3. **Scheduling + promotion** — auto-create Google Cal event, Luma page (iCal sync), push to chat channels, email blast, and social
+      4. **Live production** — Zoom hosting, recording, moderation
+      5. **Post-production** — auto-transcribe (Granola/Otter), generate highlights/clips, pull key quotes
+      6. **Distribution** — recording posted to members-only library, highlights → Substack, clips → Instagram/TikTok
+      7. **Repurposing** — AI drafts a Substack recap, pulls out actionable takeaways, tags relevant members mentioned
+    - **Revenue angle:** sponsors pay to present or co-host a session, brands pay for product demos, premium workshops gated to higher-tier members
+    - **Content library** — all recordings archived and searchable. New members get immediate value from back catalog.
 
 ## Growth
-21. **Public-Facing Member Directory** — Preview for non-members to drive conversions
-22. **Brand Directory** — Curated brands/products members can shop; brands pay to be featured
-23. **Member Outreach Pipeline** — Track and manage outreach to prospective members, sponsors, and collaborators
-24. **Job Board Teaser for Non-Members** — Show a blurred/preview list of open roles on the public site ("12 open roles from companies like Sweetgreen, Greycroft, and Soho House") with a CTA to sign in or apply. Creates FOMO and drives conversions without giving away the full content.
-25. **Member-Submitted Jobs with Link Parser** — Instead of syncing mass feeds (Instacart, Gopuff, etc. = too noisy), let members submit jobs via a link. Parser auto-extracts title, company, location, description. Keeps the board curated and relevant to the Myca network.
-26. **Email Inbound for Jobs & Events** — Members/brands forward job listings or event invites to `jobs@myca.com` / `events@myca.com`. An AI parser (Claude) extracts title, company, location, date, description, etc., and creates a draft entry for review or auto-publishes. Zero-friction submission — no form to fill out, just forward the email you already got. Same parser could handle press announcements, partnership offers, or brand submissions.
-27. **Women-in-Food Prospect Sourcing Workflow** — Internal tool to find prospective members (women in food & bev) for the outreach pipeline. Avoids LinkedIn's anti-scraping ToS by using legit data providers.
+22. **Public-Facing Member Directory** — Preview for non-members to drive conversions
+23. **Brand Directory** — Curated brands/products members can shop; brands pay to be featured
+24. **Member Outreach Pipeline** — Track and manage outreach to prospective members, sponsors, and collaborators
+25. **Job Board Teaser for Non-Members** — Show a blurred/preview list of open roles on the public site ("12 open roles from companies like Sweetgreen, Greycroft, and Soho House") with a CTA to sign in or apply. Creates FOMO and drives conversions without giving away the full content.
+26. **Member-Submitted Jobs with Link Parser** — Instead of syncing mass feeds (Instacart, Gopuff, etc. = too noisy), let members submit jobs via a link. Parser auto-extracts title, company, location, description. Keeps the board curated and relevant to the Myca network.
+27. **Email Inbound for Jobs & Events** — Members/brands forward job listings or event invites to `jobs@myca.com` / `events@myca.com`. An AI parser (Claude) extracts title, company, location, date, description, etc., and creates a draft entry for review or auto-publishes. Zero-friction submission — no form to fill out, just forward the email you already got. Same parser could handle press announcements, partnership offers, or brand submissions.
+28. **Women-in-Food Prospect Sourcing Workflow** — Internal tool to find prospective members (women in food & bev) for the outreach pipeline. Avoids LinkedIn's anti-scraping ToS by using legit data providers.
     - **Stack:** Apollo.io (search by title/industry/location) + Gender API or Namsor (infer gender from first name, filter to female ≥ 0.8 confidence) + Clay.com for enrichment
     - **Cross-reference** with existing women-in-food databases (Chief, Female Founder Collective, Les Dames d'Escoffier, Cherry Bombe community)
     - **Output:** ranked prospect list dropped into `OUTREACH.md`
     - Could be run as a manual workflow to start, automated later
 
 ## Infrastructure
-28. **Payment & Processing** — Stripe for memberships and job board
+29. **Payment & Processing** — Stripe for memberships and job board
 
 ## On Hold
 - **Paid Intros for Non-Members** — Paused. Concern: too much noise from random intro requests before member density is built. Revisit once the platform has gatekeeping/filtering and enough members to sustain it.
