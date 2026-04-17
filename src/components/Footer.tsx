@@ -22,7 +22,7 @@ export default function Footer() {
                 { href: "/", label: "Home" },
                 { href: "/directory", label: "Directory" },
                 { href: "/chat", label: "Chat" },
-                { href: "/join", label: "Apply" },
+                { href: "/join-us", label: "Apply" },
               ].map((link) => (
                 <Link
                   key={link.href}

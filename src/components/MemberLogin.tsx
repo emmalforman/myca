@@ -382,7 +382,7 @@ export default function MemberLogin({
           )}
           <p className="text-[12px] text-ink-300 mt-4">
             Not a member?{" "}
-            <Link href="/join" className="text-ink-600 underline">
+            <Link href="/join-us" className="text-ink-600 underline">
               Apply here
             </Link>
           </p>

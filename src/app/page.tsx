@@ -66,7 +66,7 @@ export default function Home() {
           </p>
           <div className="flex flex-wrap gap-4">
             <Link
-              href="/join"
+              href="/join-us"
               className="inline-flex items-center px-8 py-3.5 text-sm tracking-wide uppercase font-medium text-forest-900 bg-cream hover:bg-white transition-colors"
             >
               Apply for Membership
@@ -269,7 +269,7 @@ export default function Home() {
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
-                href="/join"
+                href="/join-us"
                 className="inline-flex items-center px-10 py-4 text-sm tracking-wide uppercase font-medium text-forest-900 bg-cream hover:bg-white transition-colors"
               >
                 Apply Now

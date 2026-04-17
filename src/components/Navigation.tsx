@@ -42,7 +42,7 @@ export default function Navigation() {
         { href: "/", label: "Home" },
         { href: "/events", label: "Events" },
         { href: "/newsletter", label: "Newsletter" },
-        { href: "/join", label: "Apply" },
+        { href: "/join-us", label: "Apply" },
       ];
 
   return (

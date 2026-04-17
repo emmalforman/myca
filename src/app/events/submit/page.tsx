@@ -143,7 +143,7 @@ export default function SubmitEventPage() {
               Sign In
             </Link>
             <Link
-              href="/join"
+              href="/join-us"
               className="px-6 py-2.5 text-[13px] uppercase tracking-wide font-medium text-ink-700 border border-ink-300 hover:border-ink-500 transition-colors"
             >
               Apply to Myca

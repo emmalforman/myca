@@ -275,7 +275,7 @@ export default function EventsPage() {
                   </p>
                   <div className="flex flex-wrap justify-center gap-3">
                     <Link
-                      href="/join"
+                      href="/join-us"
                       className="px-6 py-2.5 text-[13px] uppercase tracking-wide font-medium text-cream bg-forest-900 hover:bg-forest-800 transition-colors"
                     >
                       Apply to Myca
@@ -324,7 +324,7 @@ export default function EventsPage() {
                 </p>
                 <div className="flex flex-wrap justify-center gap-3">
                   <Link
-                    href="/join"
+                    href="/join-us"
                     className="px-6 py-2.5 text-[13px] uppercase tracking-wide font-medium text-cream bg-forest-900 hover:bg-forest-800 transition-colors"
                   >
                     Apply to Myca
